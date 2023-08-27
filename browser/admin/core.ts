@@ -125,6 +125,14 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
         return '';
     };
 
+    const clearError = () => {
+        const errorDiv = document.getElementById('error-div');
+
+        if (!errorDiv) return;
+
+        errorDiv.remove();
+    };
+
     const handleNavClick = async (event: Event) => {
         const target = event.target as HTMLButtonElement;
         const name = target.innerText.toLowerCase();
@@ -150,6 +158,7 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
         }
 
         window.dispatchEvent(new CustomEvent('reset-state'));
+        clearError();
 
         await setActiveNavButton(name);
         await renderCoreView(name);

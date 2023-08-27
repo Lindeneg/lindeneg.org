@@ -43,7 +43,10 @@ type Core = (typeof window)['funkalleroCore'];
             document.body.appendChild(errorDiv);
         }
 
-        errorDiv.innerHTML = `<p>${error}</p>`;
+        const errorEl = document.createElement('p');
+        errorEl.innerText = error;
+
+        errorDiv.appendChild(errorEl);
     };
 
     const sendRequest: Core['sendRequest'] = async (path, method, headers, body, onSuccess) => {
