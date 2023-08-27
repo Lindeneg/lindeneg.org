@@ -14,6 +14,8 @@ import BaseController from './base-controller';
 import AUTH from '@/enums/auth';
 import createPageDto from '@/contracts/create-page-dto';
 import updatePageDto from '@/contracts/update-page-dto';
+import createPageSectionDto from '@/contracts/create-page-section-dto';
+import updatePageSectionDto from '@/contracts/update-page-section-dto';
 
 @controller()
 class AdminController extends BaseController {
@@ -54,6 +56,27 @@ class AdminController extends BaseController {
     @auth(AUTH.POLICY.IS_ADMIN)
     public async deletePage(@params('id') id: string) {
         return this.mediator.send('DeletePageCommand', { id });
+    }
+
+    @httpPost('/page-sections')
+    @auth(AUTH.POLICY.IS_ADMIN)
+    public async createPageSection(@body(createPageSectionDto) sectionDto: ParsedSchema<typeof createPageSectionDto>) {
+        return this.mediator.send('CreatePageSectionCommand', sectionDto);
+    }
+
+    @httpPatch('/page-sections/:id')
+    @auth(AUTH.POLICY.IS_ADMIN)
+    public async updatePageSection(
+        @params('id') id: string,
+        @body(updatePageSectionDto) sectionDto: ParsedSchema<typeof updatePageSectionDto>
+    ) {
+        return this.mediator.send('UpdatePageSectionCommand', { ...sectionDto, id });
+    }
+
+    @httpDelete('/page-sections/:id')
+    @auth(AUTH.POLICY.IS_ADMIN)
+    public async deletePageSection(@params('id') id: string) {
+        return this.mediator.send('DeletePageSectionCommand', { id });
     }
 
     @httpGet('/pages-columns')

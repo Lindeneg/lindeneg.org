@@ -139,7 +139,7 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
             target.classList.add('pure-button-disabled');
             target.innerText = 'Clearing...';
 
-            await window.funkalleroCore.sendRequest('/bust-cache', 'GET');
+            await window.funkalleroCore.sendRequest('/bust-cache', 'POST');
 
             setTimeout(() => {
                 target.innerText = 'Clear Cache';
@@ -148,6 +148,8 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
 
             return;
         }
+
+        window.dispatchEvent(new CustomEvent('reset-state'));
 
         await setActiveNavButton(name);
         await renderCoreView(name);

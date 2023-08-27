@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
 const createPageSchema = z.object({
-    title: z.string().min(3).max(255),
-    slug: z.string().min(3).max(255),
-    name: z.string().min(3).max(255),
-    description: z.string().min(3).max(255),
+    title: z.string().trim().min(3).max(255),
+    slug: z.string().trim().min(3).max(255),
+    name: z.string().trim().min(3).max(255),
+    description: z.string().trim().min(3).max(255),
     published: z.boolean(),
 });
 

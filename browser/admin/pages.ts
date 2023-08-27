@@ -1,8 +1,5 @@
 (() => {
-    const DISABLED_BTN_CLASS = 'pure-button-disabled';
-    const { app, ...core } = window.funkalleroAdminCore;
-
-    const state = {
+    const defaultState = () => ({
         pages: null as Editable<EditablePageWithEditableSections>[] | null,
         original: null as PageWithSections[] | null,
         editor: null as SimpleMDE | null,
@@ -12,7 +9,15 @@
         editingEntrySection: null as Editable<PageSection> | null,
         isCreatingPage: false,
         isCreatingSection: false,
-    };
+    });
+    const DISABLED_BTN_CLASS = 'pure-button-disabled';
+    const { app, ...core } = window.funkalleroAdminCore;
+
+    const state = defaultState();
+
+    window.addEventListener('reset-state', () => {
+        Object.assign(state, defaultState());
+    });
 
     const getEditorTextArea = () => {
         if (!state.editingEntrySection && !state.isCreatingSection) return '';
@@ -343,7 +348,16 @@ ${getEditorTextArea()}
         if (item._meta.isNew) {
             const response = await core.postJson(name, getCommitPayload(item));
             if (response?.ok) {
+                const oldId = item.id;
                 item.id = await response.json();
+                state.pages
+                    ?.map((e) => e.sections)
+                    .flat(2)
+                    .forEach((section) => {
+                        if (section.pageId === oldId) {
+                            section.pageId = item.id;
+                        }
+                    });
             }
         } else if (item._meta.deleted) {
             await core.deleteJson(`${name}/${item.id}`);
@@ -354,12 +368,8 @@ ${getEditorTextArea()}
     };
 
     const commitChanges = async () => {
-        const promises = [
-            ...getEditedPages().map((e) => sendRequest(e, '/pages')),
-            ...getEditedSections().map((e) => sendRequest(e, '/page-sections')),
-        ];
-
-        await Promise.all(promises);
+        await Promise.all(getEditedPages().map((e) => sendRequest(e, '/pages')));
+        await Promise.all(getEditedSections().map((e) => sendRequest(e, '/page-sections')));
 
         state.pages = null;
 

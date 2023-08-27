@@ -2,6 +2,8 @@ import { ACTION_RESULT, MediatorResultSuccess, MediatorResultFailure } from '@li
 import BaseAction from '../base-action';
 import { ICreatePageDto } from '@/contracts/create-page-dto';
 import { IUpdatePageDto } from '@/contracts/update-page-dto';
+import { ICreatePageSectionDto } from '@/contracts/create-page-section-dto';
+import { IUpdatePageSectionDto } from '@/contracts/update-page-section-dto';
 
 export class GetNavigationQuery extends BaseAction {
     public async execute() {
@@ -81,6 +83,12 @@ export class GetPageSectionColumnsQuery extends BaseAction {
 
 export class CreatePageCommand extends BaseAction {
     public async execute(pageDto: ICreatePageDto) {
+        const existingPage = await this.dataContext.exec((p) => p.page.findFirst({ where: { name: pageDto.name } }));
+
+        if (existingPage) {
+            return new MediatorResultFailure(ACTION_RESULT.ERROR_UNPROCESSABLE);
+        }
+
         const page = await this.dataContext.exec((p) => p.page.create({ data: pageDto }));
 
         if (!page) {
@@ -110,6 +118,44 @@ export class UpdatePageCommand extends BaseAction {
         );
 
         if (!page) {
+            return new MediatorResultFailure(ACTION_RESULT.ERROR_INTERNAL_ERROR);
+        }
+
+        return new MediatorResultSuccess(ACTION_RESULT.UNIT);
+    }
+}
+
+export class CreatePageSectionCommand extends BaseAction {
+    public async execute(pageSectionDto: ICreatePageSectionDto) {
+        const section = await this.dataContext.exec((p) => p.pageSection.create({ data: pageSectionDto }));
+
+        if (!section) {
+            return new MediatorResultFailure(ACTION_RESULT.ERROR_INTERNAL_ERROR);
+        }
+
+        return new MediatorResultSuccess(section.id);
+    }
+}
+
+export class DeletePageSectionCommand extends BaseAction {
+    public async execute({ id }: Record<'id', string>) {
+        const section = await this.dataContext.exec((p) => p.pageSection.delete({ where: { id } }));
+
+        if (!section) {
+            return new MediatorResultFailure(ACTION_RESULT.ERROR_INTERNAL_ERROR);
+        }
+
+        return new MediatorResultSuccess(ACTION_RESULT.UNIT);
+    }
+}
+
+export class UpdatePageSectionCommand extends BaseAction {
+    public async execute({ id, ...data }: IUpdatePageSectionDto) {
+        const section = await this.dataContext.exec((p) =>
+            p.pageSection.update({ where: { id }, data: this.createUpdatePayload(data) })
+        );
+
+        if (!section) {
             return new MediatorResultFailure(ACTION_RESULT.ERROR_INTERNAL_ERROR);
         }
 
