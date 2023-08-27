@@ -31,11 +31,11 @@ class DataContextService
     callback: TAction
   ): Promise<ActionReturn<TAction> | null> {
     try {
-      await (this.client as any).$connect();
+      await this.client.$connect();
 
       const val = await callback(this.client);
 
-      await (this.client as any).$disconnect();
+      await this.client.$disconnect();
 
       return val;
     } catch (err) {
@@ -44,7 +44,7 @@ class DataContextService
         err,
       });
 
-      await (this.client as any).$disconnect();
+      await this.client.$disconnect();
 
       return null;
     }

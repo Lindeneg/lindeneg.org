@@ -6,7 +6,7 @@ type Core = (typeof window)['funkalleroCore'];
 
     const debounce: Core['debounce'] = (fn, ms = 300) => {
         let timeoutId: ReturnType<typeof setTimeout>;
-        return function (this: unknown, ...args: unknown[]) {
+        return function(this: unknown, ...args: unknown[]) {
             clearTimeout(timeoutId);
             timeoutId = setTimeout(() => fn.apply(this, args), ms);
         };
@@ -35,11 +35,15 @@ type Core = (typeof window)['funkalleroCore'];
     };
 
     const setError = (error: string) => {
-        const errorDiv = document.getElementById('error-div');
+        let errorDiv = document.getElementById('error-div');
 
-        if (!errorDiv) return;
+        if (!errorDiv) {
+            errorDiv = document.createElement('div');
+            errorDiv.id = 'error-div';
+            document.body.appendChild(errorDiv);
+        }
 
-        errorDiv.innerHTML = `<p style="color:red">${error}</p>`;
+        errorDiv.innerHTML = `<p>${error}</p>`;
     };
 
     const sendRequest: Core['sendRequest'] = async (path, method, headers, body, onSuccess) => {

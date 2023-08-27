@@ -32,6 +32,8 @@
         "@types/handlebars": "4.1.0",
         "@types/node": "20.5.0",
         "@types/showdown": "2.0.1",
+        "@types/simplemde": "^1.11.8",
+        "prettier": "^3.0.2",
         "rollup": "3.28.0",
         "rollup-plugin-cleaner": "1.0.0",
         "rollup-plugin-typescript2": "0.35.0",

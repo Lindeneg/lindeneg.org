@@ -46,15 +46,19 @@ h6 {
 h1 {
     font-size: 2.6em;
 }
+
 h2 {
     font-size: 1.8em;
 }
+
 h3 {
     font-size: 1.4em;
 }
+
 h4 {
     font-size: 1.2em;
 }
+
 h5 {
     font-size: 1.1em;
 }
@@ -91,14 +95,19 @@ code {
 }
 
 pre {
-    margin: 20px 0px !important;
+    margin: 20px 0px;
 }
 
 ol pre,
 ol p {
-    margin: 0px 0px !important;
+    margin: 0px 0px;
 }
 
 a:visited {
     color: #333;
+}
+
+#error-div {
+    color: red;
+    text-align: center;
 }

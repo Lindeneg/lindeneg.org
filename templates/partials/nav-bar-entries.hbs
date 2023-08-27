@@ -1,12 +1,12 @@
 <ul class="pure-menu-list">
     {{#if brandName}}
-    <li class="pure-menu-item nav-item-brand">
-        <a href="/" class="pure-menu-link">{{brandName}}</a>
-    </li>
+        <li class="pure-menu-item nav-item-brand">
+            <a href="/" class="pure-menu-link">{{brandName}}</a>
+        </li>
     {{/if}}
     {{#each entries}}
-    <li class="pure-menu-item {{#if (isStrEqual ../activePageName this.name)}}pure-menu-selected{{/if}}">
-        <a href="{{this.href}}" class="pure-menu-link" {{#if this.newTab}}target="_blank"{{/if}}>{{this.name}}</a>
-    </li>
+        <li class="pure-menu-item {{#if (isStrEqual ../activePageName this.name)}}pure-menu-selected{{/if}}">
+            <a href="{{this.href}}" class="pure-menu-link" {{#if this.newTab}}target="_blank"{{/if}}>{{this.name}}</a>
+        </li>
     {{/each}}
 </ul>

@@ -1,8 +1,14 @@
 type Navigation = import('@prisma/client').Navigation;
 type NavigationItem = import('@prisma/client').NavigationItem;
+type Page = import('@prisma/client').Page;
+type PageSection = import('@prisma/client').PageSection;
 
 interface NavigationWithItems extends Navigation {
     navItems: NavigationItem[];
+}
+
+interface PageWithSections extends Page {
+    sections: PageSection[];
 }
 
 interface FunkalleroCore {
@@ -11,24 +17,24 @@ interface FunkalleroCore {
         method: string,
         headers?: RequestInit['headers'],
         body?: RequestInit['body'],
-        onSuccess?: (response: Response) => any
+        onSuccess?: (response: Response) => any,
     ) => Promise<null | Response>;
 
     postJson: (
         path: string,
         body: RequestInit['body'],
-        onSuccess?: (response: Response) => any
+        onSuccess?: (response: Response) => any,
     ) => Promise<null | Response>;
 
     patchJson: (
         path: string,
         body: RequestInit['body'],
-        onSuccess?: (response: Response) => any
+        onSuccess?: (response: Response) => any,
     ) => Promise<null | Response>;
 
     getJson: <TResult = unknown>(
         path: string,
-        onSuccess?: (response: Response) => TResult
+        onSuccess?: (response: Response) => TResult,
     ) => Promise<null | TResult>;
 
     setError: (error: string) => void;
@@ -40,15 +46,29 @@ interface FunkalleroCore {
     debounce: (fn: (...args: any[]) => any, ms?: number) => any;
 }
 
+type EditMeta = { edited: boolean; deleted: boolean; changedProperties: any[] }
+
+type Editable<T> = T & {
+    _meta: EditMeta;
+};
+
 interface FunkalleroAdminCore extends FunkalleroCore {
     getTableHtml: (
         columns: string[],
         rows: any[],
         updatingId?: string | null,
         withActions?: boolean,
-        editableColumnHtml?: ((row: any, column: any) => string) | null
+        editableColumnHtml?: ((row: any, column: any) => string) | null,
+        context?: string | null,
     ) => string;
     app: HTMLElement;
+    withMeta: <T>(item: T, overrides?: Partial<EditMeta>) => T & {
+        _meta: { edited: boolean; deleted: boolean; changedProperties: any[] }
+    };
+    NEW_ENTRY_REGEX: RegExp;
+    createTempId: () => string;
+    getColumns: (rows: any[], exclude?: string[]) => string[];
+    withoutDeleted: <T extends Editable<any>[]>(rows?: T | null) => T;
 }
 
 interface Window {

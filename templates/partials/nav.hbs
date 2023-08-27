@@ -1,19 +1,19 @@
 <nav>
     <div class="pure-menu pure-menu-horizontal nav-wrapper divider-border-bottom">
         {{#if leftEntries}}
-        {{> nav-bar-entries 
-            entries=leftEntries
-            brandName=brandName
-            activePageName=activePageName
-        }}
+            {{> nav-bar-entries
+                entries=leftEntries
+                brandName=brandName
+                activePageName=activePageName
+            }}
         {{/if}}
 
         {{#if rightEntries}}
-        {{> nav-bar-entries 
-            entries=rightEntries
-            brandName=false
-            activePageName=activePageName
-        }}
+            {{> nav-bar-entries
+                entries=rightEntries
+                brandName=false
+                activePageName=activePageName
+            }}
         {{/if}}
     </div>
 </nav>

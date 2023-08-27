@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang='en'>
-{{> head 
+{{> head
     title=title
     description=description
     pureCss=true
@@ -8,21 +8,25 @@
 }}
 
 <body>
-    {{> nav
-        leftEntries=leftNavEntries
-        rightEntries=rightNavEntries
-        activePageName=name
-        brandName=brandName
-    }}
+{{> nav
+    leftEntries=leftNavEntries
+    rightEntries=rightNavEntries
+    activePageName=name
+    brandName=brandName
+}}
 
-    {{#each markdownSections}}
+{{#each markdownSections}}
     <section class="page-section">
         {{this}}
     </section>
-    {{/each}}
+{{/each}}
 
-    <footer class="footer divider-border-top"><div class="wrapper"><p>© Christian Lindeneg 2023</p><p>|</p><a href="https://github.com/Lindeneg/funkallero" target="_blank">Made with: <span>Funkallero</span></a></div></footer>
+<footer class="footer divider-border-top">
+    <div class="wrapper"><p>© Christian Lindeneg 2023</p>
+        <p>|</p><a href="https://github.com/Lindeneg/funkallero" target="_blank">Made with: <span>Funkallero</span></a>
+    </div>
+</footer>
 
-    <script src='/js/core.js'></script>
+<script src='/js/core.js'></script>
 </body>
 </html>

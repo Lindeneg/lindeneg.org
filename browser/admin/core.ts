@@ -3,22 +3,36 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
 (() => {
     const ACTIVE_NAV_CLASS = 'button-secondary';
     const INACTIVE_NAV_CLASS = 'pure-button-primary';
+    const NEW_ENTRY_REGEX = /NEW_ROW_TEMP_ID-/;
 
     const app = document.getElementById('app')!;
     const navEntries = Array.from(document.querySelectorAll('.nav-entry')) as HTMLButtonElement[];
+
+    const createTempId = () => {
+        return 'NEW_ROW_TEMP_ID-' + Date.now();
+    };
+
+    const getColumns = (rows: any[], exclude = ['id', 'navigationId', 'createdAt', 'updatedAt']): string[] => {
+        if (rows.length > 0) {
+            return Object.keys(rows[0]).filter((name) => !exclude.includes(name));
+        }
+
+        return [];
+    };
 
     const getTableHtml: AdminCore['getTableHtml'] = (
         columns,
         rows,
         updatingId = null,
         withActions = false,
-        editableColumnHtml = null
+        editableColumnHtml = null,
+        context = null
     ) => {
         if (withActions && !columns.includes('actions')) {
             columns.push('actions');
         }
         return `
-<table class="pure-table pure-table-bordered">
+<table class='pure-table pure-table-bordered'>
     <thead>
         <tr>
         ${columns.map((name) => `<th>${name}</th>`).join('')}
@@ -28,16 +42,21 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
     ${rows
         .map(
             (row) =>
-                `<tr data-item-id=${row.id} >${columns
+                `<tr data-item-id='${row.id}' >${columns
                     .map((name) => {
                         const isUpdatingRow = updatingId === row.id;
+                        const contextAttr = context ? "data-item-context='" + context + "'" : '';
 
                         if (name === 'actions') {
-                            return `<td><span data-item-id=${row.id} class="update-table-btn" >${
+                            return `<td><span ${contextAttr} data-item-id='${row.id}' class='update-table-btn' >${
                                 isUpdatingRow ? 'Done' : 'Update'
-                            }</span> | <span data-item-id=${
+                            }</span> | <span ${contextAttr} data-item-id='${
                                 row.id
-                            } class="delete-table-btn">Delete</span></td>`;
+                            }' class='delete-table-btn'>Delete</span></td>`;
+                        }
+
+                        if (name === 'sections') {
+                            return `<td>${withoutDeleted(row.sections)?.length || 0}</td>`;
                         }
 
                         if (isUpdatingRow && editableColumnHtml) {
@@ -55,8 +74,16 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
 
     const loadScript = (name: string) => {
         return new Promise((resolve, reject) => {
+            const newSource = `/js/admin/${name}.js`;
+            const existingScript = Array.from(document.querySelectorAll('#main-admin-script')) as HTMLScriptElement[];
+
+            for (const script of existingScript) {
+                if (script.src.includes(newSource)) return resolve({});
+            }
+
             const script = document.createElement('script');
-            script.src = `/js/admin/${name}.js`;
+            script.src = newSource;
+            script.id = 'main-admin-script';
             script.onload = resolve;
             script.onerror = reject;
             document.head.appendChild(script);
@@ -106,7 +133,22 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
             });
         }
 
-        return Promise.all([setActiveNavButton(name), renderCoreView(name)]);
+        if (name === 'clear cache') {
+            target.classList.add('pure-button-disabled');
+            target.innerText = 'Clearing...';
+
+            await window.funkalleroCore.sendRequest('/bust-cache', 'GET');
+
+            setTimeout(() => {
+                target.innerText = 'Clear Cache';
+                target.classList.remove('pure-button-disabled');
+            }, 2000);
+
+            return;
+        }
+
+        await setActiveNavButton(name);
+        await renderCoreView(name);
     };
 
     const setNavListeners = async () => {
@@ -117,6 +159,21 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
         await Promise.all([setNavListeners(), renderCoreView()]);
     };
 
+    const withMeta: FunkalleroAdminCore['withMeta'] = (obj, overrides) => {
+        return {
+            ...obj,
+            _meta: {
+                edited: !!overrides?.edited,
+                deleted: !!overrides?.deleted,
+                changedProperties: overrides?.changedProperties || [],
+            },
+        };
+    };
+
+    const withoutDeleted = <T extends Editable<any>[]>(rows?: T | null) => {
+        return (rows || []).filter((row) => !row._meta.deleted) as T;
+    };
+
     window.addEventListener('DOMContentLoaded', initialize);
 
     if (typeof window.funkalleroCoreViews === 'undefined') {
@@ -125,7 +182,12 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
 
     window.funkalleroAdminCore = {
         ...window.funkalleroCore,
+        withoutDeleted,
         getTableHtml,
+        createTempId,
+        getColumns,
+        withMeta,
         app,
+        NEW_ENTRY_REGEX,
     };
 })();

@@ -49,7 +49,7 @@ const funkallero = await Funkallero.create({
         await Promise.all([
             // initialize handlebar templates
             service.getSingletonService<TemplateService>(SERVICE.TEMPLATE)?.initializeTemplates(),
-            // create super user from environment, if not already created
+            // create superuser from environment, if not already created
             service.getSingletonService<SuperUserService>(SERVICE.SUPER_USER)?.create(),
         ]);
     },

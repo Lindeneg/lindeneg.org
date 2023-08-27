@@ -1,12 +1,6 @@
 import Handlebars from 'handlebars';
 import { Converter } from 'showdown';
-import {
-    NavItemAlignment,
-    type Navigation,
-    type NavigationItem,
-    type Page,
-    type PageSection,
-} from '@prisma/client';
+import { NavItemAlignment, type Navigation, type NavigationItem, type Page, type PageSection } from '@prisma/client';
 import { injectService, SingletonService } from '@lindeneg/funkallero';
 import SERVICE from '@/enums/service';
 import type DataContextService from '@/services/data-context-service';
@@ -26,6 +20,7 @@ export interface CachedNavigation {
 }
 
 export interface CachedPage {
+    name: string;
     title: string;
     description: string;
     sections: Handlebars.SafeString[];
@@ -97,14 +92,15 @@ class CachingService extends SingletonService {
         return entry.value;
     }
 
-    private async setPage(name: string) {
+    private async setPage(slug: string) {
         const page = (await this.dataContext.exec((p) =>
-            p.page.findFirst({ where: { name }, include: { sections: true } })
+            p.page.findFirst({ where: { slug, published: true }, include: { sections: true } })
         )) as PageWithSections;
 
         if (!page) return null;
 
         const entry = this.createEntry({
+            name: page.name,
             title: page.title,
             description: page.description,
             sections: page.sections
@@ -113,7 +109,7 @@ class CachingService extends SingletonService {
                 .map((section) => new Handlebars.SafeString(converter.makeHtml(section.content))),
         });
 
-        this.cache.set(name, entry);
+        this.cache.set(slug, entry);
 
         return entry.value;
     }

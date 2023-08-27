@@ -21,11 +21,7 @@ class CookieService extends MiddlewareSingletonService {
     @injectService(SERVICE.CONFIGURATION)
     private readonly config: IConfigurationService;
 
-    public async afterRequestHandler(
-        _: Request,
-        response: Response,
-        result: MediatorResult<IAuthModel>
-    ) {
+    public async afterRequestHandler(_: Request, response: Response, result: MediatorResult<IAuthModel>) {
         if (result.success) {
             const token = await this.tokenService.createToken(result.value);
             response.setHeader('Set-Cookie', this.createCookieString(token));
@@ -35,10 +31,7 @@ class CookieService extends MiddlewareSingletonService {
     }
 
     private createCookieString(token: string) {
-        const secure =
-            this.config.meta.mode === 'production' || this.config.https !== null
-                ? 'Secure=true;'
-                : '';
+        const secure = this.config.meta.mode === 'production' || this.config.https !== null ? 'Secure=true;' : '';
 
         return `${AUTH.COOKIE_NAME}=${token}; Max-Age=${BaseTokenConfiguration.expiresIn}; Path=/; SameSite=Strict; ${secure} HttpOnly=true;`;
     }

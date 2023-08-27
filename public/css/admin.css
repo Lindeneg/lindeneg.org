@@ -68,3 +68,9 @@
 .delete-table-btn:hover {
     color: red;
 }
+
+.mdeContainer {
+    display: inline-block;
+    width: 640px;
+    vertical-align: top;
+}

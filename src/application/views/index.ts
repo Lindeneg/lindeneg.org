@@ -1,9 +1,4 @@
-import {
-    ACTION_RESULT,
-    MediatorResultSuccess,
-    MediatorResultFailure,
-    injectService,
-} from '@lindeneg/funkallero';
+import { ACTION_RESULT, MediatorResultSuccess, MediatorResultFailure, injectService } from '@lindeneg/funkallero';
 import BaseAction from '../base-action';
 import SERVICE from '@/enums/service';
 import TEMPLATE_NAME from '@/enums/template-name';
@@ -27,7 +22,7 @@ export class GetPage extends BaseViewAction {
         const navigation = await this.cachingService.getNavigation();
 
         const template = await this.templateService.render(TEMPLATE_NAME.PAGE, {
-            name,
+            name: page.name,
             brandName: navigation.brandName,
             title: page.title,
             description: page.description,
