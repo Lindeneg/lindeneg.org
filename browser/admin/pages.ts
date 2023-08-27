@@ -85,15 +85,19 @@ ${getEditorTextArea()}
         }
 
         mutatedTarget[name as keyof typeof mutatedTarget] = value as never;
-        mutatedTarget._meta.edited = !originalTarget || value !== originalTarget[name as keyof typeof originalTarget];
 
         if (!mutatedTarget._meta.isNew) {
-            if (mutatedTarget._meta.edited && !mutatedTarget._meta.changedProperties.includes(name)) {
+            if (!mutatedTarget._meta.changedProperties.includes(name)) {
                 mutatedTarget._meta.changedProperties.push(name);
             } else {
                 mutatedTarget._meta.changedProperties = mutatedTarget._meta.changedProperties.filter((e) => e !== name);
             }
         }
+
+        mutatedTarget._meta.edited =
+            mutatedTarget._meta.changedProperties.length > 0 ||
+            !originalTarget ||
+            value !== originalTarget[name as keyof typeof originalTarget];
     };
 
     const getEditablePageRowHtml = (row: Page, name: keyof Page): string => {
@@ -107,7 +111,7 @@ ${getEditorTextArea()}
             return `<input name='${name}' class='editable-page-row' type='checkbox' ${value ? 'checked' : ''}></input>`;
         }
 
-        return String(value);
+        return value as any;
     };
 
     const getEditableSectionRowHtml = (row: PageSection, name: keyof PageSection): string => {
@@ -123,7 +127,7 @@ ${getEditorTextArea()}
             }></input>`;
         }
 
-        return String(value);
+        return value as any;
     };
 
     const getPagesTable = () => {
@@ -338,6 +342,10 @@ ${getEditorTextArea()}
         for (const key of item._meta.changedProperties) {
             const value = item[key];
             if (typeof value !== 'undefined') {
+                if (key === 'position') {
+                    payload[key] = parseInt(value);
+                    continue;
+                }
                 payload[key] = item[key];
             }
         }
