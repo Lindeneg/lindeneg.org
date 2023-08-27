@@ -222,8 +222,10 @@
 
     const setNavigationHtml = async () => {
         if (!state.navigation || !state.navigationItems || !state.columnNames) {
-            const navigation = await core.getJson<NavigationWithItems>('/navigation');
-            const navigationColumns = await core.getJson<string[]>('/navigation-columns');
+            const [navigation, navigationColumns] = await Promise.all([
+                core.getJson<NavigationWithItems>('/navigation'),
+                core.getJson<string[]>('/navigation-columns'),
+            ]);
 
             if (!navigation || !navigationColumns) return;
 

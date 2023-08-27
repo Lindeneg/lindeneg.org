@@ -32,6 +32,8 @@ interface FunkalleroCore {
         onSuccess?: (response: Response) => any
     ) => Promise<null | Response>;
 
+    deleteJson: (path: string, onSuccess?: (response: Response) => any) => Promise<null | Response>;
+
     getJson: <TResult = unknown>(path: string, onSuccess?: (response: Response) => TResult) => Promise<null | TResult>;
 
     setError: (error: string) => void;

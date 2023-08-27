@@ -6,7 +6,7 @@ type Core = (typeof window)['funkalleroCore'];
 
     const debounce: Core['debounce'] = (fn, ms = 300) => {
         let timeoutId: ReturnType<typeof setTimeout>;
-        return function(this: unknown, ...args: unknown[]) {
+        return function (this: unknown, ...args: unknown[]) {
             clearTimeout(timeoutId);
             timeoutId = setTimeout(() => fn.apply(this, args), ms);
         };
@@ -90,10 +90,15 @@ type Core = (typeof window)['funkalleroCore'];
         return sendRequest(path, 'PATCH', { 'Content-Type': 'application/json' }, body, onSuccess);
     };
 
+    const deleteJson: Core['deleteJson'] = async (path, onSuccess) => {
+        return sendRequest(path, 'DELETE', { 'Content-Type': 'application/json' }, null, onSuccess);
+    };
+
     window.funkalleroCore = {
         debounce,
         sendRequest,
         getJson,
+        deleteJson,
         postJson,
         patchJson,
         setError,

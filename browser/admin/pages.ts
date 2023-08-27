@@ -328,11 +328,42 @@ ${getEditorTextArea()}
         await setPagesHtml();
     };
 
-    const commitChanges = async () => {
-        const editedPages = getEditedPages();
-        const editedSections = getEditedSections();
+    const getCommitPayload = (item: Editable<any>) => {
+        const payload = {} as any;
+        for (const key of item._meta.changedProperties) {
+            const value = item[key];
+            if (typeof value !== 'undefined') {
+                payload[key] = item[key];
+            }
+        }
+        return JSON.stringify(payload);
+    };
 
-        console.log({ editedPages, editedSections });
+    const sendRequest = async (item: Editable<any>, name: '/pages' | '/page-sections') => {
+        if (item._meta.isNew) {
+            const response = await core.postJson(name, getCommitPayload(item));
+            if (response?.ok) {
+                item.id = await response.json();
+            }
+        } else if (item._meta.deleted) {
+            await core.deleteJson(`${name}/${item.id}`);
+        } else if (item._meta.edited) {
+            await core.patchJson(`${name}/${item.id}`, getCommitPayload(item));
+        }
+        return Promise.resolve();
+    };
+
+    const commitChanges = async () => {
+        const promises = [
+            ...getEditedPages().map((e) => sendRequest(e, '/pages')),
+            ...getEditedSections().map((e) => sendRequest(e, '/page-sections')),
+        ];
+
+        await Promise.all(promises);
+
+        state.pages = null;
+
+        await setPagesHtml();
     };
 
     const updateConfirmButtonState = () => {
