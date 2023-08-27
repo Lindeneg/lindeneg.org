@@ -1,0 +1,70 @@
+.nav-button-wrapper {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.nav-entry {
+    flex-grow: 1;
+}
+
+.button-success,
+.button-error,
+.button-warning,
+.button-secondary {
+    color: white;
+    border-radius: 4px;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.button-success {
+    background: rgb(28, 184, 65);
+}
+
+.button-error {
+    background: rgb(202, 60, 60);
+}
+
+.button-warning {
+    background: rgb(223, 117, 20);
+}
+
+.button-secondary {
+    background: rgb(66, 184, 221);
+}
+
+.admin-section {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+}
+
+.admin-confirm-actions {
+    margin-top: 3rem;
+    display: flex;
+    width: 100%;
+    justify-content: space-evenly;
+}
+
+.admin-navigation-name {
+    display: inline-flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+}
+
+.update-table-btn,
+.delete-table-btn {
+    cursor: pointer;
+}
+
+.update-table-btn:hover,
+.delete-table-btn:hover {
+    text-decoration: underline;
+}
+
+.delete-table-btn:hover {
+    color: red;
+}

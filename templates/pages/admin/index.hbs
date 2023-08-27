@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang='en'>
+{{> head 
+    title="Lindeneg Admin"
+    description="Admin page for Lindeneg homepage"
+    pureCss=true
+    css=(csvArray "/css/site.css,/css/admin.css")
+}}
+
+<body>
+    <nav class="pure-button-group nav-button-wrapper" role="group" aria-label="...">
+        <button class="pure-button nav-entry button-secondary">Navigation</button>
+        <button class="pure-button nav-entry pure-button-primary">Pages</button>
+        <button class="pure-button nav-entry pure-button-primary">Posts</button>
+        <button class="pure-button nav-entry pure-button-primary">Users</button>
+        <button class="pure-button nav-entry button-warning">Logout</button>
+    </nav>
+
+    <div id="app"></div>
+
+    <script src='/js/core.js'></script>
+    <script src='/js/admin/core.js'></script>
+</body>
+</html>

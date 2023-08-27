@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang='en'>
+{{> head 
+    title="Admin Login" 
+    description="Admin login page"
+    pureCss=true
+    css=(csvArray "css/site.css")
+}}
+
+<body>
+    <section class="page-section">
+        <h1 style="text-align: center;">Admin Login</h1>
+        <form class="pure-form">
+            <fieldset>
+                <input id="email-field" type="email" placeholder="Email" />
+                <input id="password-field" type="password" placeholder="Password" />
+                <button id="login-button" type="button" class="pure-button pure-button-primary">Login</button>
+            </fieldset>
+        </form>
+        <div id="error-div"></div>
+    </section>
+    <script src='/js/core.js'></script>
+    <script src='/js/login.js'></script>
+</body>
+</html>
