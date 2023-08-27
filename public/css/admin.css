@@ -69,6 +69,10 @@
     color: red;
 }
 
+.admin-section {
+    margin-bottom: 5rem;
+}
+
 .mdeContainer {
     display: inline-block;
     width: 640px;

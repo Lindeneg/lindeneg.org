@@ -51,10 +51,12 @@
         navItem[name as keyof typeof navItem] = value as never;
         navItem._meta.edited = !originalNavItem || value !== originalNavItem[name as keyof typeof originalNavItem];
 
-        if (navItem._meta.edited && !navItem._meta.changedProperties.includes(name)) {
-            navItem._meta.changedProperties.push(name);
-        } else {
-            navItem._meta.changedProperties = navItem._meta.changedProperties.filter((e) => e !== name);
+        if (!navItem._meta.isNew) {
+            if (navItem._meta.edited && !navItem._meta.changedProperties.includes(name)) {
+                navItem._meta.changedProperties.push(name);
+            } else {
+                navItem._meta.changedProperties = navItem._meta.changedProperties.filter((e) => e !== name);
+            }
         }
     };
 
@@ -73,9 +75,24 @@
                     alignment: 'LEFT',
                     newTab: false,
                 },
-                { edited: true }
+                {
+                    edited: true,
+                    isNew: true,
+                    changedProperties: ['name', 'href', 'position', 'alignment', 'newTab', 'navigationId'],
+                }
             )
         );
+
+        await setNavigationHtml();
+    };
+
+    const resetChanges = async () => {
+        state.navigationItems = state.original!.navItems.map((item) => ({
+            ...core.withMeta(item),
+        }));
+        state.navigation = {
+            ...core.withMeta(state.original!),
+        };
 
         await setNavigationHtml();
     };
@@ -107,16 +124,7 @@
 
         addNavButton.addEventListener('click', addNavRow);
         commitBtn.addEventListener('click', commitChanges);
-        resetBtn.addEventListener('click', () => {
-            state.navigationItems = state.original!.navItems.map((item) => ({
-                ...core.withMeta(item),
-            }));
-            state.navigation = {
-                ...core.withMeta(state.original!),
-            };
-
-            return setNavigationHtml();
-        });
+        resetBtn.addEventListener('click', resetChanges);
     };
 
     const getEditedNavItems = () => {
@@ -219,12 +227,14 @@
 
             if (!navigation || !navigationColumns) return;
 
+            const copy = core.deepClone(navigation);
+
             state.original = navigation;
-            state.navigationItems = navigation.navItems.map((item) => ({
+            state.navigationItems = copy.navItems.map((item) => ({
                 ...core.withMeta(item),
             }));
             state.navigation = {
-                ...core.withMeta(navigation),
+                ...core.withMeta(copy),
             };
             state.columnNames = navigationColumns;
         }
@@ -239,10 +249,10 @@
         if (!state.navigation || !state.navigationItems) return;
 
         if (state.navigation._meta.edited) {
-            // handle main nav changes
+            // TODO handle main nav changes
         }
 
-        // handle nav item changes
+        // TODO handle nav item changes
         const editedItems = getEditedNavItems();
 
         console.log({ editedItems });

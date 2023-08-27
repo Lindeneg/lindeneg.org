@@ -3,7 +3,7 @@
     const { app, ...core } = window.funkalleroAdminCore;
 
     const state = {
-        pages: null as Editable<PageWithSections>[] | null,
+        pages: null as Editable<EditablePageWithEditableSections>[] | null,
         original: null as PageWithSections[] | null,
         editor: null as SimpleMDE | null,
         pageColumns: null as string[] | null,
@@ -82,10 +82,12 @@ ${getEditorTextArea()}
         mutatedTarget[name as keyof typeof mutatedTarget] = value as never;
         mutatedTarget._meta.edited = !originalTarget || value !== originalTarget[name as keyof typeof originalTarget];
 
-        if (mutatedTarget._meta.edited && !mutatedTarget._meta.changedProperties.includes(name)) {
-            mutatedTarget._meta.changedProperties.push(name);
-        } else {
-            mutatedTarget._meta.changedProperties = mutatedTarget._meta.changedProperties.filter((e) => e !== name);
+        if (!mutatedTarget._meta.isNew) {
+            if (mutatedTarget._meta.edited && !mutatedTarget._meta.changedProperties.includes(name)) {
+                mutatedTarget._meta.changedProperties.push(name);
+            } else {
+                mutatedTarget._meta.changedProperties = mutatedTarget._meta.changedProperties.filter((e) => e !== name);
+            }
         }
     };
 
@@ -157,6 +159,10 @@ ${getEditorTextArea()}
         </button>
         ${getPagesTable()}
         ${getEditorHtml()}
+        <div class='pure-button-group admin-confirm-actions' role='group' aria-label='...'>
+            <button id='page-commit-btn' class='pure-button pure-button-disabled pure-button-primary'>Commit Changes</button>
+            <button id='page-reset-btn' class='pure-button pure-button-disabled button-error'>Reset Changes</button>
+        </div>
     </div>
 </div>
     
@@ -226,8 +232,8 @@ ${getEditorTextArea()}
                 published: false,
                 sections: [],
             },
-            { edited: true }
-        ) as unknown as Editable<PageWithSections>;
+            { edited: true, isNew: true, changedProperties: ['name', 'slug', 'title', 'description', 'published'] }
+        ) as unknown as Editable<EditablePageWithEditableSections>;
 
         state.pages!.push(entry);
 
@@ -251,7 +257,7 @@ ${getEditorTextArea()}
                 published: false,
                 pageId: state.editingEntry.id,
             },
-            { edited: true }
+            { edited: true, isNew: true, changedProperties: ['content', 'position', 'published', 'pageId'] }
         ) as unknown as Editable<PageSection>;
 
         state.editingEntry.sections.push(entry);
@@ -264,11 +270,15 @@ ${getEditorTextArea()}
     };
 
     const setPagesListeners = () => {
+        const commitBtn = document.getElementById('page-commit-btn') as HTMLButtonElement;
+        const resetBtn = document.getElementById('page-reset-btn') as HTMLButtonElement;
         const actionElements = document.querySelectorAll('.update-table-btn,.delete-table-btn');
         const addPageBtn = document.getElementById('add-page-btn');
         const addPageSectionBtn = document.getElementById('add-page-section-btn');
         const editableRowElements = document.querySelectorAll('.editable-page-row,.editable-section-row');
 
+        commitBtn?.addEventListener('click', commitChanges);
+        resetBtn?.addEventListener('click', resetChanges);
         addPageBtn?.addEventListener('click', addPageRow);
         addPageSectionBtn?.addEventListener('click', addPageSectionRow);
 
@@ -279,6 +289,72 @@ ${getEditorTextArea()}
         actionElements.forEach((element) => {
             element.addEventListener('click', ({ target }) => handleRowClick(target as any));
         });
+    };
+
+    const getEditedPages = () => {
+        return (
+            state.pages?.filter((e) => {
+                const isNew = core.NEW_ENTRY_REGEX.test(e.id);
+
+                if (e._meta.deleted && isNew) return false;
+
+                return e._meta.edited || e._meta.deleted;
+            }) ?? []
+        );
+    };
+
+    const getEditedSections = () => {
+        return (
+            state.pages?.flatMap((e) =>
+                e.sections.filter((e) => {
+                    const isNew = core.NEW_ENTRY_REGEX.test(e.id);
+
+                    if (e._meta.deleted && isNew) return false;
+
+                    return e._meta.edited || e._meta.deleted;
+                })
+            ) ?? []
+        );
+    };
+
+    const resetChanges = async () => {
+        state.pages = state.original!.map((page) => ({
+            ...core.withMeta(page),
+            sections: page.sections.map((section) => ({
+                ...core.withMeta(section),
+            })),
+        }));
+
+        await setPagesHtml();
+    };
+
+    const commitChanges = async () => {
+        const editedPages = getEditedPages();
+        const editedSections = getEditedSections();
+
+        console.log({ editedPages, editedSections });
+    };
+
+    const updateConfirmButtonState = () => {
+        const commitBtn = document.getElementById('page-commit-btn') as HTMLButtonElement;
+        const resetBtn = document.getElementById('page-reset-btn') as HTMLButtonElement;
+
+        const hasEdited = getEditedPages().length > 0 || getEditedSections().length > 0;
+
+        if (
+            hasEdited &&
+            !state.editingEntry &&
+            !state.editingEntrySection &&
+            !state.isCreatingPage &&
+            !state.isCreatingSection
+        ) {
+            commitBtn.classList.remove(DISABLED_BTN_CLASS);
+            resetBtn.classList.remove(DISABLED_BTN_CLASS);
+            return;
+        }
+
+        commitBtn.classList.add(DISABLED_BTN_CLASS);
+        resetBtn.classList.add(DISABLED_BTN_CLASS);
     };
 
     const setPagesHtml = async () => {
@@ -292,7 +368,7 @@ ${getEditorTextArea()}
             if (!pages || !pageColumns || !pageSectionColumns) return;
 
             state.original = pages;
-            state.pages = pages.map((page) => ({
+            state.pages = core.deepClone(pages).map((page) => ({
                 ...core.withMeta(page),
                 sections: page.sections.map((section) => ({
                     ...core.withMeta(section),
@@ -305,7 +381,7 @@ ${getEditorTextArea()}
         app.innerHTML = await getPagesHtml();
 
         await initializeEditor();
-        //updateConfirmButtonState();
+        updateConfirmButtonState();
         setPagesListeners();
     };
 

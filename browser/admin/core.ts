@@ -9,7 +9,7 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
     const navEntries = Array.from(document.querySelectorAll('.nav-entry')) as HTMLButtonElement[];
 
     const createTempId = () => {
-        return 'NEW_ROW_TEMP_ID-' + Date.now();
+        return 'NEW_ROW_TEMP_ID-' + Date.now() + '-' + Math.floor(Math.random() * 100000);
     };
 
     const getColumns = (rows: any[], exclude = ['id', 'navigationId', 'createdAt', 'updatedAt']): string[] => {
@@ -48,7 +48,9 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
                         const contextAttr = context ? "data-item-context='" + context + "'" : '';
 
                         if (name === 'actions') {
-                            return `<td><span ${contextAttr} data-item-id='${row.id}' class='update-table-btn' >${
+                            return `<td><span ${
+                                isUpdatingRow ? 'style="color:blue;"' : ''
+                            } ${contextAttr} data-item-id='${row.id}' class='update-table-btn' >${
                                 isUpdatingRow ? 'Done' : 'Update'
                             }</span> | <span ${contextAttr} data-item-id='${
                                 row.id
@@ -163,9 +165,11 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
         return {
             ...obj,
             _meta: {
-                edited: !!overrides?.edited,
-                deleted: !!overrides?.deleted,
-                changedProperties: overrides?.changedProperties || [],
+                edited: false,
+                deleted: false,
+                isNew: false,
+                changedProperties: [],
+                ...overrides,
             },
         };
     };
@@ -182,6 +186,7 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
 
     window.funkalleroAdminCore = {
         ...window.funkalleroCore,
+        deepClone: (obj) => JSON.parse(JSON.stringify(obj)),
         withoutDeleted,
         getTableHtml,
         createTempId,
