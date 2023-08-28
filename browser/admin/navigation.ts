@@ -2,14 +2,20 @@
     const DISABLED_BTN_CLASS = 'pure-button-disabled';
     const { app, ...core } = window.funkalleroAdminCore;
 
-    const state = {
+    const defaultState = () => ({
         original: null as NavigationWithItems | null,
         navigation: null as Editable<Navigation> | null,
         navigationItems: null as Editable<NavigationItem>[] | null,
         columnNames: null as string[] | null,
         updatingItemId: null as string | null,
         addingRow: false,
-    };
+    });
+
+    const state = defaultState();
+
+    window.addEventListener('reset-state', () => {
+        Object.assign(state, defaultState());
+    });
 
     const handleNavItemClick = async (target: HTMLSpanElement) => {
         const id = target.dataset.itemId;
@@ -118,6 +124,9 @@
 
             state.navigation.brandName = (target as any).value;
             state.navigation._meta.edited = state.navigation.brandName !== state.original?.brandName;
+            if (state.navigation._meta.edited && !state.navigation._meta.changedProperties.includes('brandName')) {
+                state.navigation._meta.changedProperties.push('brandName');
+            }
 
             updateConfirmButtonState();
         });
@@ -229,14 +238,14 @@
 
             if (!navigation || !navigationColumns) return;
 
-            const copy = core.deepClone(navigation);
+            const { navItems, ...mainNavigation } = core.deepClone(navigation);
 
             state.original = navigation;
-            state.navigationItems = copy.navItems.map((item) => ({
+            state.navigationItems = navItems.map((item) => ({
                 ...core.withMeta(item),
             }));
             state.navigation = {
-                ...core.withMeta(copy),
+                ...core.withMeta(mainNavigation),
             };
             state.columnNames = navigationColumns;
         }
@@ -247,17 +256,34 @@
         setNavigationListeners();
     };
 
+    const sendRequest = async (item: Editable<any>, name: '/navigation' | '/navigation-item') => {
+        if (item._meta.isNew) {
+            await core.postJson(name, core.getCommitPayload(item));
+        } else if (item._meta.deleted) {
+            await core.deleteJson(`${name}/${item.id}`);
+        } else if (item._meta.edited) {
+            await core.patchJson(`${name}/${item.id}`, core.getCommitPayload(item));
+        }
+        return Promise.resolve();
+    };
+
     const commitChanges = async () => {
         if (!state.navigation || !state.navigationItems) return;
 
+        const promises = [];
+
         if (state.navigation._meta.edited) {
-            // TODO handle main nav changes
+            console.log(state.navigation);
+            promises.push(sendRequest(state.navigation, '/navigation'));
         }
 
-        // TODO handle nav item changes
-        const editedItems = getEditedNavItems();
+        promises.push(...getEditedNavItems().map(async (item) => sendRequest(item, '/navigation-item')));
 
-        console.log({ editedItems });
+        await Promise.all(promises);
+
+        state.navigation = null;
+
+        await setNavigationHtml();
     };
 
     window.funkalleroCoreViews.navigation = setNavigationHtml;

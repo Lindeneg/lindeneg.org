@@ -8,6 +8,21 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
     const app = document.getElementById('app')!;
     const navEntries = Array.from(document.querySelectorAll('.nav-entry')) as HTMLButtonElement[];
 
+    const getCommitPayload: AdminCore['getCommitPayload'] = (item) => {
+        const payload = {} as any;
+        for (const key of item._meta.changedProperties) {
+            const value = item[key];
+            if (typeof value !== 'undefined') {
+                if (key === 'position') {
+                    payload[key] = parseInt(value);
+                    continue;
+                }
+                payload[key] = item[key];
+            }
+        }
+        return JSON.stringify(payload);
+    };
+
     const createTempId = () => {
         return 'NEW_ROW_TEMP_ID-' + Date.now() + '-' + Math.floor(Math.random() * 100000);
     };
@@ -198,6 +213,7 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
     window.funkalleroAdminCore = {
         ...window.funkalleroCore,
         deepClone: (obj) => JSON.parse(JSON.stringify(obj)),
+        getCommitPayload,
         withoutDeleted,
         getTableHtml,
         createTempId,

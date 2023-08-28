@@ -337,24 +337,9 @@ ${getEditorTextArea()}
         await setPagesHtml();
     };
 
-    const getCommitPayload = (item: Editable<any>) => {
-        const payload = {} as any;
-        for (const key of item._meta.changedProperties) {
-            const value = item[key];
-            if (typeof value !== 'undefined') {
-                if (key === 'position') {
-                    payload[key] = parseInt(value);
-                    continue;
-                }
-                payload[key] = item[key];
-            }
-        }
-        return JSON.stringify(payload);
-    };
-
     const sendRequest = async (item: Editable<any>, name: '/pages' | '/page-sections') => {
         if (item._meta.isNew) {
-            const response = await core.postJson(name, getCommitPayload(item));
+            const response = await core.postJson(name, core.getCommitPayload(item));
             if (response?.ok) {
                 const oldId = item.id;
                 item.id = await response.json();
@@ -370,7 +355,7 @@ ${getEditorTextArea()}
         } else if (item._meta.deleted) {
             await core.deleteJson(`${name}/${item.id}`);
         } else if (item._meta.edited) {
-            await core.patchJson(`${name}/${item.id}`, getCommitPayload(item));
+            await core.patchJson(`${name}/${item.id}`, core.getCommitPayload(item));
         }
         return Promise.resolve();
     };

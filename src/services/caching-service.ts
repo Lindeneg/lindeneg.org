@@ -1,7 +1,7 @@
 import Handlebars from 'handlebars';
 import { Converter } from 'showdown';
 import { NavItemAlignment, type Navigation, type NavigationItem, type Page, type PageSection } from '@prisma/client';
-import { injectService, SingletonService } from '@lindeneg/funkallero';
+import { IConfigurationService, injectService, SingletonService } from '@lindeneg/funkallero';
 import SERVICE from '@/enums/service';
 import type DataContextService from '@/services/data-context-service';
 
@@ -37,6 +37,9 @@ class CachingService extends SingletonService {
     @injectService(SERVICE.DATA_CONTEXT)
     private readonly dataContext: DataContextService;
 
+    @injectService(SERVICE.CONFIGURATION)
+    private readonly config: IConfigurationService;
+
     private readonly cache: Map<string, ICacheEntry> = new Map();
 
     public clearCache() {
@@ -64,7 +67,7 @@ class CachingService extends SingletonService {
     }
 
     private isExpired(entry: ICacheEntry): boolean {
-        return entry.expires < this.now();
+        return this.config.meta.isDev || entry.expires < this.now();
     }
 
     private async setNavigation() {

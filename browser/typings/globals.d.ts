@@ -76,6 +76,7 @@ interface FunkalleroAdminCore extends FunkalleroCore {
     getColumns: (rows: any[], exclude?: string[]) => string[];
     withoutDeleted: <T extends Editable<any>[]>(rows?: T | null) => T;
     deepClone: <T>(obj: T) => T;
+    getCommitPayload: (rows: Editable<any>) => string;
 }
 
 interface Window {

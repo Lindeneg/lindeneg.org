@@ -16,6 +16,9 @@ import createPageDto from '@/contracts/create-page-dto';
 import updatePageDto from '@/contracts/update-page-dto';
 import createPageSectionDto from '@/contracts/create-page-section-dto';
 import updatePageSectionDto from '@/contracts/update-page-section-dto';
+import updateNavigationDto from '@/contracts/update-navigation-dto';
+import updateNavigationItemDto from '@/contracts/update-navigation-item-dto';
+import createNavigationItemDto from '@/contracts/create-navigation-item-dto';
 
 @controller()
 class AdminController extends BaseController {
@@ -25,10 +28,42 @@ class AdminController extends BaseController {
         return this.mediator.send('GetNavigationQuery');
     }
 
+    @httpPatch('/navigation/:id')
+    @auth(AUTH.POLICY.IS_ADMIN)
+    public async updateNavigation(
+        @params('id') id: string,
+        @body(updateNavigationDto) navigationDto: ParsedSchema<typeof updateNavigationDto>
+    ) {
+        return this.mediator.send('UpdateNavigationCommand', { ...navigationDto, id });
+    }
+
     @httpGet('/navigation-columns')
     @auth(AUTH.POLICY.IS_ADMIN)
     public async getNavigationColumns() {
         return this.mediator.send('GetNavigationItemColumnsQuery');
+    }
+
+    @httpPost('/navigation-item')
+    @auth(AUTH.POLICY.IS_ADMIN)
+    public async createNavigationItem(
+        @body(createNavigationItemDto) navigationDto: ParsedSchema<typeof createNavigationItemDto>
+    ) {
+        return this.mediator.send('CreateNavigationItemCommand', navigationDto);
+    }
+
+    @httpPatch('/navigation-item/:id')
+    @auth(AUTH.POLICY.IS_ADMIN)
+    public async updateNavigationItem(
+        @params('id') id: string,
+        @body(updateNavigationItemDto) navigationDto: ParsedSchema<typeof updateNavigationItemDto>
+    ) {
+        return this.mediator.send('UpdateNavigationItemCommand', { ...navigationDto, id });
+    }
+
+    @httpDelete('/navigation-item/:id')
+    @auth(AUTH.POLICY.IS_ADMIN)
+    public async deleteNavigationItem(@params('id') id: string) {
+        return this.mediator.send('DeleteNavigationItemCommand', { id });
     }
 
     @httpGet('/pages')
