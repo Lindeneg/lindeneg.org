@@ -137,7 +137,7 @@ ${getEditorTextArea()}
     const getPagesTable = () => {
         return core.getTableHtml(
             state.pageColumns!,
-            core.withoutDeleted(state.pages),
+            core.withoutDeleted(state.pages).sort((a, b) => a.sections.length - b.sections.length),
             state.editingEntry?.id ?? null,
             true,
             getEditablePageRowHtml,
@@ -150,7 +150,7 @@ ${getEditorTextArea()}
 
         return core.getTableHtml(
             state.pageSectionColumns!.filter((e) => e !== 'content'),
-            core.withoutDeleted(state.editingEntry.sections),
+            core.withoutDeleted(state.editingEntry.sections).sort((a, b) => a.position - b.position),
             state.editingEntrySection?.id ?? null,
             true,
             getEditableSectionRowHtml,

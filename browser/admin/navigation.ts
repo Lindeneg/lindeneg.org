@@ -190,6 +190,11 @@
         return String(value);
     };
 
+    const alignmentToInt = (item: NavigationItem) => {
+        if (item.alignment === 'LEFT') return 0;
+        return 1;
+    };
+
     const getNavigationHtml = () => {
         return `
 <section class='admin-section'>
@@ -213,7 +218,9 @@
 
         ${core.getTableHtml(
             state.columnNames || [],
-            core.withoutDeleted(state.navigationItems).sort((a, b) => a.position - b.position) || [],
+            core
+                .withoutDeleted(state.navigationItems)
+                .sort((a, b) => alignmentToInt(a) - alignmentToInt(b) + (a.position - b.position)) || [],
             state.updatingItemId,
             true,
             getEditableRowHtml
