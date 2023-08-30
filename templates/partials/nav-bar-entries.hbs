@@ -5,7 +5,7 @@
         </li>
     {{/if}}
     {{#each entries}}
-        <li class="pure-menu-item {{#if (isStrEqual ../activePageName this.name)}}pure-menu-selected{{/if}}">
+        <li class="pure-menu-item {{#if (isStrEqual ../activePageName this.href)}}pure-menu-selected{{/if}}">
             <a href="{{this.href}}" class="pure-menu-link" {{#if this.newTab}}target="_blank"{{/if}}>{{this.name}}</a>
         </li>
     {{/each}}

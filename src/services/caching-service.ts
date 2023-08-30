@@ -22,6 +22,7 @@ export interface CachedNavigation {
 export interface CachedPage {
     name: string;
     title: string;
+    slug: string;
     description: string;
     sections: Handlebars.SafeString[];
 }
@@ -107,6 +108,7 @@ class CachingService extends SingletonService {
         const entry = this.createEntry({
             name: page.name,
             title: page.title,
+            slug: page.slug,
             description: page.description,
             sections: page.sections
                 .filter((section) => section.published)

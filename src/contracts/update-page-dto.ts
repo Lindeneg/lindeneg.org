@@ -5,7 +5,7 @@ const updatePageSchema = createPageSchema.partial().superRefine((data, ctx) => {
     if (!data.title && !data.slug && !data.name && !data.description && typeof data.published === 'undefined') {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ['title', 'slug', 'name', 'description', 'published'],
+            path: ['title', 'slug', 'description', 'published'],
             message: 'Please provide at least one field to update',
         });
     }

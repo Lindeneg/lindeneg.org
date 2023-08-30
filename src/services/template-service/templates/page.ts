@@ -10,6 +10,7 @@ interface PageNavProps {
 
 interface PageProps {
     name: string;
+    slug: string;
     brandName: string;
     title: string;
     description: string;

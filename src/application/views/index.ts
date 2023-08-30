@@ -23,6 +23,7 @@ export class GetPage extends BaseViewAction {
 
         const template = await this.templateService.render(TEMPLATE_NAME.PAGE, {
             name: page.name,
+            slug: page.slug,
             brandName: navigation?.brandName ?? '',
             title: page.title,
             description: page.description,

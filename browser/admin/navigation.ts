@@ -55,16 +55,15 @@
         }
 
         navItem[name as keyof typeof navItem] = value as never;
+        navItem._meta.edited = !originalNavItem || value !== originalNavItem[name as keyof typeof originalNavItem];
 
         if (!navItem._meta.isNew) {
-            if (navItem._meta.edited && !navItem._meta.changedProperties.includes(name)) {
+            if (!navItem._meta.changedProperties.includes(name)) {
                 navItem._meta.changedProperties.push(name);
-            } else {
+            } else if (!navItem._meta.edited) {
                 navItem._meta.changedProperties = navItem._meta.changedProperties.filter((e) => e !== name);
             }
         }
-
-        navItem._meta.edited = !originalNavItem || value !== originalNavItem[name as keyof typeof originalNavItem];
     };
 
     const addNavRow = async () => {
@@ -264,8 +263,6 @@
         }
 
         app.innerHTML = getNavigationHtml();
-
-        console.log(state);
 
         updateConfirmButtonState();
         setNavigationListeners();

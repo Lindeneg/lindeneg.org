@@ -85,25 +85,29 @@ ${getEditorTextArea()}
         }
 
         mutatedTarget[name as keyof typeof mutatedTarget] = value as never;
-
-        if (!mutatedTarget._meta.isNew) {
-            if (!mutatedTarget._meta.changedProperties.includes(name)) {
-                mutatedTarget._meta.changedProperties.push(name);
-            } else {
-                mutatedTarget._meta.changedProperties = mutatedTarget._meta.changedProperties.filter((e) => e !== name);
-            }
-        }
-
         mutatedTarget._meta.edited =
             mutatedTarget._meta.changedProperties.length > 0 ||
             !originalTarget ||
             value !== originalTarget[name as keyof typeof originalTarget];
+
+        if (!mutatedTarget._meta.isNew) {
+            if (!mutatedTarget._meta.changedProperties.includes(name)) {
+                mutatedTarget._meta.changedProperties.push(name);
+            } else if (!mutatedTarget._meta.edited) {
+                mutatedTarget._meta.changedProperties = mutatedTarget._meta.changedProperties.filter((e) => e !== name);
+            }
+        }
     };
 
     const getEditablePageRowHtml = (row: Page, name: keyof Page): string => {
         const value = row[name];
 
-        if (name === 'name' || name === 'slug' || name === 'description' || name === 'title') {
+        if (
+            (name === 'name' && (row as any)._meta.isNew) ||
+            name === 'slug' ||
+            name === 'description' ||
+            name === 'title'
+        ) {
             return `<input name='${name}' class='editable-page-row' value='${value}'></input>`;
         }
 
