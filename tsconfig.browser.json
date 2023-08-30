@@ -1,15 +1,16 @@
 {
     "compilerOptions": {
-        "target": "ES2015",
-        "module": "ES2015",
+        "target": "ESNext",
+        "module": "ESNext",
         "outDir": "./public/js",
         "declaration": false,
+        "moduleResolution": "node",
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
         "strict": true,
         "skipLibCheck": true,
         "experimentalDecorators": true,
-        "strictPropertyInitialization": false
+        "strictPropertyInitialization": false,
     },
     "include": ["./browser"]
 }

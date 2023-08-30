@@ -49,7 +49,7 @@ type Core = (typeof window)['funkalleroCore'];
         errorDiv.appendChild(errorEl);
     };
 
-    const sendRequest: Core['sendRequest'] = async (path, method, headers, body, onSuccess) => {
+    const sendRequest: Core['sendRequest'] = async (path, method, headers, body, onSuccess, onError) => {
         const opts: RequestInit = { method, headers };
 
         if (method !== 'GET' && body) {
@@ -65,6 +65,8 @@ type Core = (typeof window)['funkalleroCore'];
 
         const { message, error } = await response.json();
 
+        if (onError) return onError(error, message);
+
         if (Array.isArray(error)) {
             setError(JSON.stringify(error));
         } else {
@@ -74,8 +76,8 @@ type Core = (typeof window)['funkalleroCore'];
         return null;
     };
 
-    const getJson: Core['getJson'] = async (path, onSuccess) => {
-        const response = await sendRequest(path, 'GET', undefined, null, undefined);
+    const getJson: Core['getJson'] = async (path, onSuccess, onError,) => {
+        const response = await sendRequest(path, 'GET', undefined, null, undefined, onError);
 
         if (response?.ok) {
             if (onSuccess) return onSuccess(response);

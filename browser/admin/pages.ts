@@ -364,7 +364,7 @@ ${getEditorTextArea()}
         await Promise.all(getEditedPages().map((e) => sendRequest(e, '/pages')));
         await Promise.all(getEditedSections().map((e) => sendRequest(e, '/page-sections')));
 
-        state.pages = null;
+        Object.assign(state, defaultState());
 
         await setPagesHtml();
     };

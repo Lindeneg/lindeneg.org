@@ -232,23 +232,34 @@
     const setNavigationHtml = async () => {
         if (!state.navigation || !state.navigationItems || !state.columnNames) {
             const [navigation, navigationColumns] = await Promise.all([
-                core.getJson<NavigationWithItems>('/navigation'),
+                core.getJson<NavigationWithItems>('/navigation', undefined, () => {}),
                 core.getJson<string[]>('/navigation-columns'),
             ]);
 
-            if (!navigation || !navigationColumns) return;
+            if (navigation) {
+                const { navItems, ...mainNavigation } = core.deepClone(navigation);
 
-            const { navItems, ...mainNavigation } = core.deepClone(navigation);
+                state.original = navigation;
+                state.navigationItems = navItems.map((item) => ({
+                    ...core.withMeta(item),
+                }));
+                state.navigation = {
+                    ...core.withMeta(mainNavigation),
+                };
+            } else {
+                state.navigation = {
+                    ...core.withMeta({
+                        id: core.createTempId(),
+                        brandName: '',
+                    }),
+                };
+                state.navigationItems = [];
+            }
 
-            state.original = navigation;
-            state.navigationItems = navItems.map((item) => ({
-                ...core.withMeta(item),
-            }));
-            state.navigation = {
-                ...core.withMeta(mainNavigation),
-            };
-            state.columnNames = navigationColumns;
+            state.columnNames = navigationColumns || [];
         }
+
+        console.log(state);
 
         app.innerHTML = getNavigationHtml();
 
@@ -273,7 +284,6 @@
         const promises = [];
 
         if (state.navigation._meta.edited) {
-            console.log(state.navigation);
             promises.push(sendRequest(state.navigation, '/navigation'));
         }
 
@@ -281,7 +291,7 @@
 
         await Promise.all(promises);
 
-        state.navigation = null;
+        Object.assign(state, defaultState());
 
         await setNavigationHtml();
     };

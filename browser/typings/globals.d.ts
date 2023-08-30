@@ -17,7 +17,8 @@ interface FunkalleroCore {
         method: string,
         headers?: RequestInit['headers'],
         body?: RequestInit['body'],
-        onSuccess?: (response: Response) => any
+        onSuccess?: (response: Response) => any,
+        onError?: (...errors: any) => any
     ) => Promise<null | Response>;
 
     postJson: (
@@ -34,7 +35,11 @@ interface FunkalleroCore {
 
     deleteJson: (path: string, onSuccess?: (response: Response) => any) => Promise<null | Response>;
 
-    getJson: <TResult = unknown>(path: string, onSuccess?: (response: Response) => TResult) => Promise<null | TResult>;
+    getJson: <TResult = unknown>(
+        path: string,
+        onSuccess?: (response: Response) => TResult,
+        onError?: (...errors: any) => any
+    ) => Promise<null | TResult>;
 
     setError: (error: string) => void;
 

@@ -23,6 +23,8 @@ BaseLoggerServicePalette.useDefaultPalette();
 const funkallero = await Funkallero.create({
     basePath: '/api',
 
+    port: 5000,
+
     logLevel: LOG_LEVEL.VERBOSE,
 
     meta: {

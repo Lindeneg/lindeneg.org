@@ -46,7 +46,7 @@ class CachingService extends SingletonService {
         this.cache.clear();
     }
 
-    public async getNavigation(): Promise<CachedNavigation> {
+    public async getNavigation(): Promise<CachedNavigation | null> {
         const cached = this.cache.get('navigation');
 
         if (cached && !this.isExpired(cached)) {
@@ -74,6 +74,8 @@ class CachingService extends SingletonService {
         const navigation = (await this.dataContext.exec((p) =>
             p.navigation.findFirst({ include: { navItems: true } })
         )) as NavigationWithItems;
+
+        if (!navigation) return null;
 
         const [leftNavEntries, rightNavEntries] = navigation.navItems.reduce(
             (acc, item) => {

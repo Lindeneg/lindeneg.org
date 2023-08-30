@@ -23,12 +23,12 @@ export class GetPage extends BaseViewAction {
 
         const template = await this.templateService.render(TEMPLATE_NAME.PAGE, {
             name: page.name,
-            brandName: navigation.brandName,
+            brandName: navigation?.brandName ?? '',
             title: page.title,
             description: page.description,
             markdownSections: page.sections,
-            leftNavEntries: navigation.leftNavEntries,
-            rightNavEntries: navigation.rightNavEntries,
+            leftNavEntries: navigation?.leftNavEntries ?? [],
+            rightNavEntries: navigation?.rightNavEntries ?? [],
         });
 
         if (!template) return new MediatorResultFailure(ACTION_RESULT.ERROR_NOT_FOUND);

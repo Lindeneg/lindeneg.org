@@ -13,7 +13,7 @@
         "strictPropertyInitialization": false,
         "paths": {
             "@/*": ["./src/*"]
-        }
+        },
     },
     "include": ["./src", "__mock__", "browser"]
 }
