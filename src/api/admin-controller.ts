@@ -19,6 +19,7 @@ import updatePageSectionDto from '@/contracts/update-page-section-dto';
 import updateNavigationDto from '@/contracts/update-navigation-dto';
 import updateNavigationItemDto from '@/contracts/update-navigation-item-dto';
 import createNavigationItemDto from '@/contracts/create-navigation-item-dto';
+import createNavigationDto from '@/contracts/create-navigation-dto';
 
 @controller()
 class AdminController extends BaseController {
@@ -26,6 +27,12 @@ class AdminController extends BaseController {
     @auth(AUTH.POLICY.IS_ADMIN)
     public async getNavigation() {
         return this.mediator.send('GetNavigationQuery');
+    }
+
+    @httpPost('/navigation')
+    @auth(AUTH.POLICY.IS_ADMIN)
+    public async createNavigation(@body(createNavigationDto) navigationDto: ParsedSchema<typeof createNavigationDto>) {
+        return this.mediator.send('CreateNavigationCommand', navigationDto);
     }
 
     @httpPatch('/navigation/:id')

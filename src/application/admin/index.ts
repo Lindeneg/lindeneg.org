@@ -7,6 +7,7 @@ import { IUpdatePageSectionDto } from '@/contracts/update-page-section-dto';
 import { ICreateNavigationItemDto } from '@/contracts/create-navigation-item-dto';
 import { IUpdateNavigationItemDto } from '@/contracts/update-navigation-item-dto';
 import { IUpdateNavigationDto } from '@/contracts/update-navigation-dto';
+import { ICreateNavigationDto } from '@/contracts/create-navigation-dto';
 
 export class GetNavigationQuery extends BaseAction {
     public async execute() {
@@ -166,6 +167,16 @@ export class UpdatePageSectionCommand extends BaseAction {
     }
 }
 
+export class CreateNavigationCommand extends BaseAction {
+    public async execute(navigationDto: ICreateNavigationDto) {
+        const navigation = await this.dataContext.exec((p) => p.navigation.create({ data: navigationDto }));
+
+        if (!navigation) return new MediatorResultFailure(ACTION_RESULT.ERROR_NOT_FOUND);
+
+        return new MediatorResultSuccess(navigation.id);
+    }
+}
+
 export class UpdateNavigationCommand extends BaseAction {
     public async execute({ id, ...dto }: IUpdateNavigationDto) {
         const navigation = await this.dataContext.exec((p) =>
@@ -204,7 +215,7 @@ export class DeleteNavigationItemCommand extends BaseAction {
 export class UpdateNavigationItemCommand extends BaseAction {
     public async execute({ id, ...data }: IUpdateNavigationItemDto) {
         const navigation = await this.dataContext.exec((p) =>
-            p.pageSection.update({ where: { id }, data: this.createUpdatePayload(data) })
+            p.navigationItem.update({ where: { id }, data: this.createUpdatePayload(data) })
         );
 
         if (!navigation) {

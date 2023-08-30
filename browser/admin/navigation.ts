@@ -55,7 +55,6 @@
         }
 
         navItem[name as keyof typeof navItem] = value as never;
-        navItem._meta.edited = !originalNavItem || value !== originalNavItem[name as keyof typeof originalNavItem];
 
         if (!navItem._meta.isNew) {
             if (navItem._meta.edited && !navItem._meta.changedProperties.includes(name)) {
@@ -64,6 +63,8 @@
                 navItem._meta.changedProperties = navItem._meta.changedProperties.filter((e) => e !== name);
             }
         }
+
+        navItem._meta.edited = !originalNavItem || value !== originalNavItem[name as keyof typeof originalNavItem];
     };
 
     const addNavRow = async () => {
@@ -248,20 +249,23 @@
                 };
             } else {
                 state.navigation = {
-                    ...core.withMeta({
-                        id: core.createTempId(),
-                        brandName: '',
-                    }),
+                    ...core.withMeta(
+                        {
+                            id: core.createTempId(),
+                            brandName: '',
+                        },
+                        { isNew: true }
+                    ),
                 };
                 state.navigationItems = [];
             }
 
-            state.columnNames = navigationColumns || [];
+            state.columnNames = navigationColumns ?? [];
         }
 
-        console.log(state);
-
         app.innerHTML = getNavigationHtml();
+
+        console.log(state);
 
         updateConfirmButtonState();
         setNavigationListeners();
@@ -269,7 +273,10 @@
 
     const sendRequest = async (item: Editable<any>, name: '/navigation' | '/navigation-item') => {
         if (item._meta.isNew) {
-            await core.postJson(name, core.getCommitPayload(item));
+            const response = await core.postJson(name, core.getCommitPayload(item));
+            if (!response?.ok) return;
+            item.id = await response?.json();
+            state.navigationItems?.forEach((e) => (e.navigationId = item.id));
         } else if (item._meta.deleted) {
             await core.deleteJson(`${name}/${item.id}`);
         } else if (item._meta.edited) {
@@ -281,15 +288,11 @@
     const commitChanges = async () => {
         if (!state.navigation || !state.navigationItems) return;
 
-        const promises = [];
-
         if (state.navigation._meta.edited) {
-            promises.push(sendRequest(state.navigation, '/navigation'));
+            await sendRequest(state.navigation, '/navigation');
         }
 
-        promises.push(...getEditedNavItems().map(async (item) => sendRequest(item, '/navigation-item')));
-
-        await Promise.all(promises);
+        await Promise.all(getEditedNavItems().map(async (item) => sendRequest(item, '/navigation-item')));
 
         Object.assign(state, defaultState());
 
