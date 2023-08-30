@@ -84,16 +84,16 @@ ${getEditorTextArea()}
             }
         }
 
+        const isOriginalValue = value === originalTarget[name as keyof typeof originalTarget];
+
         mutatedTarget[name as keyof typeof mutatedTarget] = value as never;
         mutatedTarget._meta.edited =
-            mutatedTarget._meta.changedProperties.length > 0 ||
-            !originalTarget ||
-            value !== originalTarget[name as keyof typeof originalTarget];
+            mutatedTarget._meta.changedProperties.length > 0 || !originalTarget || !isOriginalValue;
 
         if (!mutatedTarget._meta.isNew) {
             if (!mutatedTarget._meta.changedProperties.includes(name)) {
                 mutatedTarget._meta.changedProperties.push(name);
-            } else if (!mutatedTarget._meta.edited) {
+            } else if (isOriginalValue) {
                 mutatedTarget._meta.changedProperties = mutatedTarget._meta.changedProperties.filter((e) => e !== name);
             }
         }
@@ -417,6 +417,8 @@ ${getEditorTextArea()}
         }
 
         app.innerHTML = await getPagesHtml();
+
+        console.log(state);
 
         await initializeEditor();
         updateConfirmButtonState();

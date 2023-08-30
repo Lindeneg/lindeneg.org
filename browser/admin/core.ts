@@ -109,7 +109,7 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
 
     const renderCoreView = async (view?: string) => {
         if (!view) {
-            view = getActiveNavButtonName();
+            view = await getActiveNavButtonName();
         }
 
         await loadScript(view);
@@ -121,11 +121,16 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
         await setHtml();
     };
 
-    const setActiveNavButton = async (active: string) => {
+    const setActiveNavButton = async (active: string, setParams = false) => {
         return Promise.all(
             navEntries.map((e) => {
                 if (e.innerText.toLowerCase() === active) {
                     e.classList.replace(INACTIVE_NAV_CLASS, ACTIVE_NAV_CLASS);
+                    if (setParams) {
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('view', active);
+                        window.history.replaceState(null, '', url);
+                    }
                 } else {
                     e.classList.replace(ACTIVE_NAV_CLASS, INACTIVE_NAV_CLASS);
                 }
@@ -133,9 +138,19 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
         );
     };
 
-    const getActiveNavButtonName = () => {
+    const getActiveNavButtonName = async () => {
+        const url = new URL(window.location.href);
+        const active = url.searchParams.get('view')?.toLowerCase();
+
+        if (active) {
+            await setActiveNavButton(active);
+            return active;
+        }
+
         for (const entry of navEntries) {
-            if (entry.classList.contains(ACTIVE_NAV_CLASS)) return entry.innerText.toLowerCase();
+            if (entry.classList.contains(ACTIVE_NAV_CLASS)) {
+                return entry.innerText.toLowerCase();
+            }
         }
         return '';
     };
@@ -175,7 +190,7 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
         window.dispatchEvent(new CustomEvent('reset-state'));
         clearError();
 
-        await setActiveNavButton(name);
+        await setActiveNavButton(name, true);
         await renderCoreView(name);
     };
 
