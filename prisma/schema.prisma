@@ -19,13 +19,15 @@ enum NavItemAlignment {
 }
 
 model User {
-  id       String  @id @default(uuid())
-  email    String  @unique
-  name     String
-  password String
-  photo    String?
-  role     Role    @default(USER)
-  Post     Post[]
+  id          String  @id @default(uuid())
+  email       String  @unique
+  name        String
+  password    String
+  blogPath    String  @default("/blog")
+  blogEnabled Boolean @default(false)
+  photo       String?
+  role        Role    @default(USER)
+  Blog        Blog[]
 }
 
 model NavigationItem {
@@ -68,14 +70,23 @@ model Page {
   updatedAt   DateTime      @default(now()) @updatedAt
 }
 
+model Blog {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  Post      Post[]
+}
+
 model Post {
   id        String   @id @default(uuid())
   title     String
   content   String
   published Boolean  @default(false)
   thumbnail String
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  authorId  String
+  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  blogId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 }
