@@ -15,7 +15,6 @@ type Core = (typeof window)['funkalleroCore'];
     const handleKeyPress = ({ key }: KeyboardEvent) => {
         if (keyPressSingleHandlerMap.has(key)) {
             keyPressSingleHandlerMap.get(key)?.();
-            return;
         }
     };
 

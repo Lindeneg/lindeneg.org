@@ -84,7 +84,7 @@ ${getEditorTextArea()}
             }
         }
 
-        const isOriginalValue = value === originalTarget[name as keyof typeof originalTarget];
+        const isOriginalValue = !originalTarget || value === originalTarget[name as keyof typeof originalTarget];
 
         mutatedTarget[name as keyof typeof mutatedTarget] = value as never;
         mutatedTarget._meta.edited =
@@ -417,8 +417,6 @@ ${getEditorTextArea()}
         }
 
         app.innerHTML = await getPagesHtml();
-
-        console.log(state);
 
         await initializeEditor();
         updateConfirmButtonState();
