@@ -2,6 +2,10 @@ type Navigation = import('@prisma/client').Navigation;
 type NavigationItem = import('@prisma/client').NavigationItem;
 type Page = import('@prisma/client').Page;
 type PageSection = import('@prisma/client').PageSection;
+type Blog = import('@prisma/client').Blog;
+type PrismaPost = import('@prisma/client').Post;
+
+type Post = Omit<PrismaPost, 'updatedAt' | 'createdAt'>;
 
 interface NavigationWithItems extends Navigation {
     navItems: NavigationItem[];
@@ -9,6 +13,10 @@ interface NavigationWithItems extends Navigation {
 
 interface PageWithSections extends Page {
     sections: PageSection[];
+}
+
+interface BlogWithPosts extends Blog {
+    posts: Post[];
 }
 
 interface FunkalleroCore {

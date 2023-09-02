@@ -17,4 +17,4 @@ RUN npm run build
 
 EXPOSE 5000
 
-CMD npx -y prisma@5.1.1 migrate dev --name init;node ./dist/index.mjs
+CMD npx -y prisma@5.1.1 migrate deploy;node ./dist/index.mjs
