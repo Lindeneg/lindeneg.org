@@ -38,6 +38,16 @@ export class GetPage extends BaseViewAction {
     }
 }
 
+// export class GetBlogPage extends BaseViewAction {
+//     public async execute() {
+//         const template = await this.templateService.render(TEMPLATE_NAME.LOGIN);
+
+//         if (!template) return new MediatorResultFailure(ACTION_RESULT.ERROR_NOT_FOUND);
+
+//         return new MediatorResultSuccess(template);
+//     }
+// }
+
 export class GetLoginPage extends BaseViewAction {
     public async execute() {
         const template = await this.templateService.render(TEMPLATE_NAME.LOGIN);

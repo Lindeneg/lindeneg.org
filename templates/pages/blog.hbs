@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang='en'>
+{{> head
+    title="Blog Page"
+    description="Page with blog posts"
+    pureCss=true
+    css=(csvArray "/css/site.css")
+}}
+
+<body>
+{{> nav
+    leftEntries=leftNavEntries
+    rightEntries=rightNavEntries
+    activePageName=blogHref
+    brandName=brandName
+}}
+
+<div class="post-card-container">
+    {{#each posts}}
+    <a class="post-card" href="{{this.href}}">
+      <div class="post-card-inner">
+         <div class="post-card-thumbnail" style="background-image:url({{this.thumbnail}})"></div>
+         <div class="post-card-title">
+            <h2>{{this.title}}</h2>
+            <p>{{this.dateString}}</p>
+            <div class="flex-spacer"> </div>
+         </div>
+      </div>
+   </a>
+    {{/each}}
+</div>
+
+<footer class="footer divider-border-top">
+    <div class="wrapper"><p>© Christian Lindeneg 2023</p>
+        <p>|</p><a href="https://github.com/Lindeneg/funkallero" target="_blank">Made with: <span>Funkallero</span></a>
+    </div>
+</footer>
+
+<script src='/js/core.js'></script>
+</body>
+</html>

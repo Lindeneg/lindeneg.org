@@ -327,8 +327,6 @@
         await initializeEditor();
         updateConfirmButtonState();
         setPostsListeners();
-
-        console.log(state);
     };
 
     const sendRequest = async (item: Editable<any>, name: '/blog' | '/blog-post') => {

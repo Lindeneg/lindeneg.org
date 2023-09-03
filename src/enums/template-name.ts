@@ -3,6 +3,7 @@ const TEMPLATE_NAME = {
     ADMIN: 'admin',
     LOGIN: 'login',
     LOGOUT: 'logout',
+    BLOG: 'blog',
     NAV: 'nav',
     NAV_BAR_ENTRIES: 'nav-bar-entries',
     HEAD: 'head',
