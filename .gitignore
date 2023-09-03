@@ -5,3 +5,4 @@ node_modules
 notes
 .idea
 public/**/*.js
+!simplemde.min.js

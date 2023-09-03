@@ -11,12 +11,12 @@ interface NavigationWithItems extends Navigation {
     navItems: NavigationItem[];
 }
 
-interface PageWithSections extends Page {
-    sections: PageSection[];
+interface PageWithSections extends Editable<Page> {
+    sections: Array<Editable<PageSection>>;
 }
 
-interface BlogWithPosts extends Blog {
-    posts: Post[];
+interface BlogWithPosts extends Editable<Blog> {
+    posts: Array<Editable<Post>>;
 }
 
 interface FunkalleroCore {

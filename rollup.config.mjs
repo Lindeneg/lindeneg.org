@@ -19,6 +19,7 @@ export default () => {
             'handlebars',
             'zod',
             'cookie-parser',
+            'cloudinary',
         ],
         plugins: [
             cleaner({

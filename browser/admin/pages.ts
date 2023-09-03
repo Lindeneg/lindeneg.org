@@ -99,15 +99,10 @@ ${getEditorTextArea()}
         }
     };
 
-    const getEditablePageRowHtml = (row: Page, name: keyof Page): string => {
+    const getEditablePageRowHtml = (row: Editable<Page>, name: keyof Editable<Page>): string => {
         const value = row[name];
 
-        if (
-            (name === 'name' && (row as any)._meta.isNew) ||
-            name === 'slug' ||
-            name === 'description' ||
-            name === 'title'
-        ) {
+        if ((name === 'name' && row._meta.isNew) || name === 'slug' || name === 'description' || name === 'title') {
             return `<input name='${name}' class='editable-page-row' value='${value}'></input>`;
         }
 
@@ -347,14 +342,16 @@ ${getEditorTextArea()}
             if (response?.ok) {
                 const oldId = item.id;
                 item.id = await response.json();
-                state.pages
-                    ?.map((e) => e.sections)
-                    .flat(2)
-                    .forEach((section) => {
-                        if (section.pageId === oldId) {
-                            section.pageId = item.id;
-                        }
-                    });
+                if (name === '/pages') {
+                    state.pages
+                        ?.map((e) => e.sections)
+                        .flat(2)
+                        .forEach((section) => {
+                            if (section.pageId === oldId) {
+                                section.pageId = item.id;
+                            }
+                        });
+                }
             }
         } else if (item._meta.deleted) {
             await core.deleteJson(`${name}/${item.id}`);
