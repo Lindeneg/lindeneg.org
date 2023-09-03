@@ -3,6 +3,8 @@ type Core = (typeof window)['funkalleroCore'];
 (() => {
     const logoutBtn = document.getElementById('logout-btn');
     const keyPressSingleHandlerMap = new Map<string, () => void>();
+    let requestsInProgress = 0;
+    let requestsDone = 0;
 
     const debounce: Core['debounce'] = (fn, ms = 300) => {
         let timeoutId: ReturnType<typeof setTimeout>;
@@ -24,6 +26,32 @@ type Core = (typeof window)['funkalleroCore'];
 
     document.addEventListener('keypress', debounce(handleKeyPress));
     logoutBtn?.addEventListener('click', handleLogout);
+
+    window.addEventListener('http-request-in-progress', (event) => {
+        const customEvent = event as CustomEvent;
+        const loadingElements = document.querySelectorAll('.ripple-wrapper,.ripple-background')!;
+
+        if (customEvent.detail) {
+            requestsInProgress++;
+            loadingElements.forEach((e) => {
+                if (e.classList.contains('hidden')) {
+                    e.classList.remove('hidden');
+                }
+            });
+            return;
+        }
+
+        requestsDone++;
+        if (requestsDone === requestsInProgress) {
+            requestsDone = 0;
+            requestsInProgress = 0;
+            loadingElements.forEach((e) => {
+                if (!e.classList.contains('hidden')) {
+                    e.classList.add('hidden');
+                }
+            });
+        }
+    });
 
     const setKeyPressHandler: Core['setKeyPressHandler'] = (key, handler) => {
         keyPressSingleHandlerMap.set(key, handler);
@@ -48,7 +76,13 @@ type Core = (typeof window)['funkalleroCore'];
         errorDiv.appendChild(errorEl);
     };
 
+    const emitLoading = (load: boolean) => {
+        window.dispatchEvent(new CustomEvent('http-request-in-progress', { detail: load }));
+    };
+
     const sendRequest: Core['sendRequest'] = async (path, method, headers, body, onSuccess, onError) => {
+        emitLoading(true);
+
         const opts: RequestInit = { method, headers };
 
         if (method !== 'GET' && body) {
@@ -58,13 +92,20 @@ type Core = (typeof window)['funkalleroCore'];
         const response = await fetch('/api' + path, opts);
 
         if (response.ok) {
-            if (onSuccess) return onSuccess(response);
+            if (onSuccess) {
+                emitLoading(false);
+                return onSuccess(response);
+            }
+            emitLoading(false);
             return response;
         }
 
         const { message, error } = await response.json();
 
-        if (onError) return onError(error, message);
+        if (onError) {
+            emitLoading(false);
+            return onError(error, message);
+        }
 
         if (Array.isArray(error)) {
             setError(JSON.stringify(error));
@@ -72,10 +113,12 @@ type Core = (typeof window)['funkalleroCore'];
             setError(message);
         }
 
+        emitLoading(false);
+
         return null;
     };
 
-    const getJson: Core['getJson'] = async (path, onSuccess, onError,) => {
+    const getJson: Core['getJson'] = async (path, onSuccess, onError) => {
         const response = await sendRequest(path, 'GET', undefined, null, undefined, onError);
 
         if (response?.ok) {

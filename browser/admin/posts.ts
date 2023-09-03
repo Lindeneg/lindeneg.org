@@ -52,14 +52,16 @@
         item: Editable<Post>,
         originalItem?: Editable<Post>
     ) => {
+        const isOriginalValue = !originalItem || value === originalItem[property];
+
         item[property] = value as never;
-        item._meta.edited = !originalItem || value === originalItem[property];
+        item._meta.edited = item._meta.changedProperties.length > 0 || !originalItem || !isOriginalValue;
 
         if (!item._meta.isNew) {
-            if (!item._meta.changedProperties.includes(name)) {
-                item._meta.changedProperties.push(name);
-            } else if (!item._meta.edited) {
-                item._meta.changedProperties = item._meta.changedProperties.filter((e) => e !== name);
+            if (!item._meta.changedProperties.includes(property)) {
+                item._meta.changedProperties.push(property);
+            } else if (isOriginalValue) {
+                item._meta.changedProperties = item._meta.changedProperties.filter((e) => e !== property);
             }
         }
     };
@@ -107,6 +109,7 @@
                     content: 'Some Content',
                     published: false,
                     thumbnail: '',
+                    thumbnailId: '',
                 },
                 {
                     edited: true,
@@ -251,7 +254,8 @@
     <div class='admin-section-content'>
         <div class='admin-blog-name'>
             <label style='margin-bottom:1rem;' for='blog-path-field'>Blog Path</label>
-            <input id='blog-path-field' type='text' placeholder='Blog Name' value='${state.blog?.path}' />
+            <input id='blog-path-field' type='text' placeholder='Blog Path' value='${state.blog?.path}' />
+            <small>Commit an empty field to disable blog and posts</small>
         </div>
         <div>
 
@@ -323,9 +327,11 @@
         await initializeEditor();
         updateConfirmButtonState();
         setPostsListeners();
+
+        console.log(state);
     };
 
-    const sendRequest = async (item: Editable<any>, name: '/blog' | '/blog-item') => {
+    const sendRequest = async (item: Editable<any>, name: '/blog' | '/blog-post') => {
         if (item._meta.isNew) {
             const response = await core.postJson(name, core.getCommitPayload(item));
             if (!response?.ok) return;
@@ -348,7 +354,7 @@
             await sendRequest(state.blog, '/blog');
         }
 
-        await Promise.all(getEditedPostItems().map(async (item) => sendRequest(item, '/blog-item')));
+        await Promise.all(getEditedPostItems().map(async (item) => sendRequest(item, '/blog-post')));
 
         Object.assign(state, defaultState());
 

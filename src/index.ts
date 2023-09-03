@@ -25,8 +25,8 @@ const funkallero = await Funkallero.create({
     logLevel: LOG_LEVEL.VERBOSE,
 
     meta: {
-        mode: process.env['FUNKALLERO_MODE'], // local or production
-        isDev: process.argv.includes('--dev'), // hot-rebuilding for development
+        mode: process.env['FUNKALLERO_MODE'],
+        isDev: process.argv.includes('--dev'),
         cloudinary: {
             cloudName: process.env['CLOUDINARY_NAME'],
             apiKey: process.env['CLOUDINARY_KEY'],
@@ -52,11 +52,9 @@ const funkallero = await Funkallero.create({
 
     async startup(service) {
         await Promise.all([
-            // initialize handlebar templates
             service.getSingletonService<TemplateService>(SERVICE.TEMPLATE)?.initializeTemplates(),
-            // create superuser from environment, if not already created
-            service.getSingletonService<SuperUserService>(SERVICE.SUPER_USER)?.create(),
             service.getSingletonService<CloudinaryService>(SERVICE.CLOUDINARY)?.initialize(),
+            service.getSingletonService<SuperUserService>(SERVICE.SUPER_USER)?.create(),
         ]);
     },
 });

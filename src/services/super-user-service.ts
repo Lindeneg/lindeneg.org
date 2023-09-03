@@ -79,7 +79,7 @@ class SuperUserService extends SingletonService {
 
     private async createSuperUser(email: string, name: string, password: string) {
         const result = await this.dataContext.exec(async (p) => {
-            const blog = await p.blog.create({ data: { path: '/blog' } });
+            const blog = await p.blog.create({});
             return p.user.create({
                 data: {
                     email,
