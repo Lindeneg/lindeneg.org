@@ -1,30 +1,22 @@
 import Handlebars from 'handlebars';
 import { Converter } from 'showdown';
-import { NavItemAlignment, type Navigation, type NavigationItem, type Page, type PageSection } from '@prisma/client';
+import { NavItemAlignment, Post, type NavigationItem } from '@prisma/client';
 import { IConfigurationService, injectService, SingletonService } from '@lindeneg/funkallero';
 import SERVICE from '@/enums/service';
+import TEMPLATE_NAME from '@/enums/template-name';
 import type DataContextService from '@/services/data-context-service';
+import type TemplateService from './template-service';
 
-export interface NavigationWithItems extends Navigation {
-    navItems: NavigationItem[];
-}
-
-export interface PageWithSections extends Page {
-    sections: PageSection[];
-}
-
-export interface CachedNavigation {
+interface INavigationCache {
     brandName: string;
     leftNavEntries: NavigationItem[];
     rightNavEntries: NavigationItem[];
 }
 
-export interface CachedPage {
-    name: string;
-    title: string;
-    slug: string;
-    description: string;
-    sections: Handlebars.SafeString[];
+interface IBlogCache {
+    enabled: boolean;
+    path: string;
+    posts: Post[];
 }
 
 interface ICacheEntry<T = any> {
@@ -32,46 +24,87 @@ interface ICacheEntry<T = any> {
     expires: number;
 }
 
-export const md2htmlConverter = new Converter();
+const md2htmlConverter = new Converter();
 
 class CachingService extends SingletonService {
+    private static ttl = 60 * 60 * 24 * 2;
+
     @injectService(SERVICE.DATA_CONTEXT)
     private readonly dataContext: DataContextService;
 
     @injectService(SERVICE.CONFIGURATION)
     private readonly config: IConfigurationService;
 
-    private readonly cache: Map<string, ICacheEntry> = new Map();
+    @injectService(SERVICE.TEMPLATE)
+    protected readonly templateService: TemplateService;
+
+    private readonly pageCache: Map<string, ICacheEntry<string>> = new Map();
+    private navigationCache: ICacheEntry<INavigationCache> | null = null;
+    private blogCache: ICacheEntry<IBlogCache> | null = null;
 
     public clearCache() {
-        this.cache.clear();
+        this.pageCache.clear();
+        this.blogCache = null;
+        this.navigationCache = null;
     }
 
-    public async getNavigation(): Promise<CachedNavigation | null> {
-        const cached = this.cache.get('navigation');
+    public async getBlog() {
+        if (this.blogCache && !this.isExpired(this.blogCache)) return this.blogCache.value;
 
-        if (cached && !this.isExpired(cached)) {
-            return cached.value;
-        }
+        const blog = await this.dataContext.exec((p) =>
+            p.blog.findFirst({ include: { posts: { where: { published: true } } } })
+        );
 
-        return this.setNavigation();
+        if (!blog) return null;
+
+        this.blogCache = this.createEntry(blog);
+
+        return this.blogCache.value;
     }
 
-    public async getPage(key: string): Promise<CachedPage | null> {
-        const cached = this.cache.get(key);
+    public async getStaticPage(name: 'admin' | 'login') {
+        const cached = this.pageCache.get(name);
 
-        if (cached && !this.isExpired(cached)) {
-            return cached.value;
-        }
+        if (cached && !this.isExpired(cached)) return cached.value;
 
-        return this.setPage(key);
+        const template = await this.templateService.render(name);
+
+        if (!template) return null;
+
+        this.pageCache.set(name, this.createEntry(template));
+
+        return template;
     }
 
-    private isExpired(entry: ICacheEntry): boolean {
-        return this.config.meta.isDev || entry.expires < this.now();
+    public async getBlogOverviewPage() {
+        if (!this.blogCache) return null;
+
+        const cached = this.pageCache.get(this.blogCache.value.path);
+
+        if (cached && !this.isExpired(cached)) return cached.value;
+
+        const template = await this.templateService.render(TEMPLATE_NAME.BLOG, {
+            brandName: this.navigationCache?.value.brandName ?? '',
+            blogHref: this.blogCache.value.path,
+            thumbPosts: this.blogCache.value.posts.map((e) => ({
+                title: e.title,
+                thumbnail: e.thumbnail,
+                dateString: e.createdAt.toLocaleDateString(),
+            })),
+            leftNavEntries: this.navigationCache?.value.leftNavEntries ?? [],
+            rightNavEntries: this.navigationCache?.value.rightNavEntries ?? [],
+        });
+
+        if (!template) return null;
+
+        this.pageCache.set(this.blogCache.value.path, this.createEntry(template));
+
+        return template;
     }
 
-    private async setNavigation() {
+    public async getNavigation() {
+        if (this.navigationCache && !this.isExpired(this.navigationCache)) return this.navigationCache.value;
+
         const navigation = (await this.dataContext.exec((p) =>
             p.navigation.findFirst({ include: { navItems: true } })
         )) as NavigationWithItems;
@@ -87,44 +120,95 @@ class CachingService extends SingletonService {
             [[], []] as [NavigationItem[], NavigationItem[]]
         );
 
-        const entry = this.createEntry({
-            brandName: navigation.brandName,
-            leftNavEntries: leftNavEntries.sort((a, b) => a.position - b.position),
-            rightNavEntries: rightNavEntries.sort((a, b) => a.position - b.position),
-        });
+        this.navigationCache = this.createEntry({ brandName: navigation.brandName, leftNavEntries, rightNavEntries });
 
-        this.cache.set('navigation', entry);
-
-        return entry.value;
+        return this.navigationCache.value;
     }
 
-    private async setPage(slug: string) {
+    public async getPage(slug: string) {
+        const cached = this.pageCache.get(slug);
+
+        if (cached && !this.isExpired(cached)) return cached.value;
+
         const page = (await this.dataContext.exec((p) =>
             p.page.findFirst({ where: { slug, published: true }, include: { sections: true } })
         )) as PageWithSections;
 
         if (!page) return null;
 
-        const entry = this.createEntry({
+        const template = await this.templateService.render(TEMPLATE_NAME.PAGE, {
             name: page.name,
-            title: page.title,
             slug: page.slug,
+            brandName: this.navigationCache?.value.brandName ?? '',
+            title: page.title,
             description: page.description,
-            sections: page.sections
+            markdownSections: page.sections
                 .filter((section) => section.published)
                 .sort((a, b) => a.position - b.position)
                 .map((section) => new Handlebars.SafeString(md2htmlConverter.makeHtml(section.content))),
+            leftNavEntries: this.navigationCache?.value.leftNavEntries ?? [],
+            rightNavEntries: this.navigationCache?.value.rightNavEntries ?? [],
         });
 
-        this.cache.set(slug, entry);
+        if (!template) return null;
 
-        return entry.value;
+        this.pageCache.set(slug, this.createEntry(template));
+
+        return template;
+    }
+
+    public async getBlogPostPage(blogName: string, blogPath: string) {
+        const key = `${blogName}/${blogPath}`;
+        const cached = this.pageCache.get(key);
+
+        if (cached && !this.isExpired(cached)) return cached.value;
+
+        const blog = await this.dataContext.exec((p) =>
+            p.blog.findFirst({
+                where: { enabled: true },
+                select: {
+                    path: true,
+                    user: { select: { firstname: true, lastname: true, photo: true } },
+                    posts: { where: { published: true, name: blogName } },
+                },
+            })
+        );
+
+        if (blog?.path !== '/' + blogPath || !blog.posts.length || !blog.user.length) {
+            return null;
+        }
+
+        const user = blog.user[0];
+        const post = blog.posts[0];
+
+        const template = await this.templateService.render(TEMPLATE_NAME.BLOG_POST, {
+            brandName: this.navigationCache?.value.brandName ?? '',
+            blogHref: blog.path,
+            leftNavEntries: this.navigationCache?.value.leftNavEntries ?? [],
+            rightNavEntries: this.navigationCache?.value.rightNavEntries ?? [],
+            blogTitle: post.title,
+            blogDescription: `Article '${post.title}' by ${user.firstname}`,
+            authorName: `${user.firstname} ${user.lastname}`,
+            authorImage: user.photo,
+            dateString: post.createdAt.toLocaleDateString(),
+            markdown: new Handlebars.SafeString(md2htmlConverter.makeHtml(post.content)),
+        });
+
+        if (!template) return null;
+
+        this.pageCache.set(key, this.createEntry(template));
+
+        return template;
+    }
+
+    private isExpired(entry: ICacheEntry): boolean {
+        return this.config.meta.isDev || entry.expires < this.now();
     }
 
     private createEntry<T>(value: T): ICacheEntry<T> {
         return {
             value,
-            expires: this.now() + 60 * 60 * 24 * 7,
+            expires: this.now() + CachingService.ttl,
         };
     }
 
