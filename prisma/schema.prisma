@@ -19,14 +19,15 @@ enum NavItemAlignment {
 }
 
 model User {
-    id       String  @id @default(uuid())
-    email    String  @unique
-    name     String
-    password String
-    photo    String?
-    role     Role    @default(USER)
-    blog     Blog    @relation(fields: [blogId], references: [id])
-    blogId   String
+    id        String  @id @default(uuid())
+    email     String  @unique
+    firstname String
+    lastname  String
+    password  String
+    photo     String?
+    role      Role    @default(USER)
+    blog      Blog    @relation(fields: [blogId], references: [id])
+    blogId    String
 }
 
 model NavigationItem {

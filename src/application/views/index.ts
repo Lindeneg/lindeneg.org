@@ -48,6 +48,7 @@ export class GetPage extends BaseViewAction {
     }
 
     private async handleBlogOverview(blog: Blog & { posts: Post[] }, navigation: CachedNavigation | null) {
+        // TODO cache
         const posts = blog.posts.map((e) => ({
             title: e.title,
             thumbnail: e.thumbnail,
@@ -74,14 +75,12 @@ export class GetBlogPage extends BaseViewAction {
 
     public async execute({ blogName, blogPath }: Record<'blogName' | 'blogPath', string>) {
         const navigation = await this.cachingService.getNavigation();
-
-        // TODO cache
         const blog = await this.dataContext.exec((p) =>
             p.blog.findFirst({
                 where: { enabled: true },
                 select: {
                     path: true,
-                    user: { select: { name: true, photo: true } },
+                    user: { select: { firstname: true, lastname: true, photo: true } },
                     posts: { where: { published: true, name: blogName } },
                 },
             })
@@ -103,7 +102,8 @@ export class GetBlogPage extends BaseViewAction {
             leftNavEntries: navigation?.leftNavEntries ?? [],
             rightNavEntries: navigation?.rightNavEntries ?? [],
             blogTitle: post.title,
-            authorName: user.name,
+            blogDescription: `Article '${post.title}' by ${user.firstname}`,
+            authorName: `${user.firstname} ${user.lastname}`,
             authorImage: user.photo,
             dateString: post.createdAt.toLocaleDateString(),
             markdown: new Handlebars.SafeString(md2htmlConverter.makeHtml(post.content)),

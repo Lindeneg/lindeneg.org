@@ -36,6 +36,7 @@ interface BlogProps extends BaseProps {
 interface BlogPostProps extends BaseProps {
     blogHref: string;
     blogTitle: string;
+    blogDescription: string;
     authorImage: string | null;
     authorName: string;
     dateString: string;

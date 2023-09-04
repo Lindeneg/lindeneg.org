@@ -6,7 +6,8 @@ import type DataContextService from '@/services/data-context-service';
 
 const userSchema = z.object({
     email: z.string().email(),
-    name: z.string().trim().min(5).max(12),
+    firstname: z.string().trim().min(5).max(12),
+    lastname: z.string().trim().min(5).max(12),
     password: z.string().trim().min(6).max(28),
 });
 
@@ -25,9 +26,9 @@ class SuperUserService extends SingletonService {
 
         if (!parsedPayload || (await this.isSuperUserCreated(parsedPayload))) return;
 
-        const { email, name, password } = parsedPayload;
+        const { email, firstname, lastname, password } = parsedPayload;
 
-        await this.createSuperUser(email, name, await this.tokenService.hashPassword(password));
+        await this.createSuperUser(email, firstname, lastname, await this.tokenService.hashPassword(password));
     }
 
     private getPayloadFromEnvironment() {
@@ -35,11 +36,12 @@ class SuperUserService extends SingletonService {
 
         if (!superUser) return null;
 
-        const [email, name, password] = superUser.split(',');
+        const [email, firstname, lastname, password] = superUser.split(',');
 
         return this.parsePayload({
             email,
-            name,
+            firstname,
+            lastname,
             password,
         });
     }
@@ -64,30 +66,23 @@ class SuperUserService extends SingletonService {
             p.user.findFirst({
                 where: {
                     email: user.email,
-                    name: user.name,
                 },
             })
         );
 
         if (existingUser) {
-            this.logger.verbose(`super-user '${existingUser.name}' already created`);
+            this.logger.verbose(`super-user '${existingUser.email}' already created`);
             return true;
         }
 
         return false;
     }
 
-    private async createSuperUser(email: string, name: string, password: string) {
+    private async createSuperUser(email: string, firstname: string, lastname: string, password: string) {
         const result = await this.dataContext.exec(async (p) => {
-            const blog = await p.blog.create({});
-            return p.user.create({
-                data: {
-                    email,
-                    name,
-                    password,
-                    blogId: blog.id,
-                    role: Role.ADMIN,
-                },
+            return p.blog.create({
+                data: { user: { create: { email, firstname, lastname, password, role: Role.ADMIN } } },
+                select: { user: true },
             });
         });
 
@@ -98,7 +93,7 @@ class SuperUserService extends SingletonService {
             return;
         }
 
-        this.logger.verbose(`super-user '${result.name}' successfully created`);
+        this.logger.verbose(`super-user '${result.user[0].email}' successfully created`);
     }
 }
 
