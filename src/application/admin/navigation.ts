@@ -68,7 +68,7 @@ export class CreateNavigationItemCommand extends BaseAction {
 
 export class DeleteNavigationItemCommand extends BaseAction {
     public async execute({ id }: Record<'id', string>) {
-        const navigation = await this.dataContext.exec((p) => p.pageSection.delete({ where: { id } }));
+        const navigation = await this.dataContext.exec((p) => p.navigationItem.delete({ where: { id } }));
 
         if (!navigation) {
             return new MediatorResultFailure(ACTION_RESULT.ERROR_INTERNAL_ERROR);

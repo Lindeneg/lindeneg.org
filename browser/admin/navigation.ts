@@ -152,9 +152,12 @@
         const commitBtn = document.getElementById('nav-commit-btn') as HTMLButtonElement;
         const resetBtn = document.getElementById('nav-reset-btn') as HTMLButtonElement;
 
-        const hasEdited = state.navigation?._meta.edited || getEditedNavItems().length > 0;
-
-        if (hasEdited && !state.updatingItemId && !state.addingRow) {
+        if (
+            state.navigation?.brandName &&
+            getEditedNavItems().length > 0 &&
+            !state.updatingItemId &&
+            !state.addingRow
+        ) {
             commitBtn.classList.remove(DISABLED_BTN_CLASS);
             resetBtn.classList.remove(DISABLED_BTN_CLASS);
             return;
@@ -281,7 +284,9 @@
             if (!response?.ok) return;
             item.id = await response?.json();
             if (name === '/navigation') {
-                state.navigationItems?.forEach((e) => (e.navigationId = item.id));
+                state.navigationItems?.forEach((e) => {
+                    e.navigationId = item.id;
+                });
             }
         } else if (item._meta.deleted) {
             await core.deleteJson(`${name}/${item.id}`);

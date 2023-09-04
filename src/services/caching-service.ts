@@ -77,27 +77,31 @@ class CachingService extends SingletonService {
     }
 
     public async getBlogOverviewPage() {
-        if (!this.blogCache) return null;
+        const blog = await this.getBlog();
 
-        const cached = this.pageCache.get(this.blogCache.value.path);
+        if (!blog) return null;
+
+        const cached = this.pageCache.get(blog.path);
 
         if (cached && !this.isExpired(cached)) return cached.value;
 
+        const navigation = await this.getNavigation();
+
         const template = await this.templateService.render(TEMPLATE_NAME.BLOG, {
-            brandName: this.navigationCache?.value.brandName ?? '',
-            blogHref: this.blogCache.value.path,
-            thumbPosts: this.blogCache.value.posts.map((e) => ({
+            brandName: navigation?.brandName ?? '',
+            blogHref: blog.path,
+            thumbPosts: blog.posts.map((e) => ({
                 title: e.title,
                 thumbnail: e.thumbnail,
                 dateString: e.createdAt.toLocaleDateString(),
             })),
-            leftNavEntries: this.navigationCache?.value.leftNavEntries ?? [],
-            rightNavEntries: this.navigationCache?.value.rightNavEntries ?? [],
+            leftNavEntries: navigation?.leftNavEntries ?? [],
+            rightNavEntries: navigation?.rightNavEntries ?? [],
         });
 
         if (!template) return null;
 
-        this.pageCache.set(this.blogCache.value.path, this.createEntry(template));
+        this.pageCache.set(blog.path, this.createEntry(template));
 
         return template;
     }
@@ -136,18 +140,20 @@ class CachingService extends SingletonService {
 
         if (!page) return null;
 
+        const navigation = await this.getNavigation();
+
         const template = await this.templateService.render(TEMPLATE_NAME.PAGE, {
             name: page.name,
             slug: page.slug,
-            brandName: this.navigationCache?.value.brandName ?? '',
+            brandName: navigation?.brandName ?? '',
             title: page.title,
             description: page.description,
             markdownSections: page.sections
                 .filter((section) => section.published)
                 .sort((a, b) => a.position - b.position)
                 .map((section) => new Handlebars.SafeString(md2htmlConverter.makeHtml(section.content))),
-            leftNavEntries: this.navigationCache?.value.leftNavEntries ?? [],
-            rightNavEntries: this.navigationCache?.value.rightNavEntries ?? [],
+            leftNavEntries: navigation?.leftNavEntries ?? [],
+            rightNavEntries: navigation?.rightNavEntries ?? [],
         });
 
         if (!template) return null;
