@@ -106,6 +106,7 @@
                     id: state.updatingItemId,
                     blogId: state.blog!.id,
                     title: 'Some Name',
+                    name: 'some-name',
                     content: 'Some Content',
                     published: false,
                     thumbnail: '',

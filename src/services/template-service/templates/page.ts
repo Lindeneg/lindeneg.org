@@ -9,7 +9,6 @@ interface PageNavProps {
 }
 
 interface BaseProps {
-    title: string;
     brandName: string;
     leftNavEntries: PageNavProps[];
     rightNavEntries: PageNavProps[];
@@ -17,6 +16,7 @@ interface BaseProps {
 
 interface PageProps extends BaseProps {
     name: string;
+    title: string;
     slug: string;
     description: string;
     markdownSections: SafeString[];
@@ -24,14 +24,22 @@ interface PageProps extends BaseProps {
 
 interface ThumbPosts {
     title: string;
-    href: string;
     dateString: string;
     thumbnail: string;
 }
 
 interface BlogProps extends BaseProps {
     blogHref: string;
-    thumbPosts: ThumbPosts[];
+    thumbPosts: ThumbPosts[] | null;
+}
+
+interface BlogPostProps extends BaseProps {
+    blogHref: string;
+    blogTitle: string;
+    authorImage: string | null;
+    authorName: string;
+    dateString: string;
+    markdown: SafeString;
 }
 
 const TEMPLATE_PAGE = {
@@ -40,6 +48,9 @@ const TEMPLATE_PAGE = {
     }),
     [TEMPLATE_NAME.BLOG]: createHandlebarTemplate<BlogProps>({
         path: 'templates/pages/blog.hbs',
+    }),
+    [TEMPLATE_NAME.BLOG_POST]: createHandlebarTemplate<BlogPostProps>({
+        path: 'templates/pages/blog-post.hbs',
     }),
 } as const;
 

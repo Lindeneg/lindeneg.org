@@ -32,7 +32,7 @@ interface ICacheEntry<T = any> {
     expires: number;
 }
 
-const converter = new Converter();
+export const md2htmlConverter = new Converter();
 
 class CachingService extends SingletonService {
     @injectService(SERVICE.DATA_CONTEXT)
@@ -113,7 +113,7 @@ class CachingService extends SingletonService {
             sections: page.sections
                 .filter((section) => section.published)
                 .sort((a, b) => a.position - b.position)
-                .map((section) => new Handlebars.SafeString(converter.makeHtml(section.content))),
+                .map((section) => new Handlebars.SafeString(md2htmlConverter.makeHtml(section.content))),
         });
 
         this.cache.set(slug, entry);

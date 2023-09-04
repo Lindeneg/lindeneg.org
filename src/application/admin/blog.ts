@@ -5,6 +5,7 @@ import type CloudinaryService from '@/services/cloudinary-service';
 import type { ICreateBlogPostDto } from '@/contracts/create-blog-post-dto';
 import type { IUpdateBlogPostSchema } from '@/contracts/update-blog-post-dto';
 import { Post } from '@prisma/client';
+import { toKebabCase } from '@/services/template-service';
 
 export class GetBlogQuery extends BaseAction {
     public async execute({ id }: Record<'id', string>) {
@@ -80,6 +81,7 @@ export class CreateBlogPostCommand extends BaseAction {
             p.post.create({
                 data: {
                     ...dto,
+                    name: toKebabCase(dto.title),
                     blogId: blog.id,
                     thumbnail: thumbnailUrl,
                     thumbnailId: uploadResult?.public_id || '',
@@ -131,6 +133,10 @@ export class UpdateBlogPostCommand extends BaseAction {
                 payload.thumbnail = upload.url;
                 payload.thumbnailId = upload.public_id;
             }
+        }
+
+        if (payload.title) {
+            payload.name = toKebabCase(payload.title);
         }
 
         const updatedPost = await this.dataContext.exec((p) =>

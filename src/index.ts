@@ -11,9 +11,9 @@ import SuperUserService from './services/super-user-service';
 import CookieService from './services/cookie-service';
 import CachingService from './services/caching-service';
 import CloudinaryService from './services/cloudinary-service';
-import '@/api/view-controller';
 import '@/api/auth-controller';
 import '@/api/admin-controller';
+import '@/api/view-controller';
 
 BaseLoggerServicePalette.useDefaultPalette();
 
@@ -22,7 +22,7 @@ const funkallero = await Funkallero.create({
 
     port: 5000,
 
-    logLevel: LOG_LEVEL.VERBOSE,
+    logLevel: LOG_LEVEL.INFO,
 
     meta: {
         mode: process.env['FUNKALLERO_MODE'],

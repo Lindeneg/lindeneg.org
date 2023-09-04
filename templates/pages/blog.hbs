@@ -15,19 +15,29 @@
     brandName=brandName
 }}
 
-<div class="post-card-container">
-    {{#each posts}}
-    <a class="post-card" href="{{this.href}}">
-      <div class="post-card-inner">
-         <div class="post-card-thumbnail" style="background-image:url({{this.thumbnail}})"></div>
-         <div class="post-card-title">
-            <h2>{{this.title}}</h2>
-            <p>{{this.dateString}}</p>
-            <div class="flex-spacer"> </div>
-         </div>
-      </div>
-   </a>
-    {{/each}}
+<div class="blog-container">
+        {{#if thumbPosts}}
+        <div class="post-card-container">
+
+        {{#each thumbPosts}}
+        <a class="post-card" href="{{../blogHref}}/post/{{kebabCase this.title}}">
+            <div class="post-card-inner">
+                <div class="post-card-thumbnail" style="background-image:url({{this.thumbnail}})"></div>
+                <div class="post-card-title">
+                <h2>{{this.title}}</h2>
+                <p>{{this.dateString}}</p>
+                <div class="flex-spacer"> </div>
+                </div>
+            </div>
+        </a>
+       {{/each}}
+
+        </div>
+
+       {{else}}
+       <h1>No Posts Found!</h1>
+
+        {{/if}}
 </div>
 
 <footer class="footer divider-border-top">
@@ -36,6 +46,5 @@
     </div>
 </footer>
 
-<script src='/js/core.js'></script>
 </body>
 </html>

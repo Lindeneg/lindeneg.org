@@ -4,6 +4,7 @@ const TEMPLATE_NAME = {
     LOGIN: 'login',
     LOGOUT: 'logout',
     BLOG: 'blog',
+    BLOG_POST: 'blog-post',
     NAV: 'nav',
     NAV_BAR_ENTRIES: 'nav-bar-entries',
     HEAD: 'head',
