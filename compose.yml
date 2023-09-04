@@ -1,29 +1,32 @@
 services:
-  web:
-    container_name: web_container
-    depends_on:
-      - postgres
-    environment:
-      FUNKALLERO_DEBUG_MODE: ${FUNKALLERO_DEBUG_MODE}
-      FUNKALLERO_SUPER_USER: ${FUNKALLERO_SUPER_USER}
-      FUNKALLERO_MODE: ${FUNKALLERO_MODE}
-      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?schema=public"
-    build: .
-    ports:
-      - "${FUNKALLERO_PORT}:5000"
+    web:
+        container_name: web_container
+        depends_on:
+            - postgres
+        environment:
+            FUNKALLERO_DEBUG_MODE: ${FUNKALLERO_DEBUG_MODE}
+            FUNKALLERO_SUPER_USER: ${FUNKALLERO_SUPER_USER}
+            FUNKALLERO_MODE: ${FUNKALLERO_MODE}
+            CLOUDINARY_NAME: ${CLOUDINARY_NAME}
+            CLOUDINARY_KEY: ${CLOUDINARY_KEY}
+            CLOUDINARY_SECRET: ${CLOUDINARY_SECRET}
+            DATABASE_URL: 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?schema=public'
+        build: .
+        ports:
+            - '${FUNKALLERO_PORT}:5000'
 
-  postgres:
-    container_name: postgres_container
-    image: postgres
-    restart: always
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      PGDATA: /data/postgres
-    ports:
-      - "${POSTGRES_PORT}:5432"
-    volumes:
-      - postgres:/data/postgres
+    postgres:
+        container_name: postgres_container
+        image: postgres
+        restart: always
+        environment:
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            PGDATA: /data/postgres
+        ports:
+            - '${POSTGRES_PORT}:5432'
+        volumes:
+            - postgres:/data/postgres
 
 volumes:
-  postgres:
+    postgres:

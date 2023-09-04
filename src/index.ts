@@ -22,7 +22,7 @@ const funkallero = await Funkallero.create({
 
     port: 5000,
 
-    logLevel: LOG_LEVEL.VERBOSE,
+    logLevel: LOG_LEVEL.INFO,
 
     meta: {
         mode: process.env['FUNKALLERO_MODE'],
