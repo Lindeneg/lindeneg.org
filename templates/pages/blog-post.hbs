@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang='en'>
+{{> head
+    title=blogTitle
+    description=blogDescription
+    pureCss=true
+    css=(csvArray "/css/site.css")
+}}
+
+<body>
+{{> nav
+    leftEntries=leftNavEntries
+    rightEntries=rightNavEntries
+    activePageName=blogHref
+    brandName=brandName
+}}
+
+<div class="blog-post">
+   <div class="blog-post-title">
+      <h1>{{blogTitle}}</h1>
+      <br>
+      <div class="author-container">
+         <div class="author">
+            <img src="{{authorImage}}" class="author-image">
+            <div>
+               <p class="author-line"><span>{{authorName}}</span></p>
+               <p class="author-line subtle">{{dateString}}</p>
+            </div>
+         </div>
+      </div>
+   </div>
+   <div class="blog-post-content">
+      <div style="width:100%">
+        {{markdown}}
+      </div>
+   </div>
+</div>
+
+
+<footer class="footer divider-border-top">
+    <div class="wrapper"><p>© Christian Lindeneg 2023</p>
+        <p>|</p><a href="https://github.com/Lindeneg/funkallero" target="_blank">Made with: <span>Funkallero</span></a>
+    </div>
+</footer>
+
+</body>
+</html>

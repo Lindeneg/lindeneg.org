@@ -1,8 +1,4 @@
-import Funkallero, {
-    BaseZodParserService,
-    BaseLoggerServicePalette,
-    LOG_LEVEL,
-} from '@lindeneg/funkallero';
+import Funkallero, { BaseZodParserService, BaseLoggerServicePalette, LOG_LEVEL } from '@lindeneg/funkallero';
 import { BaseTokenService } from '@lindeneg/funkallero-auth-service';
 import TemplateService from './services/template-service';
 import SERVICE from '@/enums/service';
@@ -14,9 +10,10 @@ import AuthorizationService from '@/services/authorization-service';
 import SuperUserService from './services/super-user-service';
 import CookieService from './services/cookie-service';
 import CachingService from './services/caching-service';
-import '@/api/view-controller';
+import CloudinaryService from './services/cloudinary-service';
 import '@/api/auth-controller';
 import '@/api/admin-controller';
+import '@/api/view-controller';
 
 BaseLoggerServicePalette.useDefaultPalette();
 
@@ -25,11 +22,16 @@ const funkallero = await Funkallero.create({
 
     port: 5000,
 
-    logLevel: LOG_LEVEL.VERBOSE,
+    logLevel: LOG_LEVEL.INFO,
 
     meta: {
-        mode: process.env['FUNKALLERO_MODE'], // local or production
-        isDev: process.argv.includes('--dev'), // hot-rebuilding for development
+        mode: process.env['FUNKALLERO_MODE'],
+        isDev: process.argv.includes('--dev'),
+        cloudinary: {
+            cloudName: process.env['CLOUDINARY_NAME'],
+            apiKey: process.env['CLOUDINARY_KEY'],
+            apiSecret: process.env['CLOUDINARY_SECRET'],
+        },
     },
 
     setup(service) {
@@ -42,6 +44,7 @@ const funkallero = await Funkallero.create({
         service.registerSingletonService(SERVICE.TOKEN, BaseTokenService);
         service.registerSingletonService(SERVICE.COOKIE, CookieService);
         service.registerSingletonService(SERVICE.CACHING, CachingService);
+        service.registerSingletonService(SERVICE.CLOUDINARY, CloudinaryService);
 
         service.registerScopedService(SERVICE.AUTHENTICATION, AuthenticationService);
         service.registerScopedService(SERVICE.AUTHORIZATION, AuthorizationService);
@@ -49,9 +52,8 @@ const funkallero = await Funkallero.create({
 
     async startup(service) {
         await Promise.all([
-            // initialize handlebar templates
             service.getSingletonService<TemplateService>(SERVICE.TEMPLATE)?.initializeTemplates(),
-            // create superuser from environment, if not already created
+            service.getSingletonService<CloudinaryService>(SERVICE.CLOUDINARY)?.initialize(),
             service.getSingletonService<SuperUserService>(SERVICE.SUPER_USER)?.create(),
         ]);
     },

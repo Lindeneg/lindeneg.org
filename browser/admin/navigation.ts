@@ -280,7 +280,9 @@
             const response = await core.postJson(name, core.getCommitPayload(item));
             if (!response?.ok) return;
             item.id = await response?.json();
-            state.navigationItems?.forEach((e) => (e.navigationId = item.id));
+            if (name === '/navigation') {
+                state.navigationItems?.forEach((e) => (e.navigationId = item.id));
+            }
         } else if (item._meta.deleted) {
             await core.deleteJson(`${name}/${item.id}`);
         } else if (item._meta.edited) {

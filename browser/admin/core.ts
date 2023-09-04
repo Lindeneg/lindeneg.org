@@ -1,7 +1,7 @@
 type AdminCore = (typeof window)['funkalleroAdminCore'];
 
 (() => {
-    const ACTIVE_NAV_CLASS = 'button-secondary';
+    const ACTIVE_NAV_CLASS = 'pure-button-secondary';
     const INACTIVE_NAV_CLASS = 'pure-button-primary';
     const NEW_ENTRY_REGEX = /NEW_ROW_TEMP_ID-/;
 
@@ -78,6 +78,12 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
 
                         if (isUpdatingRow && editableColumnHtml) {
                             return `<td>${editableColumnHtml(row, name)}</td>`;
+                        }
+
+                        if (name === 'thumbnail') {
+                            return `<td>${
+                                row.thumbnail ? `<img width="64px" height="64px" src='${row.thumbnail}' />` : 'None'
+                            }</td>`;
                         }
 
                         return `<td>${row[<keyof typeof row>name]}</td>`;

@@ -1,4 +1,4 @@
-import { controller, httpGet, auth, MediatorResultSuccess } from '@lindeneg/funkallero';
+import { controller, httpPost, auth } from '@lindeneg/funkallero';
 import BaseController from '../base-controller';
 import AUTH from '@/enums/auth';
 import './navigation-controller';
@@ -7,9 +7,9 @@ import './blog-controller';
 
 @controller()
 class AdminController extends BaseController {
-    @httpGet('/bust-cache')
+    @httpPost('/bust-cache')
     @auth(AUTH.POLICY.IS_ADMIN)
     public async bustCache() {
-        return new MediatorResultSuccess('');
+        return this.mediator.send('ClearCacheCommand');
     }
 }

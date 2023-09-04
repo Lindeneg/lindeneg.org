@@ -8,20 +8,50 @@ interface PageNavProps {
     newTab: boolean;
 }
 
-interface PageProps {
-    name: string;
-    slug: string;
+interface BaseProps {
     brandName: string;
+    leftNavEntries: PageNavProps[];
+    rightNavEntries: PageNavProps[];
+}
+
+interface PageProps extends BaseProps {
+    name: string;
     title: string;
+    slug: string;
     description: string;
     markdownSections: SafeString[];
-    leftNavEntries?: PageNavProps[];
-    rightNavEntries?: PageNavProps[];
+}
+
+interface ThumbPosts {
+    title: string;
+    dateString: string;
+    thumbnail: string;
+}
+
+interface BlogProps extends BaseProps {
+    blogHref: string;
+    thumbPosts: ThumbPosts[] | null;
+}
+
+interface BlogPostProps extends BaseProps {
+    blogHref: string;
+    blogTitle: string;
+    blogDescription: string;
+    authorImage: string | null;
+    authorName: string;
+    dateString: string;
+    markdown: SafeString;
 }
 
 const TEMPLATE_PAGE = {
     [TEMPLATE_NAME.PAGE]: createHandlebarTemplate<PageProps>({
         path: 'templates/pages/page.hbs',
+    }),
+    [TEMPLATE_NAME.BLOG]: createHandlebarTemplate<BlogProps>({
+        path: 'templates/pages/blog.hbs',
+    }),
+    [TEMPLATE_NAME.BLOG_POST]: createHandlebarTemplate<BlogPostProps>({
+        path: 'templates/pages/blog-post.hbs',
     }),
 } as const;
 
