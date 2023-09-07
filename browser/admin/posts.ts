@@ -6,6 +6,7 @@
         original: null as BlogWithPosts | null,
         blog: null as Editable<Blog> | null,
         posts: null as Editable<Post>[] | null,
+        authorPhoto: null as Editable<{ value: string }> | null,
         columnNames: null as string[] | null,
         updatingItemId: null as string | null,
         editor: null as SimpleMDE | null,
@@ -18,22 +19,25 @@
         Object.assign(state, defaultState());
     });
 
+    const handleEditorInput = async () => {
+        if (!state.editor) return;
+        const value = state.editor.value();
+        await handleRowInput({ name: 'content', classList: { contains: () => false }, value } as any);
+        state.editor = null;
+    };
+
     const handleRowItemClick = async (target: HTMLSpanElement) => {
         const id = target.dataset.itemId;
         const mode = target.innerText.toLowerCase();
 
         if (!id || !mode) return;
 
-        if (mode === 'done' && state.editor) {
-            const value = state.editor.value();
-            await handleRowInput({ name: 'content', classList: { contains: () => false }, value } as any);
-        }
-
         if (mode === 'done') {
+            await handleEditorInput();
             state.updatingItemId = null;
             state.addingRow = false;
-            state.editor = null;
         } else if (mode === 'update') {
+            if (state.updatingItemId && state.updatingItemId !== id) await handleEditorInput();
             state.updatingItemId = id;
         } else if (mode === 'delete') {
             const target = state.posts?.find((e) => e.id === id)!;
@@ -250,6 +254,12 @@
     const getPostsHtml = () => {
         return `
 <section class='admin-section'>
+    <h1>User</h1>
+
+    <label style='margin-bottom:1rem;' for='blog-path-field'>Blog Path</label>
+    <input id='blog-path-field' type='text' placeholder='Blog Path' value='${state.blog?.path}' />
+    <small>Commit an empty field to disable blog and posts</small>
+
     <h1>Blog & Posts</h1>
 
     <div class='admin-section-content'>

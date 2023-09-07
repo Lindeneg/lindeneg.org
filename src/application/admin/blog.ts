@@ -176,7 +176,15 @@ export class DeleteBlogPostCommand extends BaseAction {
 }
 
 export class GetBlogColumnsQuery extends BaseAction {
-    private static readonly ignoreColumns = ['id', 'content', 'blogId', 'createdAt', 'updatedAt', 'thumbnailId'];
+    private static readonly ignoreColumns = [
+        'id',
+        'content',
+        'name',
+        'blogId',
+        'createdAt',
+        'updatedAt',
+        'thumbnailId',
+    ];
 
     public async execute() {
         const itemFields = await this.dataContext.exec(async (p) => p.post.fields);

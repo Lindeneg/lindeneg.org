@@ -124,7 +124,11 @@ class CachingService extends SingletonService {
             [[], []] as [NavigationItem[], NavigationItem[]]
         );
 
-        this.navigationCache = this.createEntry({ brandName: navigation.brandName, leftNavEntries, rightNavEntries });
+        this.navigationCache = this.createEntry({
+            brandName: navigation.brandName,
+            leftNavEntries: leftNavEntries.sort((a, b) => a.position - b.position),
+            rightNavEntries: rightNavEntries.sort((a, b) => a.position - b.position),
+        });
 
         return this.navigationCache.value;
     }

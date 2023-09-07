@@ -20,7 +20,8 @@ class CloudinaryService extends SingletonService {
     public async uploadImage(image: string) {
         let result: UploadApiResponse | null = null;
         try {
-            result = await cloudinary.uploader.upload(image);
+            const folder = 'lindeneg.org' + (this.config.meta.mode ? '/' + this.config.meta.mode : '');
+            result = await cloudinary.uploader.upload(image, { folder });
         } catch (err) {
             this.logger.error({
                 msg: 'Failed to upload image to cloudinary',

@@ -93,14 +93,16 @@
     };
 
     const resetChanges = async () => {
-        state.navigationItems = state.original!.navItems.map((item) => ({
-            ...core.withMeta(item),
-        }));
         state.navigation = {
-            ...core.withMeta(state.original!),
+            ...core.withMeta(
+                {
+                    id: state.original?.id ?? core.createTempId(),
+                    brandName: state.original?.brandName ?? '',
+                },
+                { isNew: state.original === null }
+            ),
         };
-
-        await setNavigationHtml();
+        state.navigationItems = state.original?.navItems.map((e) => core.withMeta(e)) ?? [];
     };
 
     const setNavigationListeners = () => {
@@ -133,7 +135,10 @@
 
         addNavButton.addEventListener('click', addNavRow);
         commitBtn.addEventListener('click', commitChanges);
-        resetBtn.addEventListener('click', resetChanges);
+        resetBtn.addEventListener('click', async () => {
+            await resetChanges();
+            await setNavigationHtml();
+        });
     };
 
     const getEditedNavItems = () => {
@@ -153,8 +158,8 @@
         const resetBtn = document.getElementById('nav-reset-btn') as HTMLButtonElement;
 
         if (
-            state.navigation?.brandName &&
-            getEditedNavItems().length > 0 &&
+            (state.navigation?._meta.edited ||
+            getEditedNavItems().length > 0) &&
             !state.updatingItemId &&
             !state.addingRow
         ) {
@@ -257,16 +262,7 @@
                     ...core.withMeta(mainNavigation),
                 };
             } else {
-                state.navigation = {
-                    ...core.withMeta(
-                        {
-                            id: core.createTempId(),
-                            brandName: '',
-                        },
-                        { isNew: true }
-                    ),
-                };
-                state.navigationItems = [];
+                await resetChanges();
             }
 
             state.columnNames = navigationColumns ?? [];
@@ -281,7 +277,7 @@
     const sendRequest = async (item: Editable<any>, name: '/navigation' | '/navigation-item') => {
         if (item._meta.isNew) {
             const response = await core.postJson(name, core.getCommitPayload(item));
-            if (!response?.ok) return;
+            if (!response?.ok) return false;
             item.id = await response?.json();
             if (name === '/navigation') {
                 state.navigationItems?.forEach((e) => {
@@ -289,19 +285,24 @@
                 });
             }
         } else if (item._meta.deleted) {
-            await core.deleteJson(`${name}/${item.id}`);
+            const response = await core.deleteJson(`${name}/${item.id}`);
+            if (!response?.ok) return false;
         } else if (item._meta.edited) {
-            await core.patchJson(`${name}/${item.id}`, core.getCommitPayload(item));
+            const response = await core.patchJson(`${name}/${item.id}`, core.getCommitPayload(item));
+            if (!response?.ok) return false;
         }
-        return Promise.resolve();
+        return Promise.resolve(true);
     };
 
     const commitChanges = async () => {
         if (!state.navigation || !state.navigationItems) return;
 
+        let mainNavResult = true;
         if (state.navigation._meta.edited) {
-            await sendRequest(state.navigation, '/navigation');
+            mainNavResult = await sendRequest(state.navigation, '/navigation');
         }
+
+        if (!mainNavResult) return;
 
         await Promise.all(getEditedNavItems().map(async (item) => sendRequest(item, '/navigation-item')));
 
