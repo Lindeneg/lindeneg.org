@@ -178,12 +178,21 @@ ${getEditorTextArea()}
  `;
     };
 
+    const handleEditorInput = async () => {
+        if (!state.editor) return;
+        const value = state.editor.value();
+        await handleRowInput({ name: 'content', classList: { contains: () => false }, value } as any);
+        state.editor = null;
+    };
+
     const handleRowClick = async (target: HTMLSpanElement) => {
         const id = target.dataset.itemId;
         const context = target.dataset.itemContext;
         const mode = target.innerText.toLowerCase();
 
         if (!id || !mode || !context) return;
+
+        await handleEditorInput();
 
         if (mode === 'update') {
             if (context === 'pages') {
@@ -192,7 +201,6 @@ ${getEditorTextArea()}
                 state.editor = null;
                 state.editingEntry = state.pages?.find((e) => e.id === id)!;
             } else if (context === 'sections') {
-                state.editor = null;
                 state.editingEntrySection = state.editingEntry?.sections?.find((e) => e.id === id)! as any;
             }
         } else if (mode === 'delete') {
@@ -206,11 +214,6 @@ ${getEditorTextArea()}
         }
 
         if (mode === 'done' || mode === 'delete') {
-            if (mode === 'done' && state.editor) {
-                const value = state.editor.value();
-                await handleRowInput({ name: 'content', classList: { contains: () => false }, value } as any);
-            }
-
             if (context === 'sections') {
                 state.editingEntrySection = null;
                 state.isCreatingSection = false;
@@ -228,6 +231,10 @@ ${getEditorTextArea()}
     };
 
     const addPageRow = async () => {
+        if (state.editingEntrySection) {
+            await handleEditorInput();
+        }
+
         state.isCreatingPage = true;
 
         const entry = core.withMeta(
@@ -248,7 +255,6 @@ ${getEditorTextArea()}
         state.editingEntry = entry;
         state.isCreatingPage = true;
         state.editingEntrySection = null;
-        state.editor = null;
         state.isCreatingSection = false;
 
         await setPagesHtml();
@@ -256,6 +262,10 @@ ${getEditorTextArea()}
 
     const addPageSectionRow = async () => {
         if (!state.editingEntry) return;
+
+        if (state.editingEntrySection) {
+            await handleEditorInput();
+        }
 
         const entry = core.withMeta(
             {
@@ -272,7 +282,6 @@ ${getEditorTextArea()}
 
         state.editingEntrySection = entry;
         state.isCreatingSection = true;
-        state.editor = null;
 
         await setPagesHtml();
     };

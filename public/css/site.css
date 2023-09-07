@@ -14,9 +14,8 @@
 
 .author-image {
     border-radius: 35px;
-    height: 70px;
+    height: 80px;
     margin: 0px 10px 0px 0px;
-    width: 70px;
     object-fit: cover;
 }
 

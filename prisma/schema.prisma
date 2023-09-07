@@ -25,6 +25,7 @@ model User {
     lastname  String
     password  String
     photo     String?
+    photoId   String?
     role      Role    @default(USER)
     blog      Blog    @relation(fields: [blogId], references: [id])
     blogId    String

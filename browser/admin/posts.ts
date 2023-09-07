@@ -6,6 +6,7 @@
         original: null as BlogWithPosts | null,
         blog: null as Editable<Blog> | null,
         posts: null as Editable<Post>[] | null,
+        originalAuthorPhoto: null as string | null,
         authorPhoto: null as Editable<{ value: string }> | null,
         columnNames: null as string[] | null,
         updatingItemId: null as string | null,
@@ -70,27 +71,43 @@
         }
     };
 
+    const handlePhotoUpload = (target: HTMLInputElement, callback: (fr: FileReader) => void) => {
+        const fileReader: FileReader = new FileReader();
+
+        fileReader.onload = () => {
+            callback(fileReader);
+        };
+
+        fileReader.readAsDataURL(target.files![0]);
+    };
+
     const handleRowInput = async (target: HTMLInputElement) => {
+        const hasFiles = !!target.files?.length;
         const name = target.name;
         let value = target.value as any;
+
+        if (target.id === 'authorPhoto' && hasFiles) {
+            return handlePhotoUpload(target, (fileReader) => {
+                const value = fileReader.result?.toString() || '';
+                state.authorPhoto = core.withMeta(
+                    { value: fileReader.result?.toString() || '' },
+                    { edited: value !== state.originalAuthorPhoto }
+                );
+                return setPostsHtml();
+            });
+        }
 
         if (!name || !state.updatingItemId) return;
 
         const postItem = state.posts?.find((e) => e.id === state.updatingItemId)!;
         const originalPostItem = state.original?.posts?.find((e) => e.id === state.updatingItemId);
 
-        if (name === 'thumbnail' && target.files?.length) {
-            const fileReader: FileReader = new FileReader();
-
-            fileReader.onload = async () => {
+        if (name === 'thumbnail' && hasFiles) {
+            return handlePhotoUpload(target, (fileReader) => {
                 setPostItem(fileReader.result?.toString(), name as any, postItem, originalPostItem);
-                state.editor = null;
-                await setPostsHtml();
-            };
-
-            fileReader.readAsDataURL(target.files[0]);
-
-            return;
+                handleEditorInput();
+                return setPostsHtml();
+            });
         }
 
         if (name === 'published') {
@@ -101,6 +118,7 @@
     };
 
     const addRow = async () => {
+        if (state.updatingItemId) await handleEditorInput();
         state.addingRow = !state.addingRow;
         state.updatingItemId = core.createTempId();
 
@@ -134,6 +152,7 @@
         state.blog = {
             ...core.withMeta(state.original!),
         };
+        state.authorPhoto = core.withMeta({ value: state.originalAuthorPhoto || '' });
 
         await setPostsHtml();
     };
@@ -147,11 +166,20 @@
         setPostsHtml();
     };
 
+    const removeAuthorPhoto = () => {
+        if (state.authorPhoto) {
+            state.authorPhoto._meta.edited = true;
+            state.authorPhoto._meta.deleted = true;
+            return setPostsHtml();
+        }
+    };
+
     const setPostsListeners = () => {
         const actionElements = document.querySelectorAll('.update-table-btn,.delete-table-btn');
         const editableRowElements = document.querySelectorAll('.editable-row');
         const addPostButton = document.getElementById('add-post-btn') as HTMLButtonElement;
         const blogPathField = document.getElementById('blog-path-field') as HTMLInputElement;
+        const removeAuthorPhotoButton = document.getElementById('remove-authorPhoto-button') as HTMLButtonElement;
         const removeThumbnailButton = document.getElementById('remove-thumbnail-button') as HTMLButtonElement;
         const commitBtn = document.getElementById('post-commit-btn') as HTMLButtonElement;
         const resetBtn = document.getElementById('post-reset-btn') as HTMLButtonElement;
@@ -177,6 +205,7 @@
         });
 
         removeThumbnailButton?.addEventListener('click', removeThumbnail);
+        removeAuthorPhotoButton?.addEventListener('click', removeAuthorPhoto);
         addPostButton.addEventListener('click', addRow);
         commitBtn.addEventListener('click', commitChanges);
         resetBtn.addEventListener('click', resetChanges);
@@ -198,7 +227,8 @@
         const commitBtn = document.getElementById('post-commit-btn') as HTMLButtonElement;
         const resetBtn = document.getElementById('post-reset-btn') as HTMLButtonElement;
 
-        const hasEdited = state.blog?._meta.edited || getEditedPostItems().length > 0;
+        const hasEdited =
+            state.blog?._meta.edited || getEditedPostItems().length > 0 || state.authorPhoto?._meta.edited;
 
         if (hasEdited && !state.updatingItemId && !state.addingRow) {
             commitBtn.classList.remove(DISABLED_BTN_CLASS);
@@ -208,6 +238,15 @@
 
         commitBtn.classList.add(DISABLED_BTN_CLASS);
         resetBtn.classList.add(DISABLED_BTN_CLASS);
+    };
+
+    const getPhotoHtml = (name: string, value?: string) => {
+        if (value) {
+            return `<button id="remove-${name}-button" class="pure-button">Remove File</button>`;
+        }
+        return `<input id="${name}" name='${name}' accept="image/*" class='editable-row hidden' type='file'></input><label class="pure-button" for="${name}">${
+            value ? 'Remove File' : 'Select File'
+        }</label>`;
     };
 
     const getEditableRowHtml = (row: Post, name: keyof Post): string => {
@@ -222,12 +261,7 @@
         }
 
         if (name === 'thumbnail') {
-            if (value) {
-                return `<button id="remove-thumbnail-button" class="pure-button">Remove File</button>`;
-            }
-            return `<input id="thumbnail" name='${name}' accept="image/*" class='editable-row hidden' type='file'></input><label class="pure-button" for="thumbnail">${
-                value ? 'Remove File' : 'Select File'
-            }</label>`;
+            return getPhotoHtml(name, value.toString());
         }
 
         return String(value);
@@ -254,11 +288,13 @@
     const getPostsHtml = () => {
         return `
 <section class='admin-section'>
-    <h1>User</h1>
 
-    <label style='margin-bottom:1rem;' for='blog-path-field'>Blog Path</label>
-    <input id='blog-path-field' type='text' placeholder='Blog Path' value='${state.blog?.path}' />
-    <small>Commit an empty field to disable blog and posts</small>
+    <div class='admin-section-content'>
+        <h1>User Photo</h1>
+
+        <img width="120px" src='${state.authorPhoto?.value || ''}' />
+        <div>${getPhotoHtml('authorPhoto', state.authorPhoto?.value)}</div>
+    </div>
 
     <h1>Blog & Posts</h1>
 
@@ -301,10 +337,16 @@
 
     const setPostsHtml = async () => {
         if (!state.blog || !state.posts || !state.columnNames) {
-            const [blog, blogColumns] = await Promise.all([
+            const [blog, blogColumns, userPhoto] = await Promise.all([
                 core.getJson<BlogWithPosts>('/blog', undefined, () => {}),
                 core.getJson<string[]>('/blog-columns'),
+                core.getJson<string>('/user-photo'),
             ]);
+
+            if (userPhoto) {
+                state.originalAuthorPhoto = userPhoto;
+                state.authorPhoto = core.withMeta({ value: userPhoto });
+            }
 
             if (blog) {
                 const { posts, ...mainBlog } = core.deepClone(blog);
@@ -356,6 +398,14 @@
         return Promise.resolve();
     };
 
+    const handleUserPhoto = async () => {
+        if (state.authorPhoto?._meta.deleted) {
+            await core.deleteJson('/user-photo');
+        } else if (state.authorPhoto?._meta.edited && state.authorPhoto.value) {
+            await core.postJson('/user-photo', JSON.stringify({ image: state.authorPhoto.value }));
+        }
+    };
+
     const commitChanges = async () => {
         if (!state.blog || !state.posts) return;
 
@@ -363,7 +413,10 @@
             await sendRequest(state.blog, '/blog');
         }
 
-        await Promise.all(getEditedPostItems().map(async (item) => sendRequest(item, '/blog-post')));
+        await Promise.all([
+            ...getEditedPostItems().map(async (item) => sendRequest(item, '/blog-post')),
+            handleUserPhoto(),
+        ]);
 
         Object.assign(state, defaultState());
 
