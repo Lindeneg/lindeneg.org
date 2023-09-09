@@ -292,8 +292,10 @@
     <div class='admin-section-content'>
         <h1>User Photo</h1>
 
-        <img width="120px" src='${state.authorPhoto?.value || ''}' />
-        <div>${getPhotoHtml('authorPhoto', state.authorPhoto?.value)}</div>
+        <img width="120px" src='${
+            state.authorPhoto?.value && !state.authorPhoto?._meta.deleted ? state.authorPhoto.value : ''
+        }' />
+        <div>${getPhotoHtml('authorPhoto', !state.authorPhoto?._meta.deleted ? state.authorPhoto?.value : '')}</div>
     </div>
 
     <h1>Blog & Posts</h1>

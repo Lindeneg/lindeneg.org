@@ -33,7 +33,7 @@ export class AddUserPhotoCommand extends BaseAction {
         }
 
         const uploadResult = await this.cloudinaryService.uploadImage(image);
-        const photoUrl = uploadResult ? uploadResult.url : '';
+        const photoUrl = uploadResult ? uploadResult.secure_url : '';
         const photoId = uploadResult ? uploadResult.public_id : '';
 
         if (!photoUrl || !photoId) {

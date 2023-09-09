@@ -30,13 +30,16 @@ interface ThumbPosts {
 
 interface BlogProps extends BaseProps {
     blogHref: string;
+    metaTitle: string;
+    metaDescription: string;
     thumbPosts: ThumbPosts[] | null;
 }
 
 interface BlogPostProps extends BaseProps {
     blogHref: string;
     blogTitle: string;
-    blogDescription: string;
+    blogMetaTitle: string;
+    blogMetaDescription: string;
     authorImage: string | null;
     authorName: string;
     dateString: string;

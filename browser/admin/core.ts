@@ -225,8 +225,6 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
         return (rows || []).filter((row) => !row._meta.deleted) as T;
     };
 
-    window.addEventListener('DOMContentLoaded', initialize);
-
     if (typeof window.funkalleroCoreViews === 'undefined') {
         window.funkalleroCoreViews = {};
     }
@@ -243,4 +241,6 @@ type AdminCore = (typeof window)['funkalleroAdminCore'];
         app,
         NEW_ENTRY_REGEX,
     };
+
+    initialize();
 })();

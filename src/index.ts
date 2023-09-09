@@ -20,13 +20,13 @@ BaseLoggerServicePalette.useDefaultPalette();
 const funkallero = await Funkallero.create({
     basePath: '/api',
 
-    port: 5000,
+    port: Number(process.env['PORT']) || Number(process.env['FUNKALLERO_PORT']) || 5000,
 
     logLevel: LOG_LEVEL.VERBOSE,
 
     meta: {
         mode: process.env['FUNKALLERO_MODE'],
-        isDev: process.argv.includes('--dev'),
+        isDev: process.env['FUNKALLERO_MODE'] === 'dev',
         cloudinary: {
             cloudName: process.env['CLOUDINARY_NAME'],
             apiKey: process.env['CLOUDINARY_KEY'],

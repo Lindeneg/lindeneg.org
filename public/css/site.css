@@ -160,6 +160,7 @@
 
 .nav-wrapper {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     padding: 10px;

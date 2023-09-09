@@ -75,7 +75,7 @@ export class CreateBlogPostCommand extends BaseAction {
         }
 
         const uploadResult = dto.thumbnail ? await this.cloudinaryService.uploadImage(dto.thumbnail) : null;
-        const thumbnailUrl = uploadResult ? uploadResult.url : '';
+        const thumbnailUrl = uploadResult ? uploadResult.secure_url : '';
 
         const post = await this.dataContext.exec((p) =>
             p.post.create({
@@ -130,7 +130,7 @@ export class UpdateBlogPostCommand extends BaseAction {
                     await this.cloudinaryService.removeImage(post.thumbnailId);
                 }
 
-                payload.thumbnail = upload.url;
+                payload.thumbnail = upload.secure_url;
                 payload.thumbnailId = upload.public_id;
             }
         }

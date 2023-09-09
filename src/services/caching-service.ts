@@ -89,12 +89,16 @@ class CachingService extends SingletonService {
 
         const template = await this.templateService.render(TEMPLATE_NAME.BLOG, {
             brandName: navigation?.brandName ?? '',
+            metaTitle: 'Lindeneg | Blog',
+            metaDescription: 'A blog about music and software and other things',
             blogHref: blog.path,
-            thumbPosts: blog.posts.map((e) => ({
-                title: e.title,
-                thumbnail: e.thumbnail,
-                dateString: e.createdAt.toLocaleDateString(),
-            })),
+            thumbPosts: blog.posts
+                .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+                .map((e) => ({
+                    title: e.title,
+                    thumbnail: e.thumbnail,
+                    dateString: e.createdAt.toDateString(),
+                })),
             leftNavEntries: navigation?.leftNavEntries ?? [],
             rightNavEntries: navigation?.rightNavEntries ?? [],
         });
@@ -190,17 +194,19 @@ class CachingService extends SingletonService {
 
         const user = blog.user[0];
         const post = blog.posts[0];
+        const navigation = await this.getNavigation();
 
         const template = await this.templateService.render(TEMPLATE_NAME.BLOG_POST, {
-            brandName: this.navigationCache?.value.brandName ?? '',
+            brandName: navigation?.brandName ?? '',
             blogHref: blog.path,
-            leftNavEntries: this.navigationCache?.value.leftNavEntries ?? [],
-            rightNavEntries: this.navigationCache?.value.rightNavEntries ?? [],
+            leftNavEntries: navigation?.leftNavEntries ?? [],
+            rightNavEntries: navigation?.rightNavEntries ?? [],
             blogTitle: post.title,
-            blogDescription: `Article '${post.title}' by ${user.firstname}`,
-            authorName: `${user.firstname} ${user.lastname}`,
+            blogMetaTitle: 'Lindeneg | Blog | ' + post.title,
+            blogMetaDescription: `Article '${post.title}' by ${user.firstname}`,
+            authorName: `${this.capitalize(user.firstname)} ${this.capitalize(user.lastname)}`,
             authorImage: user.photo,
-            dateString: post.createdAt.toLocaleDateString(),
+            dateString: post.createdAt.toDateString(),
             markdown: new Handlebars.SafeString(md2htmlConverter.makeHtml(post.content)),
         });
 
@@ -209,6 +215,10 @@ class CachingService extends SingletonService {
         this.pageCache.set(key, this.createEntry(template));
 
         return template;
+    }
+
+    private capitalize(str: string) {
+        return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
     private isExpired(entry: ICacheEntry): boolean {
