@@ -66,9 +66,9 @@
 
         if (!didAdd) return;
 
-        if (type === 'postJson') return clHttp.postJson('/navigation-item', JSON.stringify(payload));
+        if (type === 'postJson') return clHttp.postJson('/navigation-item', payload);
 
-        return clHttp.patchJson('/navigation-item/' + row.id, JSON.stringify(payload));
+        return clHttp.patchJson('/navigation-item/' + row.id, payload);
     };
 
     const commitChanges = async () => {

@@ -11,17 +11,18 @@ interface NavigationWithItems extends Navigation {
     navItems: NavigationItem[];
 }
 
-interface PageWithSections extends Editable<Page> {
-    sections: Array<Editable<PageSection>>;
+interface PageWithSections extends Page {
+    sections: PageSection[];
 }
 
-interface BlogWithPosts extends Editable<Blog> {
-    posts: Array<Editable<Post>>;
+interface BlogWithPosts extends Blog {
+    posts: Post[];
 }
 
 interface ClTableApi {
+    destroyTable: () => void;
     addRow: (initialValues?: Record<string, any>) => void;
-    updateRow: (id: string, column: string, value: string) => void;
+    updateRow: (id: string, column: string, cb: (cell: HTMLTableCellElement) => any) => void;
     deleteRow: (id: string) => void;
     getNewRows: () => HTMLTableRowElement[];
     getEditedRows: () => HTMLTableRowElement[];
@@ -31,14 +32,15 @@ interface ClTableApi {
         row: HTMLTableRowElement,
         payload: T,
         transform: (col: string, val: string) => any
-    ) => [payload: T, didAdd: boolean];
+    ) => [payload: string, didAdd: boolean];
 }
 
 interface CreateTableCoreOptions {
-    onUpdateClick?: (target: HTMLTableRowElement) => void;
+    onUpdateClick?: (target: HTMLTableRowElement, editingId: string | null) => void;
     onDeleteClick?: (target: HTMLTableRowElement) => void;
     cellToInput?: (cell: HTMLTableCellElement) => string;
     inputToCell?: (input: any) => string;
+    transform?: (col: string, val: string) => any;
 }
 
 interface CreateTableOptions extends CreateTableCoreOptions {

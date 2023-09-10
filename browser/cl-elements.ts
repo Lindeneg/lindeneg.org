@@ -35,7 +35,9 @@
 
     const getAddItemsSection: Window['clElements']['getAddItemsSection'] = (title, buttonTitle, onClick) => {
         const section = document.createElement('div');
-        section.innerHTML = `<h1>${title}</h1>`;
+        if (title) {
+            section.innerHTML = `<h1>${title}</h1>`;
+        }
 
         const btn = document.createElement('button');
         btn.style.marginBottom = '1rem';

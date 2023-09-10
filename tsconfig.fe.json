@@ -10,7 +10,7 @@
         "strict": true,
         "skipLibCheck": true,
         "experimentalDecorators": true,
-        "strictPropertyInitialization": false,
+        "strictPropertyInitialization": false
     },
-    "include": ["./browser/new", "./browser/typings"],
+    "include": ["./browser"]
 }

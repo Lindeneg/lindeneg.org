@@ -10,7 +10,7 @@
 
     const loadCurrentViewScript = (name: string) => {
         return new Promise((resolve, reject) => {
-            const newSource = `/js/${name}.js`;
+            const newSource = `/js/pages/${name}.js`;
             const existingScript = Array.from(document.querySelectorAll('#main-admin-script')) as HTMLScriptElement[];
 
             for (const script of existingScript) {
@@ -60,7 +60,6 @@
             return window.clHttp.sendRequest('/bust-cache', 'POST');
         }
 
-        window.dispatchEvent(new CustomEvent('reset-state'));
         clHttp.clearError();
 
         await setActiveNavButton(name, true);

@@ -43,7 +43,7 @@
 
         const onUpdateClick = (target: HTMLSpanElement) => {
             if (opts?.onUpdateClick) {
-                opts.onUpdateClick(target.parentElement?.parentElement as HTMLTableRowElement);
+                opts.onUpdateClick(target.parentElement?.parentElement as HTMLTableRowElement, updatingRowId);
             }
             if (updatingRowId === target.dataset.itemId) {
                 updatingRowId = null;
@@ -122,18 +122,18 @@
             cells.forEach((cell) => {
                 if (cell.id === 'table-actions') return;
 
-                const firstChild = cell.children[0] as HTMLInputElement;
+                const target = (cell.children[0] as HTMLInputElement) || cell;
 
                 if (opts?.inputToCell) {
-                    cell.innerHTML = opts.inputToCell(firstChild);
+                    cell.innerHTML = opts.inputToCell(target);
                     return;
                 }
 
-                if (firstChild.type === 'checkbox') {
-                    return firstChild.checked ? 'true' : 'false';
+                if (target?.type === 'checkbox') {
+                    return target.checked ? 'true' : 'false';
                 }
 
-                cell.innerHTML = firstChild?.value || '';
+                cell.innerHTML = target?.value || target?.innerText || '';
             });
 
             if (newRowsIds.has(row.id) || editedRowsIds.has(row.id)) return;
@@ -155,49 +155,75 @@
                     continue;
                 }
 
+                // TODO:
+                // take an additional nullable argument, originalEntry
+                // and compare new value against original value, if
+                // same value, then continue else add it to the payload
+
                 payload[<keyof T>cell.dataset.columnName] = transform(cell.dataset.columnName, cell.innerText);
                 didAdd = true;
             }
 
-            return [payload, didAdd];
+            return [JSON.stringify(payload), didAdd];
         };
 
         return {
+            destroyTable() {
+                rootNode.remove();
+            },
             addRow(initialValues = {}) {
                 const id = createTempId();
                 const row = document.createElement('tr');
                 row.id = id;
+
                 columnNames.forEach((columnName) => {
                     const cell = document.createElement('td');
                     cell.innerHTML = initialValues[columnName];
                     cell.dataset.columnName = columnName;
                     row.appendChild(cell);
                 });
+
                 row.appendChild(createActionRow(id, onUpdateClick, onDeleteClick));
                 rows.push(row);
+
                 rowWrapper.appendChild(row);
                 newRowsIds.add(id);
             },
+
             updateRow(id, column, value) {
                 const row = rows.find((row) => row.id === id);
+
                 if (!row) return;
-                const target = Array.from(row.querySelectorAll('td')).find((cell) => cell.innerHTML === column);
+
+                const target = Array.from(row.querySelectorAll('td')).find(
+                    (cell) => cell.dataset.columnName! === column
+                );
+
                 if (!target) return;
-                target.innerHTML = value;
+
+                target.innerHTML = value(target);
+
                 if (newRowsIds.has(row.id)) return;
+
                 editedRowsIds.add(row.id);
             },
+
             deleteRow,
+
             getPayloadFromRow,
+
             getNewRows() {
                 return rows.filter((row) => newRowsIds.has(row.id));
             },
+
             getEditedRows() {
                 return rows.filter((row) => editedRowsIds.has(row.id));
             },
+
             getDeletedRows() {
                 return rows.filter((row) => deletedRowsIds.has(row.id));
             },
+
             getRootNode() {
                 return rootNode;
             },
@@ -230,8 +256,11 @@
             rowElement.id = row.id;
             columns.forEach((columnName) => {
                 const cell = document.createElement('td');
-                cell.innerHTML = row[columnName];
+                const value = row[columnName];
+
+                cell.innerHTML = opts.transform ? opts.transform(columnName, value) : value;
                 cell.dataset.columnName = columnName;
+
                 rowElement.appendChild(cell);
             });
             rowElement.appendChild(createActionRow(row.id));
