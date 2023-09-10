@@ -27,7 +27,11 @@ interface ClTableApi {
     getEditedRows: () => HTMLTableRowElement[];
     getDeletedRows: () => HTMLTableRowElement[];
     getRootNode: () => HTMLTableElement;
-    getHtml: () => string;
+    getPayloadFromRow: <T extends Record<string, any>>(
+        row: HTMLTableRowElement,
+        payload: T,
+        transform: (col: string, val: string) => any
+    ) => [payload: T, didAdd: boolean];
 }
 
 interface CreateTableCoreOptions {
@@ -97,14 +101,16 @@ type GetConfirmButtons = (
     toggleState: () => void;
 };
 
+interface ClElementsModule {
+    getAdminSection: (title: string) => [HTMLElement, HTMLDivElement];
+    getInputField: (title: string, value?: string) => HTMLDivElement;
+    getAddItemsSection: (title: string, buttonTitle: string, onClick: () => void) => HTMLDivElement;
+    getConfirmButtons: GetConfirmButtons;
+}
+
 interface Window {
     clHttp: ClHttpModule;
     clTable: ClTableModule;
     clView: Record<string, (app: HTMLElement) => Promise<void> | void>;
-    clElements: {
-        getAdminSection: (title: string) => [HTMLElement, HTMLDivElement];
-        getInputField: (title: string, value?: string) => HTMLDivElement;
-        getAddItemsSection: (title: string, buttonTitle: string, onClick: () => void) => HTMLDivElement;
-        getConfirmButtons: GetConfirmButtons;
-    };
+    clElements: ClElementsModule;
 }

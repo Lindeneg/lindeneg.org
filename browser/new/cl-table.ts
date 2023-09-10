@@ -141,6 +141,27 @@
             editedRowsIds.add(row.id);
         };
 
+        const getPayloadFromRow: ClTableApi['getPayloadFromRow'] = <T>(
+            { childNodes }: HTMLTableRowElement,
+            payload: T,
+            transform: (col: string, val: string) => any
+        ) => {
+            let didAdd = false;
+
+            for (const _cell of childNodes) {
+                const cell = _cell as HTMLTableCellElement;
+
+                if (cell.id === 'table-actions' || !cell.dataset.columnName) {
+                    continue;
+                }
+
+                payload[<keyof T>cell.dataset.columnName] = transform(cell.dataset.columnName, cell.innerText);
+                didAdd = true;
+            }
+
+            return [payload, didAdd];
+        };
+
         return {
             addRow(initialValues = {}) {
                 const id = createTempId();
@@ -167,6 +188,7 @@
                 editedRowsIds.add(row.id);
             },
             deleteRow,
+            getPayloadFromRow,
             getNewRows() {
                 return rows.filter((row) => newRowsIds.has(row.id));
             },
@@ -178,9 +200,6 @@
             },
             getRootNode() {
                 return rootNode;
-            },
-            getHtml() {
-                return rootNode.outerHTML;
             },
         };
     };

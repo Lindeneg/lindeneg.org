@@ -8,13 +8,13 @@
     const ACTIVE_NAV_CLASS = 'pure-button-secondary';
     const INACTIVE_NAV_CLASS = 'pure-button-primary';
 
-    const loadScript = (name: string) => {
+    const loadCurrentViewScript = (name: string) => {
         return new Promise((resolve, reject) => {
             const newSource = `/js/${name}.js`;
             const existingScript = Array.from(document.querySelectorAll('#main-admin-script')) as HTMLScriptElement[];
 
             for (const script of existingScript) {
-                if (script.src.includes(newSource)) return resolve({});
+                script.remove();
             }
 
             const script = document.createElement('script');
@@ -37,7 +37,7 @@
 
         const actualView = view ?? (await getActiveNavButtonName());
 
-        await loadScript(actualView + '-page');
+        await loadCurrentViewScript(actualView + '-page');
 
         const setHtml = window.clView[actualView];
 

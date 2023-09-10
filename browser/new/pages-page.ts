@@ -121,7 +121,7 @@
         })
     );
 
-    window.clView.navigation = (app) => {
+    window.clView.pages = (app) => {
         adminSectionContent.appendChild(brandNameInputField);
         adminSectionContent.appendChild(addNavItem);
         adminSectionContent.appendChild(table.getRootNode());
