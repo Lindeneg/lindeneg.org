@@ -110,14 +110,7 @@
     margin-top: 3rem;
 }
 
-#page-commit-btn,
-#post-commit-btn,
-#nav-commit-btn {
-    margin-right: 1rem;
-}
-
-.admin-navigation-name,
-.admin-blog-name {
+.admin-input-name {
     display: inline-flex;
     flex-direction: column;
 }

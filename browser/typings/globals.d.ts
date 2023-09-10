@@ -19,7 +19,36 @@ interface BlogWithPosts extends Editable<Blog> {
     posts: Array<Editable<Post>>;
 }
 
-interface FunkalleroCore {
+interface ClTableApi {
+    addRow: (initialValues?: Record<string, any>) => void;
+    updateRow: (id: string, column: string, value: string) => void;
+    deleteRow: (id: string) => void;
+    getNewRows: () => HTMLTableRowElement[];
+    getEditedRows: () => HTMLTableRowElement[];
+    getDeletedRows: () => HTMLTableRowElement[];
+    getRootNode: () => HTMLTableElement;
+    getHtml: () => string;
+}
+
+interface CreateTableCoreOptions {
+    onUpdateClick?: (target: HTMLTableRowElement) => void;
+    onDeleteClick?: (target: HTMLTableRowElement) => void;
+    cellToInput?: (cell: HTMLTableCellElement) => string;
+    inputToCell?: (input: any) => string;
+}
+
+interface CreateTableOptions extends CreateTableCoreOptions {
+    id: string;
+    columns: string[];
+    rows: Record<string, any>;
+}
+
+interface ClTableModule {
+    createTableApi: (rootNode: HTMLTableElement, opts?: CreateTableCoreOptions) => ClTableApi;
+    createTableFromData: (opts: CreateTableOptions) => ClTableApi;
+}
+
+interface ClHttpModule {
     sendRequest: (
         path: string,
         method: string,
@@ -32,16 +61,22 @@ interface FunkalleroCore {
     postJson: (
         path: string,
         body: RequestInit['body'],
-        onSuccess?: (response: Response) => any
+        onSuccess?: (response: Response) => any,
+        onError?: (...errors: any) => any
     ) => Promise<null | Response>;
 
     patchJson: (
         path: string,
         body: RequestInit['body'],
-        onSuccess?: (response: Response) => any
+        onSuccess?: (response: Response) => any,
+        onError?: (...errors: any) => any
     ) => Promise<null | Response>;
 
-    deleteJson: (path: string, onSuccess?: (response: Response) => any) => Promise<null | Response>;
+    deleteEntity: (
+        path: string,
+        onSuccess?: (response: Response) => any,
+        onError?: (...errors: any) => any
+    ) => Promise<null | Response>;
 
     getJson: <TResult = unknown>(
         path: string,
@@ -51,49 +86,25 @@ interface FunkalleroCore {
 
     setError: (error: string) => void;
 
-    getInputFieldValue: (field: HTMLElement | null) => HTMLInputElement['value'] | null;
-
-    setKeyPressHandler: (key: string, handler: () => void) => void;
-
-    debounce: (fn: (...args: any[]) => any, ms?: number) => any;
+    clearError: () => void;
 }
 
-type EditMeta = { edited: boolean; deleted: boolean; isNew?: boolean; changedProperties: any[] };
-
-type Editable<T> = T & {
-    _meta: EditMeta;
+type GetConfirmButtons = (
+    onCommit: () => void | Promise<void>,
+    onReset: () => void | Promise<void>
+) => {
+    element: HTMLDivElement;
+    toggleState: () => void;
 };
 
-interface EditablePageWithEditableSections extends Page {
-    sections: Editable<PageSection>[];
-}
-
-interface FunkalleroAdminCore extends FunkalleroCore {
-    getTableHtml: (
-        columns: string[],
-        rows: any[],
-        updatingId?: string | null,
-        withActions?: boolean,
-        editableColumnHtml?: ((row: any, column: any) => string) | null,
-        context?: string | null
-    ) => string;
-    app: HTMLElement;
-    withMeta: <T>(
-        item: T,
-        overrides?: Partial<EditMeta>
-    ) => T & {
-        _meta: { edited: boolean; deleted: boolean; changedProperties: any[] };
-    };
-    NEW_ENTRY_REGEX: RegExp;
-    createTempId: () => string;
-    getColumns: (rows: any[], exclude?: string[]) => string[];
-    withoutDeleted: <T extends Editable<any>[]>(rows?: T | null) => T;
-    deepClone: <T>(obj: T) => T;
-    getCommitPayload: (rows: Editable<any>) => string;
-}
-
 interface Window {
-    funkalleroCore: FunkalleroCore;
-    funkalleroAdminCore: FunkalleroAdminCore;
-    funkalleroCoreViews: Record<string, () => Promise<void>>;
+    clHttp: ClHttpModule;
+    clTable: ClTableModule;
+    clView: Record<string, (app: HTMLElement) => Promise<void> | void>;
+    clElements: {
+        getAdminSection: (title: string) => [HTMLElement, HTMLDivElement];
+        getInputField: (title: string, value?: string) => HTMLDivElement;
+        getAddItemsSection: (title: string, buttonTitle: string, onClick: () => void) => HTMLDivElement;
+        getConfirmButtons: GetConfirmButtons;
+    };
 }

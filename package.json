@@ -9,7 +9,7 @@
     "dev:build": "npx -y concurrently \"yarn build:main --watch\" \"yarn build:lib --watch\"",
     "build": "yarn build:main && yarn build:lib",
     "build:main": "rollup -c",
-    "build:lib": "tsc -p tsconfig.browser.json",
+    "build:lib": "tsc -p tsconfig.fe.json",
     "lint": "prettier \"src/**\" --ignore-unknown --write",
     "studio": "npx -y prisma studio",
     "migrate": "npx -y prisma@5.1.1 migrate dev",
