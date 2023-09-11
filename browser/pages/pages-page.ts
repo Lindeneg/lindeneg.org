@@ -1,4 +1,3 @@
-'use strict';
 (async () => {
     const { clElements, clTable, clHttp } = window;
 
