@@ -58,17 +58,24 @@
             if (editingId) {
                 mainSectionElement?.remove();
                 mainSectionElement = null;
-                // ...
+                addPageItem.querySelector('button')?.classList.remove('pure-button-disabled');
                 return;
             }
 
+            addPageItem.querySelector('button')?.classList.add('pure-button-disabled');
             adminSectionContent.appendChild(createPagesSectionContainer(editingId || target.id));
+        },
 
-            console.log(target, editingId);
+        onDeleteClick() {
+            addPageItem.querySelector('button')?.classList.remove('pure-button-disabled');
+            mainSectionElement?.remove();
+            mainSectionElement = null;
         },
     });
 
     const createSectionTable = (pageId: string) => {
+        let editingPageId: string | null = null;
+
         return clTable.createTableFromData({
             id: 'section-table-' + pageId,
             columns: sectionsColumns.filter((e) => e !== 'content'),
@@ -76,6 +83,10 @@
 
             onDeleteClick() {
                 pagesTable.updateRow(pageId, 'sections', (e) => parseInt(e.innerText) - 1);
+                pagesTable.unfreezeActions();
+                pagesTable.startEditing(editingPageId || pagesTable.getEditingId()!);
+                mainSectionElement!.querySelector('#something')?.remove();
+                mainSectionElement?.querySelector('button')?.classList.remove('pure-button-disabled');
             },
 
             cellToInput(cell) {
@@ -100,16 +111,26 @@
                     return input.checked ? 'true' : 'false';
                 }
 
+                console.log(input);
+
                 return input?.value || input.innerText;
             },
 
             onUpdateClick(target, editingId) {
                 mainSectionElement!.querySelector('#something')?.remove();
 
+                editingPageId = editingPageId || pagesTable.getEditingId()!;
+
                 if (editingId === target.id) {
-                    // ...
+                    pagesTable.unfreezeActions();
+                    pagesTable.startEditing(editingPageId);
+                    mainSectionElement?.querySelector('button')?.classList.remove('pure-button-disabled');
                     return;
                 }
+
+                pagesTable.stopEditing();
+                pagesTable.freezeActions();
+                mainSectionElement?.querySelector('button')?.classList.add('pure-button-disabled');
 
                 const div = document.createElement('div');
                 div.id = 'something';
@@ -140,6 +161,7 @@
                 published: false,
             });
         });
+
         mainSection.id = 'mdeContainer';
 
         mainSection.appendChild(sectionTable.getRootNode());

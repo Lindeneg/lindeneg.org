@@ -21,6 +21,13 @@ interface BlogWithPosts extends Blog {
 
 interface ClTableApi {
     destroyTable: () => void;
+    getEditingId: () => string | null;
+    startEditing: (rowId: string) => void;
+    stopEditing: () => void;
+    stopEditing: () => void;
+    freezeActions: () => void;
+    freezeNonEditingRows: () => void;
+    unfreezeActions: () => void;
     addRow: (initialValues?: Record<string, any>) => void;
     updateRow: (id: string, column: string, cb: (cell: HTMLTableCellElement) => any) => void;
     deleteRow: (id: string) => void;

@@ -8,21 +8,21 @@
         const cell = document.createElement('td');
         cell.id = 'table-actions';
 
-        const updateSpan = document.createElement('span');
-        updateSpan.dataset.itemId = id;
-        updateSpan.className = 'update-table-btn';
-        updateSpan.innerText = 'Update';
-        updateSpan.addEventListener('click', (event) => onUpdate(event.target as HTMLSpanElement));
+        const updateBtn = document.createElement('button');
+        updateBtn.dataset.itemId = id;
+        updateBtn.className = 'update-table-btn';
+        updateBtn.innerText = 'Update';
+        updateBtn.addEventListener('click', (event) => onUpdate(event.target as HTMLSpanElement));
 
-        const deleteSpan = document.createElement('span');
-        deleteSpan.dataset.itemId = id;
-        deleteSpan.className = 'delete-table-btn';
-        deleteSpan.innerText = 'Delete';
-        deleteSpan.addEventListener('click', (event) => onDelete(event.target as HTMLSpanElement));
+        const deleteBtn = document.createElement('button');
+        deleteBtn.dataset.itemId = id;
+        deleteBtn.className = 'delete-table-btn';
+        deleteBtn.innerText = 'Delete';
+        deleteBtn.addEventListener('click', (event) => onDelete(event.target as HTMLSpanElement));
 
-        cell.appendChild(updateSpan);
+        cell.appendChild(updateBtn);
         cell.appendChild(document.createTextNode(' | '));
-        cell.appendChild(deleteSpan);
+        cell.appendChild(deleteBtn);
 
         return cell;
     };
@@ -36,24 +36,64 @@
         const columns = Array.from(columnsWrapper.querySelectorAll('th'));
         const columnNames = columns.slice(0, columns.length - 1).map((el) => String(el.innerHTML));
         const rows = Array.from(rowWrapper.querySelectorAll('tr'));
-        const updateActionBtns = rootNode.querySelectorAll('.update-table-btn');
-        const deleteActionBtns = rootNode.querySelectorAll('.delete-table-btn');
+        const updateActionBtns = () => rootNode.querySelectorAll('.update-table-btn');
+        const deleteActionBtns = () => rootNode.querySelectorAll('.delete-table-btn');
 
         let updatingRowId: string | null = null;
+
+        const startEditing = (rowId: string) => {
+            if (updatingRowId) {
+                stopEditing();
+            }
+
+            updatingRowId = rowId;
+            rowToInput(rowId);
+            freezeActions(true);
+        };
+
+        const stopEditing = () => {
+            if (!updatingRowId) return;
+
+            inputToRow(updatingRowId);
+            updatingRowId = null;
+            unfreezeActions();
+        };
+
+        const freezeActions = (ignoreCurrentlyEditingRow = false) => {
+            const shouldIgnore = (el: any) => ignoreCurrentlyEditingRow && el.dataset.itemId === updatingRowId;
+
+            updateActionBtns().forEach((el) => {
+                if (shouldIgnore(el)) return;
+                el.classList.add('pure-button-disabled');
+            });
+
+            deleteActionBtns().forEach((el) => {
+                if (shouldIgnore(el)) return;
+                el.classList.add('pure-button-disabled');
+            });
+        };
+
+        const unfreezeActions = () => {
+            updateActionBtns().forEach((el) => {
+                el.classList.remove('pure-button-disabled');
+            });
+
+            deleteActionBtns().forEach((el) => {
+                el.classList.remove('pure-button-disabled');
+            });
+        };
 
         const onUpdateClick = (target: HTMLSpanElement) => {
             if (opts?.onUpdateClick) {
                 opts.onUpdateClick(target.parentElement?.parentElement as HTMLTableRowElement, updatingRowId);
             }
+
             if (updatingRowId === target.dataset.itemId) {
-                updatingRowId = null;
-                return inputToRow(target.dataset.itemId);
+                stopEditing();
+                return;
             }
-            if (updatingRowId) {
-                inputToRow(updatingRowId);
-            }
-            updatingRowId = target.dataset.itemId!;
-            rowToInput(target.dataset.itemId!);
+
+            startEditing(target.dataset.itemId!);
         };
 
         const deleteRow: ClTableApi['deleteRow'] = (id) => {
@@ -75,17 +115,16 @@
             if (opts?.onDeleteClick) {
                 opts.onDeleteClick(target.parentElement?.parentElement as HTMLTableRowElement);
             }
+
             deleteRow(target.dataset.itemId!);
-            if (updatingRowId === target.dataset.itemId) {
-                updatingRowId = null;
-            }
+            stopEditing();
         };
 
-        updateActionBtns.forEach((el) => {
+        updateActionBtns().forEach((el) => {
             el.addEventListener('click', (event) => onUpdateClick(event.target as HTMLSpanElement));
         });
 
-        deleteActionBtns.forEach((el) => {
+        deleteActionBtns().forEach((el) => {
             el.addEventListener('click', (event) => onDeleteClick(event.target as HTMLSpanElement));
         });
 
@@ -209,8 +248,19 @@
             },
 
             deleteRow,
-
             getPayloadFromRow,
+            startEditing,
+            stopEditing,
+            freezeActions,
+            unfreezeActions,
+
+            freezeNonEditingRows() {
+                freezeActions(true);
+            },
+
+            getEditingId() {
+                return updatingRowId;
+            },
 
             getNewRows() {
                 return rows.filter((row) => newRowsIds.has(row.id));
