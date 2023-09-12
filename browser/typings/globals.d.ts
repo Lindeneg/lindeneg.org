@@ -19,6 +19,17 @@ interface BlogWithPosts extends Blog {
     posts: Post[];
 }
 
+interface RowTransformSuccessResult<T = any> {
+    success: true;
+    value: T;
+}
+
+interface RowTransformFailureResult {
+    success: false;
+}
+
+type RowTransformResult = RowTransformSuccessResult | RowTransformFailureResult;
+
 interface ClTableApi {
     destroyTable: () => void;
     getEditingId: () => string | null;
@@ -38,7 +49,7 @@ interface ClTableApi {
     getPayloadFromRow: <T extends Record<string, any>>(
         row: HTMLTableRowElement,
         payload: T,
-        transform: (col: string, val: string) => any
+        transform: (col: string, val: string) => RowTransformResult
     ) => [payload: string, didAdd: boolean];
 }
 
@@ -107,7 +118,8 @@ type GetConfirmButtons = (
     onReset: () => void | Promise<void>
 ) => {
     element: HTMLDivElement;
-    toggleState: () => void;
+    freeze: () => void;
+    unfreeze: () => void;
 };
 
 interface ClElementsModule {

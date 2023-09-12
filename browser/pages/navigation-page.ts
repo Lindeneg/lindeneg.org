@@ -48,7 +48,30 @@
             }
             return input.value;
         },
+
+        onUpdateClick(target, editingId) {
+            if (target.id === editingId) return enableActions();
+            disableActions();
+        },
     });
+
+    const disableActions = () => {
+        commitBtns.freeze();
+        addNavItem.querySelector('button')?.classList.add('pure-button-disabled');
+    };
+
+    const enableActions = () => {
+        commitBtns.unfreeze();
+        addNavItem.querySelector('button')?.classList.remove('pure-button-disabled');
+    };
+
+    const isOriginalValue = (rowId: string, column: string, value: unknown) => {
+        const original = navigation.navItems.find((item) => item.id === rowId);
+
+        if (!original) return false;
+
+        return original[<keyof typeof original>column] === value;
+    };
 
     const handleRowRequest = async (type: string, row: HTMLTableRowElement, navId: string) => {
         if (type === 'deleteEntity') {
@@ -56,11 +79,20 @@
         }
 
         const [payload, didAdd] = table.getPayloadFromRow(row, { navigationId: navId }, (col, val) => {
-            if (col === 'newTab') return val === 'true' ? true : false;
+            let value: unknown = val;
 
-            if (col === 'position') return parseInt(val, 10);
+            if (col === 'newTab') {
+                value = val === 'true' ? true : false;
+            } else if (col === 'position') {
+                value = parseInt(val, 10);
+            }
 
-            return val;
+            if (isOriginalValue(row.id, col, value)) return { success: false };
+
+            return {
+                success: true,
+                value,
+            };
         });
 
         if (!didAdd) return;
@@ -107,7 +139,7 @@
         return window.location.reload();
     };
 
-    const { element: commitElement } = clElements.getConfirmButtons(commitChanges, resetChanges);
+    const commitBtns = clElements.getConfirmButtons(commitChanges, resetChanges);
     const [adminSection, adminSectionContent] = clElements.getAdminSection('Navigation');
     const brandNameInputField = clElements.getInputField('Navigation Name', navigation?.brandName || '');
     const addNavItem = clElements.getAddItemsSection('Navigation Items', 'Add Navigation Item', () =>
@@ -124,7 +156,7 @@
         adminSectionContent.appendChild(brandNameInputField);
         adminSectionContent.appendChild(addNavItem);
         adminSectionContent.appendChild(table.getRootNode());
-        adminSectionContent.appendChild(commitElement);
+        adminSectionContent.appendChild(commitBtns.element);
         adminSection.appendChild(adminSectionContent);
         app.appendChild(adminSection);
     };

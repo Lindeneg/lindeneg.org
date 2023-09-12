@@ -140,3 +140,7 @@
     width: 640px;
     vertical-align: top;
 }
+
+.editable-row {
+    max-width: 100px;
+}

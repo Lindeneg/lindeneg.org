@@ -69,19 +69,30 @@
         confirmActions.appendChild(confirmButton);
         confirmActions.appendChild(resetButton);
 
-        const toggleState = () => {
+        const freeze = () => {
+            if (!confirmButton.classList.contains('pure-button-disabled')) {
+                confirmButton.classList.add('pure-button-disabled');
+            }
+
+            if (!resetButton.classList.contains('pure-button-disabled')) {
+                resetButton.classList.add('pure-button-disabled');
+            }
+        };
+
+        const unfreeze = () => {
             if (confirmButton.classList.contains('pure-button-disabled')) {
                 confirmButton.classList.remove('pure-button-disabled');
-                resetButton.classList.remove('pure-button-disabled');
-                return;
             }
-            confirmButton.classList.add('pure-button-disabled');
-            resetButton.classList.add('pure-button-disabled');
+
+            if (resetButton.classList.contains('pure-button-disabled')) {
+                resetButton.classList.remove('pure-button-disabled');
+            }
         };
 
         return {
             element: confirmActions,
-            toggleState,
+            freeze,
+            unfreeze,
         };
     };
 

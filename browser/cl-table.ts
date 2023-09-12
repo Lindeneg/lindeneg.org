@@ -63,7 +63,10 @@
             const shouldIgnore = (el: any) => ignoreCurrentlyEditingRow && el.dataset.itemId === updatingRowId;
 
             updateActionBtns().forEach((el) => {
-                if (shouldIgnore(el)) return;
+                if (shouldIgnore(el)) {
+                    (el as any).innerText = 'Done';
+                    return;
+                }
                 el.classList.add('pure-button-disabled');
             });
 
@@ -75,6 +78,10 @@
 
         const unfreezeActions = () => {
             updateActionBtns().forEach((el) => {
+                if ((el as any).innerText === 'Done') {
+                    (el as any).innerText = 'Update';
+                    return;
+                }
                 el.classList.remove('pure-button-disabled');
             });
 
@@ -183,7 +190,7 @@
         const getPayloadFromRow: ClTableApi['getPayloadFromRow'] = <T>(
             { childNodes }: HTMLTableRowElement,
             payload: T,
-            transform: (col: string, val: string) => any
+            transform: (col: string, val: string) => RowTransformResult
         ) => {
             let didAdd = false;
 
@@ -194,12 +201,11 @@
                     continue;
                 }
 
-                // TODO:
-                // take an additional nullable argument, originalEntry
-                // and compare new value against original value, if
-                // same value, then continue else add it to the payload
+                const result = transform(cell.dataset.columnName, cell.innerText);
 
-                payload[<keyof T>cell.dataset.columnName] = transform(cell.dataset.columnName, cell.innerText);
+                if (!result.success) continue;
+
+                payload[<keyof T>cell.dataset.columnName] = result.value;
                 didAdd = true;
             }
 
