@@ -1,11 +1,13 @@
 type Navigation = import('@prisma/client').Navigation;
 type NavigationItem = import('@prisma/client').NavigationItem;
-type Page = import('@prisma/client').Page;
-type PageSection = import('@prisma/client').PageSection;
+type PrismaPage = import('@prisma/client').Page;
+type PrismaPageSection = import('@prisma/client').PageSection;
 type Blog = import('@prisma/client').Blog;
 type PrismaPost = import('@prisma/client').Post;
 
 type Post = Omit<PrismaPost, 'updatedAt' | 'createdAt'>;
+type Page = Omit<PrismaPage, 'updatedAt' | 'createdAt'>;
+type PageSection = Omit<PrismaPageSection, 'updatedAt' | 'createdAt'>;
 
 interface NavigationWithItems extends Navigation {
     navItems: NavigationItem[];
@@ -39,7 +41,7 @@ interface ClTableApi {
     freezeActions: () => void;
     freezeNonEditingRows: () => void;
     unfreezeActions: () => void;
-    addRow: (initialValues?: Record<string, any>) => void;
+    addRow: (initialValues?: Record<string, any>) => string;
     updateRow: (id: string, column: string, cb: (cell: HTMLTableCellElement) => any) => void;
     deleteRow: (id: string) => void;
     getNewRows: () => HTMLTableRowElement[];

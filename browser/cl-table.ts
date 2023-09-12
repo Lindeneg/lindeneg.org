@@ -2,8 +2,8 @@
 (() => {
     const createActionRow = (
         id: string,
-        onUpdate = (target: HTMLSpanElement) => {},
-        onDelete = (target: HTMLSpanElement) => {}
+        onUpdate = (target: HTMLButtonElement) => {},
+        onDelete = (target: HTMLButtonElement) => {}
     ) => {
         const cell = document.createElement('td');
         cell.id = 'table-actions';
@@ -12,13 +12,13 @@
         updateBtn.dataset.itemId = id;
         updateBtn.className = 'update-table-btn';
         updateBtn.innerText = 'Update';
-        updateBtn.addEventListener('click', (event) => onUpdate(event.target as HTMLSpanElement));
+        updateBtn.addEventListener('click', (event) => onUpdate(event.target as HTMLButtonElement));
 
         const deleteBtn = document.createElement('button');
         deleteBtn.dataset.itemId = id;
         deleteBtn.className = 'delete-table-btn';
         deleteBtn.innerText = 'Delete';
-        deleteBtn.addEventListener('click', (event) => onDelete(event.target as HTMLSpanElement));
+        deleteBtn.addEventListener('click', (event) => onDelete(event.target as HTMLButtonElement));
 
         cell.appendChild(updateBtn);
         cell.appendChild(document.createTextNode(' | '));
@@ -90,7 +90,7 @@
             });
         };
 
-        const onUpdateClick = (target: HTMLSpanElement) => {
+        const onUpdateClick = (target: HTMLButtonElement) => {
             if (opts?.onUpdateClick) {
                 opts.onUpdateClick(target.parentElement?.parentElement as HTMLTableRowElement, updatingRowId);
             }
@@ -118,7 +118,7 @@
             deletedRowsIds.add(row.id);
         };
 
-        const onDeleteClick = (target: HTMLSpanElement) => {
+        const onDeleteClick = (target: HTMLButtonElement) => {
             if (opts?.onDeleteClick) {
                 opts.onDeleteClick(target.parentElement?.parentElement as HTMLTableRowElement);
             }
@@ -128,11 +128,11 @@
         };
 
         updateActionBtns().forEach((el) => {
-            el.addEventListener('click', (event) => onUpdateClick(event.target as HTMLSpanElement));
+            el.addEventListener('click', (event) => onUpdateClick(event.target as HTMLButtonElement));
         });
 
         deleteActionBtns().forEach((el) => {
-            el.addEventListener('click', (event) => onDeleteClick(event.target as HTMLSpanElement));
+            el.addEventListener('click', (event) => onDeleteClick(event.target as HTMLButtonElement));
         });
 
         const createTempId = () => {
@@ -233,6 +233,8 @@
 
                 rowWrapper.appendChild(row);
                 newRowsIds.add(id);
+
+                return id;
             },
 
             updateRow(id, column, value) {

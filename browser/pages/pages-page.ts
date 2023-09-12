@@ -10,7 +10,10 @@
     const pages = pagesRes ?? [];
     const pagesColumns = pagesColumnsRes ?? [];
     const sectionsColumns = sectionsColumnsRes ?? [];
+
+    let editor: SimpleMDE | null = null;
     let mainSectionElement: HTMLElement | null = null;
+    let pageSectionTarget: PageSection | null = null;
 
     const pagesTable = clTable.createTableFromData({
         id: 'pages-table',
@@ -56,10 +59,7 @@
 
         onUpdateClick(target, editingId) {
             if (editingId) {
-                mainSectionElement?.remove();
-                mainSectionElement = null;
-                addPageItem.querySelector('button')?.classList.remove('pure-button-disabled');
-                return;
+                return removeMainSection();
             }
 
             addPageItem.querySelector('button')?.classList.add('pure-button-disabled');
@@ -67,11 +67,38 @@
         },
 
         onDeleteClick() {
-            addPageItem.querySelector('button')?.classList.remove('pure-button-disabled');
-            mainSectionElement?.remove();
-            mainSectionElement = null;
+            removeMainSection();
         },
     });
+
+    const clearEditorFromDom = () => {
+        mainSectionElement?.querySelector('#main-editor-section')?.remove();
+        editor = null;
+    };
+
+    const removeMainSection = () => {
+        addPageItem.querySelector('button')?.classList.remove('pure-button-disabled');
+        mainSectionElement?.remove();
+        mainSectionElement = null;
+    };
+
+    const saveEditorChanges = (editingSectionId: string, editingPageId: string) => {
+        const value = editor?.value() || '';
+
+        const targetSection = pages
+            .find((e) => e.id === editingPageId)
+            ?.sections.find((e) => e.id === editingSectionId);
+
+        if (targetSection) {
+            targetSection.content = value;
+        }
+
+        pagesTable.unfreezeActions();
+        pagesTable.startEditing(editingPageId);
+        mainSectionElement?.querySelector('button')?.classList.remove('pure-button-disabled');
+        clearEditorFromDom();
+        return;
+    };
 
     const createSectionTable = (pageId: string) => {
         let editingPageId: string | null = null;
@@ -81,12 +108,19 @@
             columns: sectionsColumns.filter((e) => e !== 'content'),
             rows: pages.find((e) => e.id === pageId)?.sections || [],
 
-            onDeleteClick() {
-                pagesTable.updateRow(pageId, 'sections', (e) => parseInt(e.innerText) - 1);
+            onDeleteClick(target) {
+                pagesTable.updateRow(pageId, 'sections', () => {
+                    const targetPage = pages.find((e) => e.id === pageId)!;
+
+                    targetPage.sections = targetPage.sections.filter((e) => e.id !== target.id);
+
+                    return targetPage.sections.length;
+                });
                 pagesTable.unfreezeActions();
                 pagesTable.startEditing(editingPageId || pagesTable.getEditingId()!);
-                mainSectionElement!.querySelector('#something')?.remove();
+                mainSectionElement!.querySelector('#main-editor-section')?.remove();
                 mainSectionElement?.querySelector('button')?.classList.remove('pure-button-disabled');
+                pageSectionTarget = null;
             },
 
             cellToInput(cell) {
@@ -111,29 +145,21 @@
                     return input.checked ? 'true' : 'false';
                 }
 
-                console.log(input);
-
                 return input?.value || input.innerText;
             },
 
             onUpdateClick(target, editingId) {
-                mainSectionElement!.querySelector('#something')?.remove();
-
                 editingPageId = editingPageId || pagesTable.getEditingId()!;
 
-                if (editingId === target.id) {
-                    pagesTable.unfreezeActions();
-                    pagesTable.startEditing(editingPageId);
-                    mainSectionElement?.querySelector('button')?.classList.remove('pure-button-disabled');
-                    return;
-                }
+                if (editingId === target.id) return saveEditorChanges(editingId, editingPageId);
 
+                clearEditorFromDom();
                 pagesTable.stopEditing();
                 pagesTable.freezeActions();
                 mainSectionElement?.querySelector('button')?.classList.add('pure-button-disabled');
 
                 const div = document.createElement('div');
-                div.id = 'something';
+                div.id = 'main-editor-section';
                 div.innerHTML = `<h3>Section Content</h3>
                 <small>Use fullscreen mode for better editing</small>
                 <textarea id='editor'>
@@ -141,11 +167,13 @@
 
                 mainSectionElement!.appendChild(div);
 
-                const t = pages.find((e) => e.id === pageId)?.sections.find((e) => e.id === (editingId || target.id));
+                pageSectionTarget = pages
+                    .find((e) => e.id === pageId)
+                    ?.sections.find((e) => e.id === (editingId || target.id))!;
 
-                new SimpleMDE({
+                editor = new SimpleMDE({
                     element: mainSectionElement?.querySelector('#editor')!,
-                    initialValue: t?.content || '',
+                    initialValue: pageSectionTarget.content,
                 });
             },
         });
@@ -155,10 +183,17 @@
         const sectionTable = createSectionTable(pageId);
 
         const mainSection = clElements.getAddItemsSection('Page Sections', 'Add Page Section', () => {
-            pagesTable.updateRow(pageId, 'sections', (e) => parseInt(e.innerText) + 1);
-            sectionTable.addRow({
+            const section = {
                 position: 1,
                 published: false,
+            };
+
+            const id = sectionTable.addRow(section);
+
+            pages.find((e) => e.id === pageId)?.sections.push({ ...section, id, pageId, content: 'Hello There' });
+
+            pagesTable.updateRow(pageId, 'sections', () => {
+                return pages.find((e) => e.id === pageId)!.sections.length;
             });
         });
 
@@ -172,16 +207,23 @@
     };
 
     const [adminSection, adminSectionContent] = clElements.getAdminSection('Pages');
-    const addPageItem = clElements.getAddItemsSection('', 'Add Page', () =>
-        pagesTable.addRow({
+    const addPageItem = clElements.getAddItemsSection('', 'Add Page', () => {
+        const page = {
             name: 'Jazz',
             slug: '/jazz',
             title: 'Jazz',
             description: 'Kind of Blue',
             published: false,
-            sections: 0,
-        })
-    );
+            sections: [],
+        };
+
+        const id = pagesTable.addRow({
+            ...page,
+            sections: page.sections.length,
+        });
+
+        pages.push({ ...page, id });
+    });
 
     window.clView.pages = (app) => {
         adminSectionContent.appendChild(addPageItem);
