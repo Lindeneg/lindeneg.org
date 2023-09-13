@@ -212,6 +212,18 @@
             return [JSON.stringify(payload), didAdd];
         };
 
+        const getRowColumnCell: ClTableApi['getRowColumnCell'] = (rowId, columnName) => {
+            const row = rows.find((row) => row.id === rowId);
+
+            if (!row) return null;
+
+            const cell = Array.from(row.querySelectorAll('td')).find((cell) => cell.dataset.columnName === columnName);
+
+            if (!cell) return null;
+
+            return cell;
+        };
+
         return {
             destroyTable() {
                 rootNode.remove();
@@ -238,25 +250,28 @@
             },
 
             updateRow(id, column, value) {
-                const row = rows.find((row) => row.id === id);
-
-                if (!row) return;
-
-                const target = Array.from(row.querySelectorAll('td')).find(
-                    (cell) => cell.dataset.columnName! === column
-                );
+                const target = getRowColumnCell(id, column);
 
                 if (!target) return;
 
                 target.innerHTML = value(target);
 
-                if (newRowsIds.has(row.id)) return;
+                if (newRowsIds.has(id)) return;
 
-                editedRowsIds.add(row.id);
+                editedRowsIds.add(id);
+            },
+
+            getRowFromId(id) {
+                const row = rows.find((row) => row.id === id);
+
+                if (!row) return null;
+
+                return row;
             },
 
             deleteRow,
             getPayloadFromRow,
+            getRowColumnCell,
             startEditing,
             stopEditing,
             freezeActions,

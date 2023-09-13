@@ -43,8 +43,10 @@ interface ClTableApi {
     unfreezeActions: () => void;
     addRow: (initialValues?: Record<string, any>) => string;
     updateRow: (id: string, column: string, cb: (cell: HTMLTableCellElement) => any) => void;
+    getRowFromId: (id) => HTMLTableRowElement | null;
     deleteRow: (id: string) => void;
     getNewRows: () => HTMLTableRowElement[];
+    getRowColumnCell: (rowId: string, columnName: string) => HTMLTableCellElement | null;
     getEditedRows: () => HTMLTableRowElement[];
     getDeletedRows: () => HTMLTableRowElement[];
     getRootNode: () => HTMLTableElement;

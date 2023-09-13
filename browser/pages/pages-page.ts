@@ -1,3 +1,7 @@
+type SectionCallbacks = {
+    [id: string]: Array<(pageId: string) => Promise<void>>;
+};
+
 (async () => {
     const { clElements, clTable, clHttp } = window;
 
@@ -7,13 +11,20 @@
         clHttp.getJson<string[]>('/pages-section-columns'),
     ]);
 
+    const NEW_ENTRY_REGEX = /NEW_ROW_TEMP_ID-/;
     const pages = pagesRes ?? [];
     const pagesColumns = pagesColumnsRes ?? [];
     const sectionsColumns = sectionsColumnsRes ?? [];
+    const originalPages: PageWithSections[] = JSON.parse(JSON.stringify(pages));
 
     let editor: SimpleMDE | null = null;
     let mainSectionElement: HTMLElement | null = null;
     let pageSectionTarget: PageSection | null = null;
+    let sectionTable: ClTableApi | null = null;
+
+    const isNewRow = (id: string) => {
+        return NEW_ENTRY_REGEX.test(id);
+    };
 
     const pagesTable = clTable.createTableFromData({
         id: 'pages-table',
@@ -59,17 +70,52 @@
 
         onUpdateClick(target, editingId) {
             if (editingId) {
+                const editedRows = sectionTable?.getEditedRows() ?? [];
+
+                editedRows.forEach((row) => {
+                    const section = pages.find((e) => e.id === editingId)?.sections.find((e) => e.id === row.id)!;
+                    const published = sectionTable?.getRowColumnCell(row.id, 'published')?.innerText;
+
+                    section.position = parseInt(sectionTable?.getRowColumnCell(row.id, 'position')?.innerText || '0');
+                    section.published = published === 'true';
+                });
+
+                sectionTable = null;
+                commitBtns.unfreeze();
                 return removeMainSection();
             }
 
+            commitBtns.freeze();
             addPageItem.querySelector('button')?.classList.add('pure-button-disabled');
             adminSectionContent.appendChild(createPagesSectionContainer(editingId || target.id));
         },
 
         onDeleteClick() {
+            commitBtns.unfreeze();
             removeMainSection();
         },
     });
+
+    const setDataSectionsAttribute = (pageId: string, sectionId: string) => {
+        const targetPageRow = pagesTable.getRowFromId(pageId);
+        const currentSections = getDataSectionsAttribute(pageId);
+
+        if (currentSections.includes(sectionId)) return;
+
+        currentSections.push(sectionId);
+
+        targetPageRow?.setAttribute('data-sections', currentSections.join(','));
+    };
+
+    const getDataSectionsAttribute = (pageId: string) => {
+        return (
+            pagesTable
+                .getRowFromId(pageId)
+                ?.getAttribute('data-sections')
+                ?.split(',')
+                .filter((e) => !!e) ?? []
+        );
+    };
 
     const clearEditorFromDom = () => {
         mainSectionElement?.querySelector('#main-editor-section')?.remove();
@@ -90,6 +136,7 @@
             ?.sections.find((e) => e.id === editingSectionId);
 
         if (targetSection) {
+            setDataSectionsAttribute(editingPageId, editingSectionId);
             targetSection.content = value;
         }
 
@@ -116,6 +163,9 @@
 
                     return targetPage.sections.length;
                 });
+
+                setDataSectionsAttribute(pageId, target.id);
+
                 pagesTable.unfreezeActions();
                 pagesTable.startEditing(editingPageId || pagesTable.getEditingId()!);
                 mainSectionElement!.querySelector('#main-editor-section')?.remove();
@@ -180,7 +230,7 @@
     };
 
     const createPagesSectionContainer = (pageId: string) => {
-        const sectionTable = createSectionTable(pageId);
+        sectionTable = createSectionTable(pageId);
 
         const mainSection = clElements.getAddItemsSection('Page Sections', 'Add Page Section', () => {
             const section = {
@@ -188,13 +238,15 @@
                 published: false,
             };
 
-            const id = sectionTable.addRow(section);
+            const id = sectionTable!.addRow(section);
 
             pages.find((e) => e.id === pageId)?.sections.push({ ...section, id, pageId, content: 'Hello There' });
 
             pagesTable.updateRow(pageId, 'sections', () => {
                 return pages.find((e) => e.id === pageId)!.sections.length;
             });
+
+            setDataSectionsAttribute(pageId, id);
         });
 
         mainSection.id = 'mdeContainer';
@@ -206,6 +258,154 @@
         return mainSection;
     };
 
+    const getChangedSectionColumns = (mutated: PageSection, original: PageSection) => {
+        const keys = ['position', 'published', 'content'];
+
+        return keys.reduce(
+            (acc, _key) => {
+                const key = _key as keyof PageSection;
+                if (!original || mutated[key] !== original[key]) {
+                    acc[key] = mutated[key];
+                }
+
+                return acc;
+            },
+            {} as Record<string, unknown>
+        );
+    };
+
+    const handleSectionCallbacks = (
+        originalPage: PageWithSections,
+        identifier: string,
+        sectionCallbacks: SectionCallbacks
+    ) => {
+        const sectionIds = getDataSectionsAttribute(identifier);
+        if (sectionIds.length === 0) return { success: false };
+
+        if (!sectionCallbacks[identifier]) {
+            sectionCallbacks[identifier] = [];
+        }
+
+        sectionIds.forEach((sectionId) => {
+            const originalSection = originalPage?.sections.find((e) => e.id === sectionId)!;
+            const pageSection = pages
+                .find((page) => page.id === identifier)
+                ?.sections.find((section) => section.id === sectionId)!;
+
+            if (isNewRow(sectionId)) {
+                sectionCallbacks[identifier].push(async (pageId) => {
+                    const { id, ...payload } = pageSection;
+                    await clHttp.postJson('/page-sections', JSON.stringify({ ...payload, pageId }));
+                });
+
+                return;
+            }
+
+            if (!pageSection) {
+                sectionCallbacks[identifier].push(async () => {
+                    await clHttp.deleteEntity(`/page-sections/${sectionId}`);
+                });
+
+                return;
+            }
+
+            const changedSectionColumns = getChangedSectionColumns(pageSection, originalSection);
+
+            if (Object.keys(changedSectionColumns).length === 0) return;
+
+            sectionCallbacks[identifier].push(async () => {
+                await clHttp.patchJson(
+                    `/page-sections/${sectionId}`,
+                    JSON.stringify(getChangedSectionColumns(pageSection, originalSection))
+                );
+            });
+        });
+    };
+
+    const handlePayloadCallback = (
+        sectionCallbacks: SectionCallbacks,
+        identifier: Record<'id', string>,
+        col: string,
+        val: unknown
+    ): RowTransformResult => {
+        const originalPage = originalPages.find((page) => page.id === identifier.id)!;
+        let value: unknown = val;
+
+        if (col === 'published') {
+            value = val === 'true' ? true : false;
+        } else if (col === 'sections') {
+            handleSectionCallbacks(originalPage, identifier.id, sectionCallbacks);
+
+            return { success: false };
+        }
+
+        if (originalPage && value === originalPage[<keyof typeof originalPage>col]) return { success: false };
+
+        return { value, success: true };
+    };
+
+    const handleCommitRows = (type: string, rows: HTMLTableRowElement[]) => {
+        const sectionCallbacks: SectionCallbacks = {};
+        const payloads =
+            type !== 'remove'
+                ? (rows.map((row) => [
+                      row.id,
+                      ...pagesTable.getPayloadFromRow(row, {}, handlePayloadCallback.bind(null, sectionCallbacks, row)),
+                  ]) as [string, string, boolean][])
+                : [];
+
+        if (type === 'remove') {
+            return rows.map((row) => clHttp.deleteEntity(`/pages/${row.id}`));
+        }
+
+        if (type === 'add') {
+            return payloads.map(async ([id, payload]) => {
+                const callbacks = sectionCallbacks[id] ?? [];
+
+                const res = await clHttp.postJson('/pages', payload);
+
+                if (!res?.ok) return null;
+
+                const newId = await res.json();
+
+                await Promise.all(callbacks.map((callback) => callback(newId)));
+
+                return res;
+            });
+        }
+
+        if (type === 'edit') {
+            return payloads.map(async ([id, payload, didAdd]) => {
+                const callbacks = sectionCallbacks[id] ?? [];
+
+                if (didAdd) {
+                    await clHttp.patchJson(`/pages/${id}`, payload);
+                }
+
+                await Promise.all(callbacks.map((callback) => callback(id)));
+
+                return null;
+            });
+        }
+
+        return [];
+    };
+
+    const commitChanges = async () => {
+        await Promise.all([
+            ...handleCommitRows('add', pagesTable.getNewRows()),
+            ...handleCommitRows('edit', pagesTable.getEditedRows()),
+            ...handleCommitRows('remove', pagesTable.getDeletedRows()),
+        ]);
+
+        return window.location.reload();
+    };
+
+    const resetChanges = () => {
+        return window.location.reload();
+    };
+
+    const commitBtns = clElements.getConfirmButtons(commitChanges, resetChanges);
     const [adminSection, adminSectionContent] = clElements.getAdminSection('Pages');
     const addPageItem = clElements.getAddItemsSection('', 'Add Page', () => {
         const page = {
@@ -229,6 +429,7 @@
         adminSectionContent.appendChild(addPageItem);
         adminSectionContent.appendChild(pagesTable.getRootNode());
         adminSection.appendChild(adminSectionContent);
+        adminSection.appendChild(commitBtns.element);
         app.appendChild(adminSection);
     };
 
