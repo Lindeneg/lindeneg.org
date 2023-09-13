@@ -33,7 +33,7 @@
 
         if (!errorDiv) {
             errorDiv = document.createElement('div');
-            errorDiv.id = 'error-div';
+            errorDiv.id = 'cl-http-error-div';
             document.body.appendChild(errorDiv);
         }
 
@@ -47,7 +47,7 @@
 
         if (!errorDiv) return;
 
-        document.body.removeChild(errorDiv);
+        errorDiv.remove();
     };
 
     const emitLoading = (load: boolean) => {

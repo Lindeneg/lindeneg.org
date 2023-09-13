@@ -12,5 +12,5 @@
         "experimentalDecorators": true,
         "strictPropertyInitialization": false
     },
-    "include": ["./browser"]
+    "include": ["./admin"]
 }

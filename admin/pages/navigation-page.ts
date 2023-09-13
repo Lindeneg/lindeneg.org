@@ -2,7 +2,7 @@
     const { clElements, clTable, clHttp } = window;
 
     const [navigationRes, navigationColumnsRes] = await Promise.all([
-        clHttp.getJson<NavigationWithItems>('/navigation', undefined, () => {}),
+        clHttp.getJson<NavigationWithItems>('/navigation'),
         clHttp.getJson<string[]>('/navigation-columns'),
     ]);
 

@@ -15,5 +15,5 @@
             "@/*": ["./src/*"]
         }
     },
-    "include": ["./src", "./browser"]
+    "include": ["./src", "./admin"]
 }

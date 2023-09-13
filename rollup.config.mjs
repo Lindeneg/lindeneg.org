@@ -30,7 +30,7 @@ export default () => {
             }),
             commonjs(),
             typescript({
-                tsconfig: './tsconfig.be.json',
+                tsconfig: './tsconfig.server.json',
                 clean: true,
             }),
         ],

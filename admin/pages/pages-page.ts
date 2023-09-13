@@ -1,7 +1,3 @@
-type SectionCallbacks = {
-    [id: string]: Array<(pageId: string) => Promise<void>>;
-};
-
 (async () => {
     const { clElements, clTable, clHttp } = window;
 

@@ -30,13 +30,16 @@ interface RowTransformFailureResult {
     success: false;
 }
 
+type SectionCallbacks = {
+    [id: string]: Array<(pageId: string) => Promise<void>>;
+};
+
 type RowTransformResult = RowTransformSuccessResult | RowTransformFailureResult;
 
 interface ClTableApi {
     destroyTable: () => void;
     getEditingId: () => string | null;
     startEditing: (rowId: string) => void;
-    stopEditing: () => void;
     stopEditing: () => void;
     freezeActions: () => void;
     freezeNonEditingRows: () => void;
