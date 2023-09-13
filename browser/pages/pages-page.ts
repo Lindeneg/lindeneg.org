@@ -70,13 +70,20 @@ type SectionCallbacks = {
 
         onUpdateClick(target, editingId) {
             if (editingId) {
-                const editedRows = sectionTable?.getEditedRows() ?? [];
+                const mutatedSections = [
+                    ...(sectionTable?.getEditedRows() ?? []),
+                    ...(sectionTable?.getNewRows() || []),
+                ];
 
-                editedRows.forEach((row) => {
-                    const section = pages.find((e) => e.id === editingId)?.sections.find((e) => e.id === row.id)!;
-                    const published = sectionTable?.getRowColumnCell(row.id, 'published')?.innerText;
+                mutatedSections.forEach((mutatedSection) => {
+                    const section = pages
+                        .find((e) => e.id === editingId)
+                        ?.sections.find((e) => e.id === mutatedSection.id)!;
+                    const published = sectionTable?.getRowColumnCell(mutatedSection.id, 'published')?.innerText;
 
-                    section.position = parseInt(sectionTable?.getRowColumnCell(row.id, 'position')?.innerText || '0');
+                    section.position = parseInt(
+                        sectionTable?.getRowColumnCell(mutatedSection.id, 'position')?.innerText || '0'
+                    );
                     section.published = published === 'true';
                 });
 
