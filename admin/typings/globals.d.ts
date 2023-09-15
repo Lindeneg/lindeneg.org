@@ -63,7 +63,7 @@ interface ClTableApi {
 interface CreateTableCoreOptions {
     onUpdateClick?: (target: HTMLTableRowElement, editingId: string | null) => void;
     onDeleteClick?: (target: HTMLTableRowElement) => void;
-    cellToInput?: (cell: HTMLTableCellElement) => string;
+    cellToInput?: (cell: HTMLTableCellElement) => string | HTMLElement;
     inputToCell?: (input: any) => string;
     transform?: (col: string, val: string) => any;
 }
@@ -130,14 +130,32 @@ type GetConfirmButtons = (
 };
 
 interface ClElementsModule {
+    appendEditor: (parent: HTMLElement, initialValue?: string) => SimpleMDE;
+    getPhotoActions: (
+        name: string,
+        value?: string,
+        onUpload?: (event: Event) => void,
+        onDelete?: (event: Event) => void,
+        withDiv?: string
+    ) => HTMLElement;
+    getUserPhotoHtml: (
+        src: string,
+        onUpload: (event: Event) => void,
+        onDelete: (event: Event) => void
+    ) => [HTMLDivElement, HTMLImageElement];
     getAdminSection: (title: string) => [HTMLElement, HTMLDivElement];
-    getInputField: (title: string, value?: string) => HTMLDivElement;
+    getInputField: (title: string, value?: string, tip?: string) => HTMLDivElement;
     getAddItemsSection: (title: string, buttonTitle: string, onClick: () => void) => HTMLDivElement;
     getConfirmButtons: GetConfirmButtons;
 }
 
+interface ClCoreModule {
+    handleFileUpload: (target: HTMLInputElement, callback: (fr: FileReader) => void) => void;
+}
+
 interface Window {
     clHttp: ClHttpModule;
+    clCore: ClCoreModule;
     clTable: ClTableModule;
     clView: Record<string, (app: HTMLElement) => Promise<void> | void>;
     clElements: ClElementsModule;

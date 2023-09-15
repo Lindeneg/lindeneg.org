@@ -1,5 +1,5 @@
 (async () => {
-    const { clElements, clTable, clHttp } = window;
+    const { clElements, clTable, clHttp, clCore } = window;
 
     const [blogRes, blogColumnsRes, profilePhotoRes] = await Promise.all([
         clHttp.getJson<BlogWithPosts>('/blog'),
@@ -11,17 +11,16 @@
         clHttp.clearError();
     }
 
-    const blog = blogRes ?? { path: '/blog', enabled: true, posts: [] };
+    const blog = blogRes ?? ({ id: 'default-blog-id', path: '/blog', enabled: true, posts: [] } as BlogWithPosts);
     const blogColumns = blogColumnsRes ?? [];
-    const profilePhoto = profilePhotoRes ?? '';
+
+    let profilePhoto = profilePhotoRes ?? '';
+    let editor: SimpleMDE | null = null;
+
+    const originalProfilePhoto = profilePhoto;
     const originalBlog: BlogWithPosts = JSON.parse(JSON.stringify(blog));
 
-    const getPhotoHtml = (name: string, value?: string) => {
-        if (value) {
-            return `<button id="remove-${name}-button" name='${name}' data-src="${value}" class="pure-button">Remove File</button>`;
-        }
-        return `<input id="${name}" name='${name}' accept="image/*" class='editable-row hidden' type='file'></input><label class="pure-button" for="${name}">Select File</label>`;
-    };
+    const getUserPhotoWrapper = () => adminSection.querySelector('#user-photo-wrapper');
 
     const getThumbnailHtml = (src?: string) => {
         return src ? `<img width="64px" height="64px" src='${src}' />` : 'None';
@@ -36,7 +35,7 @@
             const columnName = cell.dataset.columnName;
 
             if (columnName === 'thumbnail') {
-                return getPhotoHtml(columnName, cell.querySelector('img')?.src);
+                return getPhotoActions(columnName, cell.querySelector('img')?.src);
             }
 
             const value = cell.innerText;
@@ -59,7 +58,7 @@
                 return input.checked ? 'true' : 'false';
             }
 
-            if (input?.name === 'thumbnail') {
+            if (input?.name === 'thumbnail' || input?.className === 'admin-post-thumbnail-actions') {
                 return getThumbnailHtml(input?.dataset.src);
             }
 
@@ -75,23 +74,129 @@
         },
 
         onUpdateClick(target, editingId) {
-            if (editingId) {
-                commitBtns.unfreeze();
-                //return removeMainSection();
-            }
+            if (target.id === editingId) return saveEditorChanges(editingId);
 
-            commitBtns.freeze();
-            addPostItem.querySelector('button')?.classList.add('pure-button-disabled');
-            //adminSectionContent.appendChild(createPagesSectionContainer(editingId || target.id));
+            disableActions();
+            clearEditorFromDom();
+
+            const post = blog.posts.find((p) => p.id === target.id);
+
+            editor = clElements.appendEditor(adminSectionContent, post?.content);
         },
 
         onDeleteClick() {
-            commitBtns.unfreeze();
-            //removeMainSection();
+            enableActions();
+            clearEditorFromDom();
         },
     });
 
-    const commitChanges = async () => {};
+    const saveEditorChanges = (postId: string) => {
+        const value = editor?.value() || '';
+
+        const post = blog.posts.find((p) => p.id === postId);
+
+        if (post) {
+            post.content = value;
+        }
+
+        enableActions();
+        clearEditorFromDom();
+    };
+
+    const clearEditorFromDom = () => {
+        adminSectionContent?.querySelector('#main-editor-section')?.remove();
+        editor = null;
+    };
+
+    const disableActions = () => {
+        commitBtns.freeze();
+        addPostItem.querySelector('button')?.classList.add('pure-button-disabled');
+        adminSection.querySelector('.admin-photo-actions label')?.classList.add('pure-button-disabled');
+    };
+
+    const enableActions = () => {
+        commitBtns.unfreeze();
+        addPostItem.querySelector('button')?.classList.remove('pure-button-disabled');
+        adminSection.querySelector('.admin-photo-actions label')?.classList.remove('pure-button-disabled');
+    };
+
+    const getPhotoActions = (name: string, src?: string) => {
+        return clElements.getPhotoActions(
+            name,
+            src,
+            (ev) => handleThumbnailUpload(ev.target as HTMLInputElement),
+            (ev) => handleThumbnailDelete(ev.target as HTMLInputElement),
+            'admin-post-thumbnail-actions'
+        );
+    };
+
+    const getUserPhotoHtml = () => {
+        const [el, img] = clElements.getUserPhotoHtml(
+            profilePhoto,
+            (event) => handleUserPhotoUpload(event.target as HTMLInputElement),
+            () => handleUserPhotoDelete()
+        );
+        el.id = 'user-photo-wrapper';
+        img.setAttribute('style', 'display: block; margin-bottom: 0.5rem;');
+        return el;
+    };
+
+    const handleUserPhotoUpload = (target: HTMLInputElement) => {
+        return clCore.handleFileUpload(target, (fr) => {
+            profilePhoto = fr.result?.toString() || '';
+            getUserPhotoWrapper()?.remove();
+            adminSection.prepend(getUserPhotoHtml());
+        });
+    };
+
+    const handleUserPhotoDelete = () => {
+        profilePhoto = '';
+        getUserPhotoWrapper()?.remove();
+        adminSection.prepend(getUserPhotoHtml());
+    };
+
+    const handleThumbnailUpload = (target: HTMLInputElement) => {
+        const id = target.parentElement?.parentElement?.parentElement?.id;
+
+        if (!id) return;
+
+        return clCore.handleFileUpload(target, (fr) => {
+            blogTable.updateRow(id, 'thumbnail', () => {
+                const src = fr.result?.toString() || '';
+                const post = blog.posts.find((p) => p.id === id);
+                post!.thumbnail = src;
+
+                return getPhotoActions('thumbnail', src);
+            });
+        });
+    };
+
+    const handleThumbnailDelete = (target: HTMLInputElement) => {
+        const id = target.parentElement?.parentElement?.id;
+
+        if (!id) return;
+
+        blogTable.updateRow(id, 'thumbnail', () => {
+            const post = blog.posts.find((p) => p.id === id);
+            post!.thumbnail = '';
+
+            return getPhotoActions('thumbnail');
+        });
+    };
+
+    const commitChanges = async () => {
+        const [newRows, editedRows, deletedRows] = [
+            blogTable.getNewRows(),
+            blogTable.getEditedRows(),
+            blogTable.getDeletedRows(),
+        ];
+
+        console.log({
+            newRows,
+            editedRows,
+            deletedRows,
+        });
+    };
 
     const resetChanges = () => {
         return window.location.reload();
@@ -100,34 +205,22 @@
     const commitBtns = clElements.getConfirmButtons(commitChanges, resetChanges);
     const [adminSection, adminSectionContent] = clElements.getAdminSection('Blog & Posts');
     const addPostItem = clElements.getAddItemsSection('Posts', 'Add Post', () => {
-        // const page = {
-        //     name: 'Jazz',
-        //     slug: '/jazz',
-        //     title: 'Jazz',
-        //     description: 'Kind of Blue',
-        //     published: false,
-        //     sections: [],
-        // };
-        // const id = pagesTable.addRow({
-        //     ...page,
-        //     sections: page.sections.length,
-        // });
-        // pages.push({ ...page, id });
+        const post = {
+            title: 'Jazz',
+            published: false,
+            blogId: blog.id,
+            content: 'Miles Davis',
+            thumbnail: '',
+        } as Post;
+        const id = blogTable.addRow(post);
+        blog.posts.push({ ...post, id });
     });
 
     window.clView.posts = (app) => {
-        adminSectionContent.innerHTML = `<div class='admin-input-name'>
-        <label style='margin-bottom:1rem;' for='blog-path-field'>Blog Path</label>
-        <input id='blog-path-field' type='text' placeholder='Blog Path' value='${blog.path || ''}' />
-        <small>Commit an empty field to disable blog and posts</small>
-    </div>`;
-
-        adminSection.innerHTML = `    <div class='admin-section-content'>
-    <h1>User Photo</h1>
-
-    <img width="120px" src='${profilePhoto}' />
-    <div>${getPhotoHtml('authorPhoto', profilePhoto)}</div>
-</div>`;
+        adminSection.prepend(getUserPhotoHtml());
+        adminSection.appendChild(
+            clElements.getInputField('Blog Path', blog.path || '', 'Commit an empty field to disable blog and posts')
+        );
 
         adminSectionContent.appendChild(addPostItem);
         adminSectionContent.appendChild(blogTable.getRootNode());

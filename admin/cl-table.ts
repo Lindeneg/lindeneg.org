@@ -139,6 +139,15 @@
             return 'NEW_ROW_TEMP_ID-' + Date.now() + '-' + Math.floor(Math.random() * 100000);
         };
 
+        const handleOrElementOrNonElementRowMutation = (cell: HTMLTableCellElement, result: HTMLElement | string) => {
+            cell.innerHTML = '';
+            if (result instanceof HTMLElement) {
+                cell.appendChild(result);
+            } else {
+                cell.innerHTML = result;
+            }
+        };
+
         const rowToInput = (id: string) => {
             const row = rows.find((row) => row.id === id);
 
@@ -150,7 +159,7 @@
                 if (cell.id === 'table-actions') return;
 
                 if (opts?.cellToInput) {
-                    cell.innerHTML = opts.cellToInput(cell);
+                    handleOrElementOrNonElementRowMutation(cell, opts.cellToInput(cell));
                     return;
                 }
 
@@ -235,7 +244,8 @@
 
                 columnNames.forEach((columnName) => {
                     const cell = document.createElement('td');
-                    cell.innerHTML = initialValues[columnName];
+                    const value = initialValues[columnName];
+                    cell.innerHTML = opts?.transform ? opts.transform(columnName, value) : value;
                     cell.dataset.columnName = columnName;
                     row.appendChild(cell);
                 });
@@ -254,7 +264,9 @@
 
                 if (!target) return;
 
-                target.innerHTML = value(target);
+                const result = value(target);
+
+                handleOrElementOrNonElementRowMutation(target, result);
 
                 if (newRowsIds.has(id)) return;
 

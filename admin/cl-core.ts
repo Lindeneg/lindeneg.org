@@ -2,11 +2,26 @@
     if (!window.clView) {
         window.clView = {};
     }
+
     const { clHttp } = window;
     const app = document.getElementById('app')!;
     const navEntries = Array.from(document.querySelectorAll('.nav-entry')) as HTMLButtonElement[];
     const ACTIVE_NAV_CLASS = 'pure-button-secondary';
     const INACTIVE_NAV_CLASS = 'pure-button-primary';
+
+    const handleFileUpload = (target: HTMLInputElement, callback: (fr: FileReader) => void) => {
+        const fileReader: FileReader = new FileReader();
+
+        fileReader.onload = () => {
+            callback(fileReader);
+        };
+
+        fileReader.readAsDataURL(target.files![0]);
+    };
+
+    window.clCore = {
+        handleFileUpload,
+    };
 
     const loadCurrentViewScript = (name: string) => {
         return new Promise((resolve, reject) => {

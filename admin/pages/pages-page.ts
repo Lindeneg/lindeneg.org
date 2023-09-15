@@ -211,23 +211,11 @@
                 pagesTable.freezeActions();
                 mainSectionElement?.querySelector('button')?.classList.add('pure-button-disabled');
 
-                const div = document.createElement('div');
-                div.id = 'main-editor-section';
-                div.innerHTML = `<h3>Section Content</h3>
-                <small>Use fullscreen mode for better editing</small>
-                <textarea id='editor'>
-                </textarea>`;
-
-                mainSectionElement!.appendChild(div);
-
                 pageSectionTarget = pages
                     .find((e) => e.id === pageId)
                     ?.sections.find((e) => e.id === (editingId || target.id))!;
 
-                editor = new SimpleMDE({
-                    element: mainSectionElement?.querySelector('#editor')!,
-                    initialValue: pageSectionTarget.content,
-                });
+                editor = clElements.appendEditor(mainSectionElement!, pageSectionTarget.content);
             },
         });
     };
