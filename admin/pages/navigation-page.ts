@@ -87,8 +87,6 @@
             );
 
             if (!res?.ok) return;
-
-            navigation.id = await res.json();
         }
 
         if (!navigation.id) return;
