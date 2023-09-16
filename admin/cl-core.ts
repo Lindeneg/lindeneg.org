@@ -8,6 +8,7 @@
     const navEntries = Array.from(document.querySelectorAll('.nav-entry')) as HTMLButtonElement[];
     const ACTIVE_NAV_CLASS = 'pure-button-secondary';
     const INACTIVE_NAV_CLASS = 'pure-button-primary';
+    const NEW_ENTRY_REGEX = /NEW_ROW_TEMP_ID-/;
 
     const handleFileUpload = (target: HTMLInputElement, callback: (fr: FileReader) => void) => {
         const fileReader: FileReader = new FileReader();
@@ -19,8 +20,46 @@
         fileReader.readAsDataURL(target.files![0]);
     };
 
+    const getChangedSectionColumns = <T>(mutated: T, original: T, keys: Array<keyof T>) => {
+        return keys.reduce(
+            (acc, key) => {
+                if (!original || mutated[key] !== original[key]) {
+                    acc[key] = mutated[key];
+                }
+
+                return acc;
+            },
+            {} as Record<keyof T, unknown>
+        );
+    };
+
+    const setDataSectionsAttribute = (el?: HTMLElement | null, ...elements: string[]) => {
+        const currentSections = getDataSectionsAttribute(el);
+
+        elements.forEach((e) => {
+            if (currentSections.includes(e)) return;
+
+            currentSections.push(e);
+        });
+
+        el?.setAttribute('data-sections', currentSections.join(','));
+    };
+
+    const getDataSectionsAttribute = (el?: HTMLElement | null) => {
+        return (
+            el
+                ?.getAttribute('data-sections')
+                ?.split(',')
+                .filter((e) => !!e) ?? []
+        );
+    };
+
     window.clCore = {
+        NEW_ENTRY_REGEX,
         handleFileUpload,
+        getChangedSectionColumns,
+        setDataSectionsAttribute,
+        getDataSectionsAttribute,
     };
 
     const loadCurrentViewScript = (name: string) => {

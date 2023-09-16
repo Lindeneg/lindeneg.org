@@ -14,41 +14,6 @@
         columns: navigationColumns,
         rows: navigation.navItems,
 
-        cellToInput(cell) {
-            const columnName = cell.dataset.columnName;
-            const value = cell.innerText;
-
-            if (columnName === 'name' || columnName === 'href') {
-                return `<input name='${columnName}' class='editable-row' value='${value}'></input>`;
-            }
-
-            if (columnName === 'position') {
-                return `<input style='width:4rem;' name='${columnName}' class='editable-row' type='number' value='${value}'></input>`;
-            }
-
-            if (columnName === 'newTab') {
-                return `<input name='${columnName}' class='editable-row' type='checkbox' ${
-                    value === 'true' ? 'checked' : ''
-                }></input>`;
-            }
-
-            if (columnName === 'alignment') {
-                return `<select name='${columnName}' class='editable-row'>
-    <option value='LEFT' ${value === 'LEFT' ? 'selected' : ''}>Left</option>
-    <option value='RIGHT' ${value === 'RIGHT' ? 'selected' : ''}>Right</option>
-</select>`;
-            }
-
-            return String(value);
-        },
-
-        inputToCell(input) {
-            if (input.type === 'checkbox') {
-                return input.checked ? 'true' : 'false';
-            }
-            return input.value;
-        },
-
         onUpdateClick(target, editingId) {
             if (target.id === editingId) return enableActions();
             disableActions();

@@ -184,18 +184,82 @@
         });
     };
 
-    const commitChanges = async () => {
-        const [newRows, editedRows, deletedRows] = [
-            blogTable.getNewRows(),
-            blogTable.getEditedRows(),
-            blogTable.getDeletedRows(),
-        ];
+    const sendBlogPostRequest = (mode: string, rows: HTMLTableRowElement[]) => {
+        return rows.map(async (row) => {
+            if (mode === 'remove') {
+                return clHttp.deleteEntity(`/blog-post/${row.id}`);
+            }
 
-        console.log({
-            newRows,
-            editedRows,
-            deletedRows,
+            const mutatedItem = blog.posts.find((p) => p.id === row.id);
+            const originalItem = originalBlog.posts.find((p) => p.id === row.id);
+            const initialPayload: Record<string, unknown> = {};
+
+            let isContentMutated = mutatedItem?.content !== originalItem?.content;
+            let isThumbnailMutated =
+                mutatedItem?.thumbnail !== originalItem?.thumbnail &&
+                !(mode === 'add' && mutatedItem?.thumbnail === '');
+
+            if (isContentMutated) {
+                initialPayload.content = mutatedItem?.content;
+            }
+
+            if (isThumbnailMutated) {
+                initialPayload.thumbnail = mutatedItem?.thumbnail;
+            }
+
+            const [payload, didAdd] = blogTable.getPayloadFromRow(row, initialPayload, (col, val) => {
+                if (col === 'thumbnail' || col === 'content') return { success: false };
+
+                let value: unknown = val;
+
+                if (col === 'published') {
+                    value = val === 'true';
+                }
+
+                if (originalItem && value === originalItem[<keyof typeof originalItem>col]) {
+                    return { success: false };
+                }
+
+                return { success: true, value };
+            });
+
+            const haveMutations = didAdd || isContentMutated || isThumbnailMutated;
+
+            if (!haveMutations) return Promise.resolve();
+
+            if (mode === 'add') {
+                return clHttp.postJson('/blog-post', payload);
+            } else if (mode === 'edit') {
+                return clHttp.patchJson(`/blog-post/${row.id}`, payload);
+            }
         });
+    };
+
+    const handleUserPhoto = async (mode: string) => {
+        if (mode === 'remove') {
+            return clHttp.deleteEntity('/user-photo');
+        }
+        return clHttp.postJson('/user-photo', JSON.stringify({ image: profilePhoto }));
+    };
+
+    const commitChanges = async () => {
+        const blogPath = adminSection.querySelector<HTMLInputElement>('#admin-input-field')?.value || '';
+
+        if (blogPath !== originalBlog.path) {
+            await clHttp.patchJson('/blog/' + blog.id, JSON.stringify({ path: blogPath }));
+        }
+
+        if (profilePhoto !== originalProfilePhoto) {
+            await handleUserPhoto(profilePhoto === '' ? 'remove' : 'upload');
+        }
+
+        await Promise.all([
+            ...sendBlogPostRequest('add', blogTable.getNewRows()),
+            ...sendBlogPostRequest('edit', blogTable.getEditedRows()),
+            ...sendBlogPostRequest('remove', blogTable.getDeletedRows()),
+        ]);
+
+        return window.location.reload();
     };
 
     const resetChanges = () => {

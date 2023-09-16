@@ -10,18 +10,17 @@
 
         const updateBtn = document.createElement('button');
         updateBtn.dataset.itemId = id;
-        updateBtn.className = 'update-table-btn';
+        updateBtn.className = 'pure-button update-table-btn';
         updateBtn.innerText = 'Update';
         updateBtn.addEventListener('click', (event) => onUpdate(event.target as HTMLButtonElement));
 
         const deleteBtn = document.createElement('button');
         deleteBtn.dataset.itemId = id;
-        deleteBtn.className = 'delete-table-btn';
+        deleteBtn.className = 'pure-button delete-table-btn';
         deleteBtn.innerText = 'Delete';
         deleteBtn.addEventListener('click', (event) => onDelete(event.target as HTMLButtonElement));
 
         cell.appendChild(updateBtn);
-        cell.appendChild(document.createTextNode(' | '));
         cell.appendChild(deleteBtn);
 
         return cell;
@@ -139,7 +138,7 @@
             return 'NEW_ROW_TEMP_ID-' + Date.now() + '-' + Math.floor(Math.random() * 100000);
         };
 
-        const handleOrElementOrNonElementRowMutation = (cell: HTMLTableCellElement, result: HTMLElement | string) => {
+        const handleElementOrStringRowMutation = (cell: HTMLTableCellElement, result: HTMLElement | string) => {
             cell.innerHTML = '';
             if (result instanceof HTMLElement) {
                 cell.appendChild(result);
@@ -159,11 +158,52 @@
                 if (cell.id === 'table-actions') return;
 
                 if (opts?.cellToInput) {
-                    handleOrElementOrNonElementRowMutation(cell, opts.cellToInput(cell));
+                    handleElementOrStringRowMutation(cell, opts.cellToInput(cell));
                     return;
                 }
 
-                cell.innerHTML = `<input value="${cell.innerHTML}" ></input>`;
+                const columnName = cell.dataset.columnName;
+                const value = cell.innerText;
+
+                if (
+                    columnName === 'name' ||
+                    columnName === 'href' ||
+                    columnName === 'slug' ||
+                    columnName === 'title' ||
+                    columnName === 'description'
+                ) {
+                    cell.innerHTML = `<input name='${columnName}' class='editable-row' value='${value}'></input>`;
+                    return;
+                }
+
+                if (columnName === 'published') {
+                    cell.innerHTML = `<input name='${columnName}' class='editable-row' type='checkbox' ${
+                        value === 'true' ? 'checked' : ''
+                    }></input>`;
+                    return;
+                }
+
+                if (columnName === 'position') {
+                    cell.innerHTML = `<input style='width:4rem;' name='${columnName}' class='editable-row' type='number' value='${value}'></input>`;
+                    return;
+                }
+
+                if (columnName === 'newTab') {
+                    cell.innerHTML = `<input name='${columnName}' class='editable-row' type='checkbox' ${
+                        value === 'true' ? 'checked' : ''
+                    }></input>`;
+                    return;
+                }
+
+                if (columnName === 'alignment') {
+                    cell.innerHTML = `<select name='${columnName}' class='editable-row'>
+        <option value='LEFT' ${value === 'LEFT' ? 'selected' : ''}>Left</option>
+        <option value='RIGHT' ${value === 'RIGHT' ? 'selected' : ''}>Right</option>
+    </select>`;
+                    return;
+                }
+
+                cell.innerHTML = String(value);
             });
         };
 
@@ -185,7 +225,8 @@
                 }
 
                 if (target?.type === 'checkbox') {
-                    return target.checked ? 'true' : 'false';
+                    cell.innerHTML = target.checked ? 'true' : 'false';
+                    return;
                 }
 
                 cell.innerHTML = target?.value || target?.innerText || '';
@@ -266,7 +307,7 @@
 
                 const result = value(target);
 
-                handleOrElementOrNonElementRowMutation(target, result);
+                handleElementOrStringRowMutation(target, result);
 
                 if (newRowsIds.has(id)) return;
 

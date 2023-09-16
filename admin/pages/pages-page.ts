@@ -1,5 +1,5 @@
 (async () => {
-    const { clElements, clTable, clHttp } = window;
+    const { clCore, clElements, clTable, clHttp } = window;
 
     const [pagesRes, pagesColumnsRes, sectionsColumnsRes] = await Promise.all([
         clHttp.getJson<PageWithSections[]>('/pages'),
@@ -7,11 +7,11 @@
         clHttp.getJson<string[]>('/pages-section-columns'),
     ]);
 
-    const NEW_ENTRY_REGEX = /NEW_ROW_TEMP_ID-/;
     const pages = pagesRes ?? [];
     const pagesColumns = pagesColumnsRes ?? [];
     const sectionsColumns = sectionsColumnsRes ?? [];
     const originalPages: PageWithSections[] = JSON.parse(JSON.stringify(pages));
+    const changedColumnKeys = ['position', 'published', 'content'];
 
     let editor: SimpleMDE | null = null;
     let mainSectionElement: HTMLElement | null = null;
@@ -19,42 +19,13 @@
     let sectionTable: ClTableApi | null = null;
 
     const isNewRow = (id: string) => {
-        return NEW_ENTRY_REGEX.test(id);
+        return clCore.NEW_ENTRY_REGEX.test(id);
     };
 
     const pagesTable = clTable.createTableFromData({
         id: 'pages-table',
         columns: pagesColumns,
         rows: pages,
-
-        cellToInput(cell) {
-            const columnName = cell.dataset.columnName;
-            const value = cell.innerText;
-
-            if (
-                columnName === 'name' ||
-                columnName === 'slug' ||
-                columnName === 'title' ||
-                columnName === 'description'
-            ) {
-                return `<input name='${columnName}' class='editable-row' value='${value}'></input>`;
-            }
-
-            if (columnName === 'published') {
-                return `<input name='${columnName}' class='editable-row' type='checkbox' ${
-                    value === 'true' ? 'checked' : ''
-                }></input>`;
-            }
-
-            return String(value);
-        },
-
-        inputToCell(input) {
-            if (input?.type === 'checkbox') {
-                return input.checked ? 'true' : 'false';
-            }
-            return input?.value || input.innerText;
-        },
 
         transform(col, val) {
             if (col === 'sections') {
@@ -76,6 +47,8 @@
                         .find((e) => e.id === editingId)
                         ?.sections.find((e) => e.id === mutatedSection.id)!;
                     const published = sectionTable?.getRowColumnCell(mutatedSection.id, 'published')?.innerText;
+
+                    if (!section) return;
 
                     section.position = parseInt(
                         sectionTable?.getRowColumnCell(mutatedSection.id, 'position')?.innerText || '0'
@@ -99,27 +72,6 @@
         },
     });
 
-    const setDataSectionsAttribute = (pageId: string, sectionId: string) => {
-        const targetPageRow = pagesTable.getRowFromId(pageId);
-        const currentSections = getDataSectionsAttribute(pageId);
-
-        if (currentSections.includes(sectionId)) return;
-
-        currentSections.push(sectionId);
-
-        targetPageRow?.setAttribute('data-sections', currentSections.join(','));
-    };
-
-    const getDataSectionsAttribute = (pageId: string) => {
-        return (
-            pagesTable
-                .getRowFromId(pageId)
-                ?.getAttribute('data-sections')
-                ?.split(',')
-                .filter((e) => !!e) ?? []
-        );
-    };
-
     const clearEditorFromDom = () => {
         mainSectionElement?.querySelector('#main-editor-section')?.remove();
         editor = null;
@@ -139,7 +91,7 @@
             ?.sections.find((e) => e.id === editingSectionId);
 
         if (targetSection) {
-            setDataSectionsAttribute(editingPageId, editingSectionId);
+            clCore.setDataSectionsAttribute(pagesTable.getRowFromId(editingPageId), editingSectionId);
             targetSection.content = value;
         }
 
@@ -167,38 +119,13 @@
                     return targetPage.sections.length;
                 });
 
-                setDataSectionsAttribute(pageId, target.id);
+                clCore.setDataSectionsAttribute(pagesTable.getRowFromId(pageId), target.id);
 
                 pagesTable.unfreezeActions();
                 pagesTable.startEditing(editingPageId || pagesTable.getEditingId()!);
                 mainSectionElement!.querySelector('#main-editor-section')?.remove();
                 mainSectionElement?.querySelector('button')?.classList.remove('pure-button-disabled');
                 pageSectionTarget = null;
-            },
-
-            cellToInput(cell) {
-                const columnName = cell.dataset.columnName;
-                const value = cell.innerText;
-
-                if (columnName === 'position') {
-                    return `<input style='width:4rem;' name='${columnName}' class='editable-row' type='number' value='${value}'></input>`;
-                }
-
-                if (columnName === 'published') {
-                    return `<input name='${columnName}' class='editable-row' type='checkbox' ${
-                        value === 'true' ? 'checked' : ''
-                    }></input>`;
-                }
-
-                return String(value);
-            },
-
-            inputToCell(input) {
-                if (input?.type === 'checkbox') {
-                    return input.checked ? 'true' : 'false';
-                }
-
-                return input?.value || input.innerText;
             },
 
             onUpdateClick(target, editingId) {
@@ -237,7 +164,7 @@
                 return pages.find((e) => e.id === pageId)!.sections.length;
             });
 
-            setDataSectionsAttribute(pageId, id);
+            clCore.setDataSectionsAttribute(pagesTable.getRowFromId(pageId), id);
         });
 
         mainSection.id = 'mdeContainer';
@@ -249,28 +176,12 @@
         return mainSection;
     };
 
-    const getChangedSectionColumns = (mutated: PageSection, original: PageSection) => {
-        const keys = ['position', 'published', 'content'];
-
-        return keys.reduce(
-            (acc, _key) => {
-                const key = _key as keyof PageSection;
-                if (!original || mutated[key] !== original[key]) {
-                    acc[key] = mutated[key];
-                }
-
-                return acc;
-            },
-            {} as Record<string, unknown>
-        );
-    };
-
     const handleSectionCallbacks = (
         originalPage: PageWithSections,
         identifier: string,
         sectionCallbacks: SectionCallbacks
     ) => {
-        const sectionIds = getDataSectionsAttribute(identifier);
+        const sectionIds = clCore.getDataSectionsAttribute(pagesTable.getRowFromId(identifier));
         if (sectionIds.length === 0) return { success: false };
 
         if (!sectionCallbacks[identifier]) {
@@ -300,15 +211,16 @@
                 return;
             }
 
-            const changedSectionColumns = getChangedSectionColumns(pageSection, originalSection);
+            const changedSectionColumns = clCore.getChangedSectionColumns(
+                pageSection,
+                originalSection,
+                changedColumnKeys as any
+            );
 
             if (Object.keys(changedSectionColumns).length === 0) return;
 
             sectionCallbacks[identifier].push(async () => {
-                await clHttp.patchJson(
-                    `/page-sections/${sectionId}`,
-                    JSON.stringify(getChangedSectionColumns(pageSection, originalSection))
-                );
+                await clHttp.patchJson(`/page-sections/${sectionId}`, JSON.stringify(changedSectionColumns));
             });
         });
     };
@@ -410,7 +322,7 @@
 
         const id = pagesTable.addRow({
             ...page,
-            sections: page.sections.length,
+            sections: page.sections,
         });
 
         pages.push({ ...page, id });

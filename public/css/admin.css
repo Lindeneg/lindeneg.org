@@ -115,18 +115,8 @@
     flex-direction: column;
 }
 
-.update-table-btn,
-.delete-table-btn {
-    cursor: pointer;
-}
-
-.update-table-btn:hover,
-.delete-table-btn:hover {
-    text-decoration: underline;
-}
-
-.delete-table-btn:hover {
-    color: red;
+.update-table-btn {
+    margin-right: 1rem;
 }
 
 .admin-section {

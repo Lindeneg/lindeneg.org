@@ -150,7 +150,11 @@ interface ClElementsModule {
 }
 
 interface ClCoreModule {
+    NEW_ENTRY_REGEX: RegExp;
     handleFileUpload: (target: HTMLInputElement, callback: (fr: FileReader) => void) => void;
+    getChangedSectionColumns: <T>(mutated: T, original: T, keys: Array<keyof T>) => Record<keyof T, unknown>;
+    setDataSectionsAttribute: (el?: HTMLElement | null, ...elements: string[]) => void;
+    getDataSectionsAttribute: (el?: HTMLElement | null) => string[];
 }
 
 interface Window {
