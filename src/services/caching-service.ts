@@ -113,9 +113,7 @@ class CachingService extends SingletonService {
     public async getNavigation() {
         if (this.navigationCache && !this.isExpired(this.navigationCache)) return this.navigationCache.value;
 
-        const navigation = (await this.dataContext.exec((p) =>
-            p.navigation.findFirst({ include: { navItems: true } })
-        )) as NavigationWithItems;
+        const navigation = await this.dataContext.exec((p) => p.navigation.findFirst({ include: { navItems: true } }));
 
         if (!navigation) return null;
 
@@ -142,9 +140,9 @@ class CachingService extends SingletonService {
 
         if (cached && !this.isExpired(cached)) return cached.value;
 
-        const page = (await this.dataContext.exec((p) =>
+        const page = await this.dataContext.exec((p) =>
             p.page.findFirst({ where: { slug, published: true }, include: { sections: true } })
-        )) as PageWithSections;
+        );
 
         if (!page) return null;
 

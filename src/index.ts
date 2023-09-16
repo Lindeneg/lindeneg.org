@@ -1,5 +1,5 @@
 import Funkallero, { BaseZodParserService, BaseLoggerServicePalette, LOG_LEVEL } from '@lindeneg/funkallero';
-import { BaseTokenService } from '@lindeneg/funkallero-auth-service';
+import { BaseTokenService, BaseTokenConfiguration } from '@lindeneg/funkallero-auth-service';
 import TemplateService from './services/template-service';
 import SERVICE from '@/enums/service';
 import ExpressService from './services/express-service';
@@ -16,6 +16,7 @@ import '@/api/admin-controller';
 import '@/api/view-controller';
 
 BaseLoggerServicePalette.useDefaultPalette();
+BaseTokenConfiguration.secret = process.env['LINDENEG_JWT_SECRET']!;
 
 const funkallero = await Funkallero.create({
     basePath: '/api',

@@ -6,7 +6,7 @@
 }
 
 .ripple-background {
-    position: absolute;
+    position: fixed;
     width: 100%;
     height: 100%;
     background-color: white;
@@ -110,30 +110,13 @@
     margin-top: 3rem;
 }
 
-#page-commit-btn,
-#post-commit-btn,
-#nav-commit-btn {
-    margin-right: 1rem;
-}
-
-.admin-navigation-name,
-.admin-blog-name {
+.admin-input-name {
     display: inline-flex;
     flex-direction: column;
 }
 
-.update-table-btn,
-.delete-table-btn {
-    cursor: pointer;
-}
-
-.update-table-btn:hover,
-.delete-table-btn:hover {
-    text-decoration: underline;
-}
-
-.delete-table-btn:hover {
-    color: red;
+.update-table-btn {
+    margin-right: 1rem;
 }
 
 .admin-section {
@@ -146,4 +129,8 @@
     display: inline-block;
     width: 640px;
     vertical-align: top;
+}
+
+.editable-row {
+    max-width: 100px;
 }

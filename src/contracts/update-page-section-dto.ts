@@ -2,7 +2,7 @@ import { z } from 'zod';
 import createPageSectionSchema from '@/contracts/create-page-section-dto';
 
 const updatePageSectionSchema = createPageSectionSchema.partial().superRefine((data, ctx) => {
-    if (!data.content && typeof data.published === 'undefined' && typeof data.published === 'undefined') {
+    if (!data.content && typeof data.published === 'undefined' && typeof data.position === 'undefined') {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: ['content', 'position', 'published'],
