@@ -6,6 +6,10 @@
         clHttp.getJson<string[]>('/navigation-columns'),
     ]);
 
+    if (!navigationRes) {
+        clHttp.clearError();
+    }
+
     const navigation = navigationRes ?? { id: '', brandName: '', navItems: [] };
     const navigationColumns = navigationColumnsRes ?? [];
 
