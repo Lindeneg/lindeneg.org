@@ -1,7 +1,8 @@
 dist
 node_modules
 .env*
-!.env.example
+!.env.docker.example
+!.env.local.example
 notes
 .idea
 public/**/*.js
