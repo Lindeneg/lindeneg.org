@@ -1,94 +1,116 @@
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum Role {
-    ADMIN
-    CONTRIBUTOR
-    USER
+  ADMIN
+  CONTRIBUTOR
+  USER
 }
 
 enum NavItemAlignment {
-    RIGHT
-    LEFT
+  RIGHT
+  LEFT
 }
 
 model User {
-    id        String  @id @default(uuid())
-    email     String  @unique
-    firstname String
-    lastname  String
-    password  String
-    photo     String?
-    photoId   String?
-    role      Role    @default(USER)
-    blog      Blog    @relation(fields: [blogId], references: [id])
-    blogId    String
+  id        String  @id @default(uuid())
+  email     String  @unique
+  firstname String
+  lastname  String
+  password  String
+  photo     String?
+  photoId   String?
+  role      Role    @default(USER)
+  blog      Blog    @relation(fields: [blogId], references: [id])
+  blogId    String
 }
 
 model NavigationItem {
-    id           String           @id @default(uuid())
-    Navigation   Navigation?      @relation(fields: [navigationId], references: [id])
-    navigationId String?
-    name         String
-    href         String
-    position     Int              @default(0)
-    alignment    NavItemAlignment @default(RIGHT)
-    newTab       Boolean          @default(false)
+  id           String           @id @default(uuid())
+  Navigation   Navigation?      @relation(fields: [navigationId], references: [id])
+  navigationId String?
+  name         String
+  href         String
+  position     Int              @default(0)
+  alignment    NavItemAlignment @default(RIGHT)
+  newTab       Boolean          @default(false)
 }
 
 model Navigation {
-    id        String           @id @default(uuid())
-    brandName String
-    navItems  NavigationItem[]
+  id        String           @id @default(uuid())
+  brandName String
+  navItems  NavigationItem[]
 }
 
 model PageSection {
-    id        String   @id @default(uuid())
-    content   String
-    position  Int      @default(0)
-    published Boolean  @default(false)
-    page      Page?    @relation(fields: [pageId], references: [id], onDelete: Cascade)
-    pageId    String?
-    createdAt DateTime @default(now())
-    updatedAt DateTime @default(now()) @updatedAt
+  id        String   @id @default(uuid())
+  content   String
+  position  Int      @default(0)
+  published Boolean  @default(false)
+  page      Page?    @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  pageId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 model Page {
-    id          String        @id @default(uuid())
-    name        String        @unique
-    slug        String
-    title       String
-    description String
-    sections    PageSection[]
-    published   Boolean       @default(false)
-    createdAt   DateTime      @default(now())
-    updatedAt   DateTime      @default(now()) @updatedAt
+  id          String        @id @default(uuid())
+  name        String        @unique
+  slug        String
+  title       String
+  description String
+  sections    PageSection[]
+  published   Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @default(now()) @updatedAt
 }
 
 model Blog {
-    id      String  @id @default(uuid())
-    path    String  @default("/blog")
-    enabled Boolean @default(true)
-    posts   Post[]
-    user    User[]
+  id      String  @id @default(uuid())
+  path    String  @default("/blog")
+  enabled Boolean @default(true)
+  posts   Post[]
+  user    User[]
 }
 
 model Post {
-    id          String   @id @default(uuid())
-    name        String
-    title       String
-    content     String
-    published   Boolean  @default(false)
-    thumbnail   String
-    thumbnailId String   @default("")
-    blog        Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
-    blogId      String
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @default(now()) @updatedAt
+  id          String   @id @default(uuid())
+  name        String
+  title       String
+  content     String
+  published   Boolean  @default(false)
+  thumbnail   String
+  thumbnailId String   @default("")
+  blog        Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  blogId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+}
+
+model Visit {
+  id        String  @id @default(uuid())
+  timestamp Int
+  pathname  String
+  userAgent String
+  browser   String
+  device    String
+  os        String
+  cpu       String
+  http      String? @default("unknown")
+  tls       String? @default("unknown")
+  visitor   Visitor @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  visitorId String
+}
+
+model Visitor {
+  id       String  @id @default(uuid())
+  ip       String  @unique
+  location String
+  visits   Visit[]
 }
