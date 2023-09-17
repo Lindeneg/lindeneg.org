@@ -1,6 +1,6 @@
-import { createHandlebarTemplate } from '@lindeneg/funkallero';
+import {createHandlebarTemplate} from '@lindeneg/funkallero';
 import TEMPLATE_NAME from '@/enums/template-name';
-import type { SafeString } from 'handlebars';
+import type {SafeString} from 'handlebars';
 
 interface PageNavProps {
     name: string;
@@ -12,6 +12,7 @@ interface BaseProps {
     brandName: string;
     leftNavEntries: PageNavProps[];
     rightNavEntries: PageNavProps[];
+    isDev: boolean;
 }
 
 interface PageProps extends BaseProps {

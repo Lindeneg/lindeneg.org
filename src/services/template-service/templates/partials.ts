@@ -14,6 +14,14 @@ const TEMPLATE_PARTIALS = {
         path: 'templates/partials/nav-bar-entries.hbs',
         partial: true,
     }),
+    [TEMPLATE_NAME.FOOTER]: createHandlebarTemplate({
+        path: 'templates/partials/footer.hbs',
+        partial: true,
+    }),
+    [TEMPLATE_NAME.ANALYTICS]: createHandlebarTemplate({
+        path: 'templates/partials/analytics.hbs',
+        partial: true,
+    }),
 } as const;
 
 export default TEMPLATE_PARTIALS;
