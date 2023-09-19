@@ -97,20 +97,20 @@ model Visit {
   id        String  @id @default(uuid())
   timestamp Int
   pathname  String
-  userAgent String
-  browser   String
-  device    String
-  os        String
-  cpu       String
-  http      String? @default("unknown")
-  tls       String? @default("unknown")
+  http      String
+  tls       String
   visitor   Visitor @relation(fields: [visitorId], references: [id], onDelete: Cascade)
   visitorId String
 }
 
 model Visitor {
-  id       String  @id @default(uuid())
-  ip       String  @unique
-  location String
-  visits   Visit[]
+  id        String  @id @default(uuid())
+  ip        String  @unique
+  userAgent String
+  browser   String
+  device    String
+  os        String
+  cpu       String
+  location  String
+  visits    Visit[]
 }

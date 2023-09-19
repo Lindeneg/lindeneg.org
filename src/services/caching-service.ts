@@ -1,5 +1,5 @@
 import Handlebars from 'handlebars';
-import { Converter } from 'showdown';
+import showdown from 'showdown';
 import { NavItemAlignment, Post, type NavigationItem } from '@prisma/client';
 import { IConfigurationService, injectService, SingletonService } from '@lindeneg/funkallero';
 import SERVICE from '@/enums/service';
@@ -24,7 +24,7 @@ interface ICacheEntry<T = any> {
     expires: number;
 }
 
-const md2htmlConverter = new Converter();
+const md2htmlConverter = new showdown.Converter();
 
 class CachingService extends SingletonService {
     private static ttl = 60 * 60 * 24 * 2;
@@ -52,7 +52,7 @@ class CachingService extends SingletonService {
         if (this.blogCache && !this.isExpired(this.blogCache)) return this.blogCache.value;
 
         const blog = await this.dataContext.exec((p) =>
-            p.blog.findFirst({ include: { posts: { where: { published: true } } } })
+            p.blog.findFirst({ include: { posts: { where: { published: true } } } }),
         );
 
         if (!blog) return null;
@@ -67,7 +67,7 @@ class CachingService extends SingletonService {
 
         if (cached && !this.isExpired(cached)) return cached.value;
 
-        const template = await this.templateService.render(name);
+        const template = await this.templateService.render(name, { isDev: this.config.meta.isDev });
 
         if (!template) return null;
 
@@ -101,6 +101,7 @@ class CachingService extends SingletonService {
                 })),
             leftNavEntries: navigation?.leftNavEntries ?? [],
             rightNavEntries: navigation?.rightNavEntries ?? [],
+            isDev: this.config.meta.isDev,
         });
 
         if (!template) return null;
@@ -123,7 +124,7 @@ class CachingService extends SingletonService {
                 else acc[1].push(item);
                 return acc;
             },
-            [[], []] as [NavigationItem[], NavigationItem[]]
+            [[], []] as [NavigationItem[], NavigationItem[]],
         );
 
         this.navigationCache = this.createEntry({
@@ -141,7 +142,7 @@ class CachingService extends SingletonService {
         if (cached && !this.isExpired(cached)) return cached.value;
 
         const page = await this.dataContext.exec((p) =>
-            p.page.findFirst({ where: { slug, published: true }, include: { sections: true } })
+            p.page.findFirst({ where: { slug, published: true }, include: { sections: true } }),
         );
 
         if (!page) return null;
@@ -160,6 +161,7 @@ class CachingService extends SingletonService {
                 .map((section) => new Handlebars.SafeString(md2htmlConverter.makeHtml(section.content))),
             leftNavEntries: navigation?.leftNavEntries ?? [],
             rightNavEntries: navigation?.rightNavEntries ?? [],
+            isDev: this.config.meta.isDev,
         });
 
         if (!template) return null;
@@ -183,7 +185,7 @@ class CachingService extends SingletonService {
                     user: { select: { firstname: true, lastname: true, photo: true } },
                     posts: { where: { published: true, name: blogName } },
                 },
-            })
+            }),
         );
 
         if (blog?.path !== '/' + blogPath || !blog.posts.length || !blog.user.length) {
@@ -206,6 +208,7 @@ class CachingService extends SingletonService {
             authorImage: user.photo,
             dateString: post.createdAt.toDateString(),
             markdown: new Handlebars.SafeString(md2htmlConverter.makeHtml(post.content)),
+            isDev: this.config.meta.isDev,
         });
 
         if (!template) return null;

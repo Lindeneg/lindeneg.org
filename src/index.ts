@@ -14,6 +14,7 @@ import CloudinaryService from './services/cloudinary-service';
 import '@/api/auth-controller';
 import '@/api/admin-controller';
 import '@/api/view-controller';
+import '@/api/trace-controller';
 
 BaseLoggerServicePalette.useDefaultPalette();
 BaseTokenConfiguration.secret = process.env['LINDENEG_JWT_SECRET']!;
