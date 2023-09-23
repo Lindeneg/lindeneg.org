@@ -1,5 +1,5 @@
 import Handlebars from 'handlebars';
-import { Converter } from 'showdown';
+import Showdown from 'showdown';
 import { NavItemAlignment, Post, type NavigationItem } from '@prisma/client';
 import { IConfigurationService, injectService, SingletonService } from '@lindeneg/funkallero';
 import SERVICE from '@/enums/service';
@@ -24,7 +24,7 @@ interface ICacheEntry<T = any> {
     expires: number;
 }
 
-const md2htmlConverter = new Converter();
+const md2htmlConverter = new Showdown.Converter();
 
 class CachingService extends SingletonService {
     private static ttl = 60 * 60 * 24 * 2;

@@ -20,6 +20,7 @@ export default () => {
             'zod',
             'cookie-parser',
             'cloudinary',
+            'showdown',
         ],
         plugins: [
             cleaner({

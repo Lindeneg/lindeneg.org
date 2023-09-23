@@ -22,6 +22,10 @@
             if (target.id === editingId) return enableActions();
             disableActions();
         },
+
+        onDeleteClick() {
+            enableActions();
+        },
     });
 
     const disableActions = () => {

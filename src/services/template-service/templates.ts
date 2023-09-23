@@ -45,8 +45,13 @@ interface BlogPostProps extends BaseProps {
     dateString: string;
     markdown: SafeString;
 }
-
-const TEMPLATE_PAGE = {
+const TEMPLATES = {
+    [TEMPLATE_NAME.ADMIN]: createHandlebarTemplate({
+        path: 'templates/pages/admin/index.hbs',
+    }),
+    [TEMPLATE_NAME.LOGIN]: createHandlebarTemplate({
+        path: 'templates/pages/auth/login.hbs',
+    }),
     [TEMPLATE_NAME.PAGE]: createHandlebarTemplate<PageProps>({
         path: 'templates/pages/page.hbs',
     }),
@@ -56,6 +61,22 @@ const TEMPLATE_PAGE = {
     [TEMPLATE_NAME.BLOG_POST]: createHandlebarTemplate<BlogPostProps>({
         path: 'templates/pages/blog-post.hbs',
     }),
+    [TEMPLATE_NAME.HEAD]: createHandlebarTemplate({
+        path: 'templates/partials/head.hbs',
+        partial: true,
+    }),
+    [TEMPLATE_NAME.NAV]: createHandlebarTemplate({
+        path: 'templates/partials/nav.hbs',
+        partial: true,
+    }),
+    [TEMPLATE_NAME.NAV_BAR_ENTRIES]: createHandlebarTemplate({
+        path: 'templates/partials/nav-bar-entries.hbs',
+        partial: true,
+    }),
+    [TEMPLATE_NAME.FOOTER]: createHandlebarTemplate({
+        path: 'templates/partials/footer.hbs',
+        partial: true,
+    }),
 } as const;
 
-export default TEMPLATE_PAGE;
+export default TEMPLATES;
