@@ -6,7 +6,7 @@ const SERVICE = {
     TEMPLATE: 'TEMPLATE',
     COOKIE: 'COOKIE',
     CACHING: 'CACHING',
-    CLOUDINARY: 'CLOUDINARY',
+    IMAGE: 'IMAGE',
 } as const;
 
 export default SERVICE;

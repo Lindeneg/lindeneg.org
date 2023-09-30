@@ -45,7 +45,7 @@ const funkallero = await Funkallero.create({
         service.registerSingletonService(SERVICE.TOKEN, BaseTokenService);
         service.registerSingletonService(SERVICE.COOKIE, CookieService);
         service.registerSingletonService(SERVICE.CACHING, CachingService);
-        service.registerSingletonService(SERVICE.CLOUDINARY, CloudinaryService);
+        service.registerSingletonService(SERVICE.IMAGE, CloudinaryService);
 
         service.registerScopedService(SERVICE.AUTHENTICATION, AuthenticationService);
         service.registerScopedService(SERVICE.AUTHORIZATION, AuthorizationService);
@@ -54,7 +54,7 @@ const funkallero = await Funkallero.create({
     async startup(service) {
         await Promise.all([
             service.getSingletonService<TemplateService>(SERVICE.TEMPLATE)?.initializeTemplates(),
-            service.getSingletonService<CloudinaryService>(SERVICE.CLOUDINARY)?.initialize(),
+            service.getSingletonService<CloudinaryService>(SERVICE.IMAGE)?.initialize(),
             service.getSingletonService<SuperUserService>(SERVICE.SUPER_USER)?.create(),
         ]);
     },

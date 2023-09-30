@@ -1,7 +1,7 @@
 import { ACTION_RESULT, MediatorResultSuccess, MediatorResultFailure, injectService } from '@lindeneg/funkallero';
 import BaseAction from '../base-action';
 import SERVICE from '@/enums/service';
-import type CloudinaryService from '@/services/cloudinary-service';
+import type { IImageService } from '@/interfaces';
 import type { ICreateBlogPostDto } from '@/contracts/create-blog-post-dto';
 import type { IUpdateBlogPostSchema } from '@/contracts/update-blog-post-dto';
 import { Post } from '@prisma/client';
@@ -19,7 +19,7 @@ export class GetBlogQuery extends BaseAction {
                     },
                 },
                 include: { posts: true },
-            })
+            }),
         );
 
         if (!blog) return new MediatorResultFailure(ACTION_RESULT.ERROR_NOT_FOUND);
@@ -40,7 +40,7 @@ export class UpdateBlogCommand extends BaseAction {
                     },
                 },
                 select: { id: true },
-            })
+            }),
         );
 
         if (!blog) return new MediatorResultFailure(ACTION_RESULT.ERROR_NOT_FOUND);
@@ -52,7 +52,7 @@ export class UpdateBlogCommand extends BaseAction {
                     path,
                     enabled: !!path,
                 },
-            })
+            }),
         );
 
         if (!updatedBlog) return new MediatorResultFailure(ACTION_RESULT.ERROR_UNPROCESSABLE);
@@ -62,20 +62,20 @@ export class UpdateBlogCommand extends BaseAction {
 }
 
 export class CreateBlogPostCommand extends BaseAction {
-    @injectService(SERVICE.CLOUDINARY)
-    private readonly cloudinaryService: CloudinaryService;
+    @injectService(SERVICE.IMAGE)
+    private readonly imageService: IImageService;
 
     public async execute({ userId, ...dto }: ICreateBlogPostDto) {
         const blog = await this.dataContext.exec((p) =>
-            p.blog.findFirst({ where: { user: { some: { id: userId } } } })
+            p.blog.findFirst({ where: { user: { some: { id: userId } } } }),
         );
 
         if (!blog) {
             return new MediatorResultFailure(ACTION_RESULT.ERROR_NOT_FOUND);
         }
 
-        const uploadResult = dto.thumbnail ? await this.cloudinaryService.uploadImage(dto.thumbnail) : null;
-        const thumbnailUrl = uploadResult ? uploadResult.secure_url : '';
+        const uploadResult = dto.thumbnail ? await this.imageService.uploadImage(dto.thumbnail) : null;
+        const thumbnailUrl = uploadResult ? uploadResult.url : '';
 
         const post = await this.dataContext.exec((p) =>
             p.post.create({
@@ -84,14 +84,14 @@ export class CreateBlogPostCommand extends BaseAction {
                     name: toKebabCase(dto.title),
                     blogId: blog.id,
                     thumbnail: thumbnailUrl,
-                    thumbnailId: uploadResult?.public_id || '',
+                    thumbnailId: uploadResult?.id ?? '',
                 },
-            })
+            }),
         );
 
         if (!post) {
-            await (uploadResult?.public_id
-                ? this.cloudinaryService.removeImage(uploadResult?.public_id || '')
+            await (uploadResult?.id
+                ? this.imageService.removeImage(uploadResult?.id || '')
                 : Promise.resolve());
 
             return new MediatorResultFailure(ACTION_RESULT.ERROR_NOT_FOUND);
@@ -102,8 +102,8 @@ export class CreateBlogPostCommand extends BaseAction {
 }
 
 export class UpdateBlogPostCommand extends BaseAction {
-    @injectService(SERVICE.CLOUDINARY)
-    private readonly cloudinaryService: CloudinaryService;
+    @injectService(SERVICE.IMAGE)
+    private readonly imageService: IImageService;
 
     public async execute({ id, ...dto }: IUpdateBlogPostSchema) {
         const payload = this.createUpdatePayload(dto) as Partial<Post>;
@@ -113,25 +113,25 @@ export class UpdateBlogPostCommand extends BaseAction {
                 where: {
                     id,
                 },
-            })
+            }),
         );
 
         if (!post) return new MediatorResultFailure(ACTION_RESULT.ERROR_NOT_FOUND);
 
         if (payload.thumbnail === '' && post.thumbnailId) {
-            await this.cloudinaryService.removeImage(post.thumbnailId);
+            await this.imageService.removeImage(post.thumbnailId);
         }
 
         if (payload.thumbnail) {
-            const upload = await this.cloudinaryService.uploadImage(payload.thumbnail);
+            const upload = await this.imageService.uploadImage(payload.thumbnail);
 
             if (upload) {
                 if (post.thumbnailId) {
-                    await this.cloudinaryService.removeImage(post.thumbnailId);
+                    await this.imageService.removeImage(post.thumbnailId);
                 }
 
-                payload.thumbnail = upload.secure_url;
-                payload.thumbnailId = upload.public_id;
+                payload.thumbnail = upload.url;
+                payload.thumbnailId = upload.id;
             }
         }
 
@@ -145,7 +145,7 @@ export class UpdateBlogPostCommand extends BaseAction {
                     id,
                 },
                 data: payload,
-            })
+            }),
         );
 
         if (!updatedPost) return new MediatorResultFailure(ACTION_RESULT.ERROR_UNPROCESSABLE);
@@ -155,12 +155,12 @@ export class UpdateBlogPostCommand extends BaseAction {
 }
 
 export class DeleteBlogPostCommand extends BaseAction {
-    @injectService(SERVICE.CLOUDINARY)
-    private readonly cloudinaryService: CloudinaryService;
+    @injectService(SERVICE.IMAGE)
+    private readonly imageService: IImageService;
 
     public async execute({ id }: Record<'id', string>) {
         const post = await this.dataContext.exec((p) =>
-            p.post.delete({ where: { id }, select: { thumbnailId: true } })
+            p.post.delete({ where: { id }, select: { thumbnailId: true } }),
         );
 
         if (!post) {
@@ -168,7 +168,7 @@ export class DeleteBlogPostCommand extends BaseAction {
         }
 
         if (post.thumbnailId) {
-            await this.cloudinaryService.removeImage(post.thumbnailId);
+            await this.imageService.removeImage(post.thumbnailId);
         }
 
         return new MediatorResultSuccess(ACTION_RESULT.UNIT);
