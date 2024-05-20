@@ -16,7 +16,7 @@
         rows: messages,
     });
 
-    const commitChanges = async () => {
+    const commitChanges = () => {
         table.getDeletedRows().forEach(async (row) => {
             await clHttp.deleteEntity('/cl-software/' + row.id);
         });
