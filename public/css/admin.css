@@ -77,6 +77,13 @@
     flex-grow: 1;
 }
 
+td {
+    max-width: 400px;
+    overflow: clip !important;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
 .pure-button-success,
 .pure-button-error,
 .pure-button-warning,

@@ -4,6 +4,7 @@ import AUTH from '@/enums/auth';
 import './navigation-controller';
 import './page-controller';
 import './blog-controller';
+import './clsoftware-controller';
 
 @controller()
 class AdminController extends BaseController {

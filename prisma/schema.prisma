@@ -31,6 +31,14 @@ model User {
     blogId    String
 }
 
+model CLSoftwareContact {
+    id        String   @id @default(uuid())
+    name      String
+    email     String
+    message   String
+    createdAt DateTime @default(now())
+}
+
 model NavigationItem {
     id           String           @id @default(uuid())
     Navigation   Navigation?      @relation(fields: [navigationId], references: [id])
