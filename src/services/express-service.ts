@@ -23,6 +23,7 @@ class ExpressService extends BaseExpressService {
         this.app.use(express.json({ limit: '50mb' }));
         this.app.use(cookieParser());
         this.app.use(expressStatic('public'));
+        this.app.use(expressStatic('shared'));
     }
 }
 
