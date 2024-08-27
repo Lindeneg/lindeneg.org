@@ -28,7 +28,11 @@ const funkallero = await Funkallero.create({
     meta: {
         mode: process.env['FUNKALLERO_MODE'],
         isDev: process.env['FUNKALLERO_MODE'] === 'dev',
-        origins: [process.env['LINDENEG_HOST'], process.env['CLSOFTWARE_HOST']],
+        origins: (() => {
+            const origins = process.env['FUNKALLERO_ORIGINS'];
+            if (!origins) return [];
+            return origins.split(',');
+        })(),
         cloudinary: {
             cloudName: process.env['CLOUDINARY_NAME'],
             apiKey: process.env['CLOUDINARY_KEY'],

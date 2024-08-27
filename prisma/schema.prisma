@@ -3,19 +3,8 @@ generator client {
 }
 
 datasource db {
-    provider = "postgresql"
+    provider = "sqlite"
     url      = env("DATABASE_URL")
-}
-
-enum Role {
-    ADMIN
-    CONTRIBUTOR
-    USER
-}
-
-enum NavItemAlignment {
-    RIGHT
-    LEFT
 }
 
 model User {
@@ -26,7 +15,7 @@ model User {
     password  String
     photo     String?
     photoId   String?
-    role      Role    @default(USER)
+    role      String  @default("USER")
     blog      Blog    @relation(fields: [blogId], references: [id])
     blogId    String
 }
@@ -46,7 +35,7 @@ model NavigationItem {
     name         String
     href         String
     position     Int              @default(0)
-    alignment    NavItemAlignment @default(RIGHT)
+    alignment    String           @default("RIGHT")
     newTab       Boolean          @default(false)
 }
 

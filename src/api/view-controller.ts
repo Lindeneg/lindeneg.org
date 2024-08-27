@@ -1,6 +1,6 @@
-import { Role } from '@prisma/client';
 import { MediatorResultFailure, ACTION_RESULT, controller, injectService, view, params } from '@lindeneg/funkallero';
 import SERVICE from '@/enums/service';
+import USER_ROLE from '@/enums/user-role';
 import BaseController from '@/api/base-controller';
 import type AuthenticationService from '@/services/authentication-service';
 
@@ -17,7 +17,7 @@ class ViewWithAuthController extends BaseController {
             return this.mediator.send('GetLoginPage');
         }
 
-        if (user.role !== Role.ADMIN) return new MediatorResultFailure(ACTION_RESULT.ERROR_UNAUTHORIZED);
+        if (user.role !== USER_ROLE.ADMIN) return new MediatorResultFailure(ACTION_RESULT.ERROR_UNAUTHORIZED);
 
         return this.mediator.send('GetAdminPage');
     }

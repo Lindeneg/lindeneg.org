@@ -1,4 +1,0 @@
-#!/bin/bash
-
-heroku container:push web -a lindeneg-org
-heroku container:release web -a lindeneg-org

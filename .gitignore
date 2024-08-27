@@ -3,6 +3,7 @@ node_modules
 .env*
 !.env.docker.example
 !.env.local.example
+*.db*
 notes
 .idea
 public/**/*.js

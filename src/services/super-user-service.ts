@@ -1,7 +1,7 @@
-import { Role } from '@prisma/client';
 import { z } from 'zod';
 import { injectService, SingletonService, type ILoggerService, type ITokenService } from '@lindeneg/funkallero';
 import SERVICE from '@/enums/service';
+import USER_ROLE from '@/enums/user-role';
 import type DataContextService from '@/services/data-context-service';
 
 const userSchema = z.object({
@@ -81,7 +81,7 @@ class SuperUserService extends SingletonService {
     private async createSuperUser(email: string, firstname: string, lastname: string, password: string) {
         const result = await this.dataContext.exec(async (p) => {
             return p.blog.create({
-                data: { user: { create: { email, firstname, lastname, password, role: Role.ADMIN } } },
+                data: { user: { create: { email, firstname, lastname, password, role: USER_ROLE.ADMIN } } },
                 select: { user: true },
             });
         });

@@ -1,9 +1,10 @@
 import Handlebars from 'handlebars';
 import Showdown from 'showdown';
-import { NavItemAlignment, Post, type NavigationItem } from '@prisma/client';
+import { Post, type NavigationItem } from '@prisma/client';
 import { IConfigurationService, injectService, SingletonService } from '@lindeneg/funkallero';
 import SERVICE from '@/enums/service';
 import TEMPLATE_NAME from '@/enums/template-name';
+import ALIGNMENT from '@/enums/alignment';
 import type DataContextService from '@/services/data-context-service';
 import type TemplateService from './template-service';
 
@@ -119,7 +120,7 @@ class CachingService extends SingletonService {
 
         const [leftNavEntries, rightNavEntries] = navigation.navItems.reduce(
             (acc, item) => {
-                if (item.alignment === NavItemAlignment.LEFT) acc[0].push(item);
+                if (item.alignment === ALIGNMENT.LEFT) acc[0].push(item);
                 else acc[1].push(item);
                 return acc;
             },
