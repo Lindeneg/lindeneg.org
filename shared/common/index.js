@@ -633,7 +633,7 @@
 
     /** @typedef {Record<string, unknown>} Data */
 
-    /** @typedef {(name: string, value: string, row: Row, d: Data) => string | HTMLElement} Transform */
+    /** @typedef {(ctx: any, name: string, value: string, row: Row, d: Data) => string | HTMLElement} Transform */
 
     /** @typedef {(row: Row) => void} OnClick */
 
@@ -654,8 +654,9 @@
      * @property {number} defaultLimit
      * @property {number} defaultOffset
      * @property {Transform | null} transform
-     * @property {(entry: Record<string, unknown>, row: Row) => void} onRender
-     * @property {(row: Row) => Record<string, unknown>} onInitialize
+     * @property {(ctx: any, entry: Record<string, unknown>, row: Row) => void} onRender
+     * @property {(ctx: any, data: Data[]) => void} afterRender
+     * @property {(ctx: any, row: Row) => Record<string, unknown>} onInitialize
      * @property {OnClick | null} onClick
      * @property {OnFetch} onFetch */
 
@@ -671,6 +672,7 @@
         defaultOffset,
         transform,
         onRender,
+        afterRender,
         onInitialize,
         onClick,
         onFetch,
@@ -855,7 +857,7 @@
         const handleTransform = (col, data, row) => {
             const val = data[col];
             if (typeof transform === 'function') {
-                return transform(col, val, row, data);
+                return transform(ctx, col, val, row, data);
             }
             return val;
         };
@@ -879,10 +881,13 @@
                     cell.id = cellId(row.val('id'), col);
                 });
                 if (typeof onRender === 'function') {
-                    onRender(entry, row);
+                    onRender(ctx, entry, row);
                 }
                 row.el.id = rowId(row.val('id'));
             });
+            if (typeof afterRender === 'function') {
+                afterRender(ctx, data);
+            }
         };
 
         /**
@@ -921,25 +926,7 @@
         const hasClickListener = typeof onClick === 'function';
         const hasInitialize = typeof onInitialize === 'function';
 
-        state.data[page.current()] = rows().map((row) => {
-            if (hasClickListener) {
-                row.el.addEventListener('click', () => onClick(row));
-            }
-            const initial = hasInitialize ? onInitialize(row) : {};
-            return cols.reduce((acc, col) => {
-                if (col === 'id') {
-                    acc[col] = Number(row.val(col));
-                } else {
-                    acc[col] = row.val(col);
-                }
-                return acc;
-            }, initial);
-        });
-
-        padRows();
-        renderCurrentPage();
-
-        return {
+        const ctx = {
             state,
             table: {
                 root,
@@ -961,6 +948,26 @@
             hasData,
             renderCurrentPage,
         };
+
+        state.data[page.current()] = rows().map((row) => {
+            if (hasClickListener) {
+                row.el.addEventListener('click', () => onClick(row));
+            }
+            const initial = hasInitialize ? onInitialize(ctx, row) : {};
+            return cols.reduce((acc, col) => {
+                if (col === 'id') {
+                    acc[col] = Number(row.val(col));
+                } else {
+                    acc[col] = row.val(col);
+                }
+                return acc;
+            }, initial);
+        });
+
+        padRows();
+        renderCurrentPage();
+
+        return ctx;
     };
     window.clTable.initialize = initializeTable;
 })();
