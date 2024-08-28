@@ -1,3 +1,4 @@
+import dotenv from 'dotenv';
 import Funkallero, { BaseZodParserService, BaseLoggerServicePalette, LOG_LEVEL } from '@lindeneg/funkallero';
 import { BaseTokenService, BaseTokenConfiguration } from '@lindeneg/funkallero-auth-service';
 import TemplateService from './services/template-service';
@@ -14,6 +15,8 @@ import CloudinaryService from './services/cloudinary-service';
 import '@/api/auth-controller';
 import '@/api/admin-controller';
 import '@/api/view-controller';
+
+dotenv.config();
 
 BaseLoggerServicePalette.useDefaultPalette();
 BaseTokenConfiguration.secret = process.env['LINDENEG_JWT_SECRET']!;

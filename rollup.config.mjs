@@ -1,6 +1,5 @@
 import typescript from 'rollup-plugin-typescript2';
 import cleaner from 'rollup-plugin-cleaner';
-import dotenv from 'rollup-plugin-dotenv';
 import commonjs from '@rollup/plugin-commonjs';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 
@@ -16,6 +15,7 @@ export default () => {
             '@lindeneg/funkallero',
             '@lindeneg/funkallero-auth-service',
             '@prisma/client',
+            "dotenv",
             'express',
             'handlebars',
             'zod',
@@ -24,7 +24,6 @@ export default () => {
             'showdown',
         ],
         plugins: [
-            dotenv(),
             cleaner({
                 targets: ['./dist'],
             }),
