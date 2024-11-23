@@ -1,3 +1,7 @@
+section {
+    padding: 1.5rem;
+}
+
 .author-container {
     width: 100%;
     max-width: 550px;
