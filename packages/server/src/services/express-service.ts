@@ -1,4 +1,5 @@
 import type {Server} from "node:http";
+import path from "node:path";
 import express, {
     static as expressStatic,
     type Request,
@@ -44,6 +45,12 @@ class ExpressService {
         this.app.use(this.log.makeRequestLogger());
 
         this.app.use("/api", router);
+
+        if (staticPublicRoot) {
+            this.app.get("*", (_req, res) => {
+                res.sendFile(path.resolve(staticPublicRoot, "index.html"));
+            });
+        }
 
         this.app.use((err: any, request: Request, response: Response, next: NextFunction) =>
             errorHandler(err, request, response, next)
