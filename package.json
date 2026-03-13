@@ -8,6 +8,7 @@
         "packages/client"
     ],
     "scripts": {
+        "start": "npm run start -w packages/server",
         "bootstrap": "bash ./scripts/bootstrap",
         "dev": "node scripts/dev.mjs",
         "fix-timestamps": "npm run fix-timestamps -w packages/server",
