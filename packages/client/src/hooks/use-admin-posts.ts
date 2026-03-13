@@ -1,4 +1,3 @@
-import { useCallback } from 'react';
 import { listAdminPosts, createPost, updatePost, deletePost } from '@/api/posts';
 import type { CreatePostInput, UpdatePostInput } from '@shared';
 import { useQuery } from './use-query';
@@ -9,15 +8,13 @@ export function useAdminPosts(page: number, pageSize: number) {
 }
 
 export function useCreatePost() {
-  return useMutation(useCallback((input: CreatePostInput) => createPost(input), []));
+  return useMutation((input: CreatePostInput) => createPost(input));
 }
 
 export function useUpdatePost() {
-  return useMutation(
-    useCallback((id: string, input: UpdatePostInput) => updatePost(id, input), []),
-  );
+  return useMutation((id: string, input: UpdatePostInput) => updatePost(id, input));
 }
 
 export function useDeletePost() {
-  return useMutation(useCallback((id: string) => deletePost(id), []));
+  return useMutation((id: string) => deletePost(id));
 }

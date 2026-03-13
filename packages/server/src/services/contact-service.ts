@@ -10,7 +10,7 @@ import {
   type CreateContactInput,
   type UpdateContactInput,
 } from '@lindeneg/shared';
-import type { ContactMessage } from '../generated/prisma/index.js';
+import type { ContactMessage } from '@prisma/client';
 import type ContactRepository from '../repositories/contact-repository.js';
 import { toSkipTake, paginate } from '../lib/pagination.js';
 

@@ -8,7 +8,7 @@ export default function CopyButton({ content }: { content: string }) {
     navigator.clipboard.writeText(content).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    });
+    }, () => {});
   }, [content]);
 
   return (

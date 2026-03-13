@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { ApiError } from '@/lib/errors';
 
 export interface MutationResult<TArgs extends unknown[], TResult> {
@@ -12,13 +12,15 @@ export function useMutation<TArgs extends unknown[], TResult>(
 ): MutationResult<TArgs, TResult> {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
+  const fnRef = useRef(fn);
+  fnRef.current = fn;
 
   const mutate = useCallback(
     async (...args: TArgs): Promise<TResult> => {
       setLoading(true);
       setError(null);
       try {
-        const result = await fn(...args);
+        const result = await fnRef.current(...args);
         return result;
       } catch (err) {
         const apiError = err instanceof ApiError ? err : new ApiError('Something went wrong', 500);
@@ -28,7 +30,7 @@ export function useMutation<TArgs extends unknown[], TResult>(
         setLoading(false);
       }
     },
-    [fn],
+    [],
   );
 
   return { mutate, loading, error };

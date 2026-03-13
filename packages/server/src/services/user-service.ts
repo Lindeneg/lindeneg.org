@@ -8,7 +8,7 @@ import {
     type LoginInput,
     type MaybeNull,
 } from "@lindeneg/shared";
-import type {User} from "../generated/prisma/index.js";
+import type {User} from "@prisma/client";
 import type UserRepository from "../repositories/user-repository.js";
 import type AuthService from "./auth-service.js";
 import type CloudinaryService from "./cloudinary-service.js";

@@ -13,7 +13,7 @@ import {
   type CreateSectionInput,
   type UpdateSectionInput,
 } from '@lindeneg/shared';
-import type { Page, PageSection } from '../generated/prisma/index.js';
+import type { Page, PageSection } from '@prisma/client';
 import type PageRepository from '../repositories/page-repository.js';
 import type SectionRepository from '../repositories/section-repository.js';
 import { toSkipTake, paginate } from '../lib/pagination.js';

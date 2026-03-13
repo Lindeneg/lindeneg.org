@@ -1,5 +1,5 @@
 import { success, failure, type Result, type RawModel } from '@lindeneg/shared';
-import type { NavigationItem } from '../generated/prisma/index.js';
+import type { NavigationItem } from '@prisma/client';
 import type DataService from '../services/data-service.js';
 import type LoggerService from '../services/logger-service.js';
 

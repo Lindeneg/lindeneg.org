@@ -1,5 +1,5 @@
 import { success, failure, type Result, type RawModel } from '@lindeneg/shared';
-import type { PageSection } from '../generated/prisma/index.js';
+import type { PageSection } from '@prisma/client';
 import type DataService from '../services/data-service.js';
 import type LoggerService from '../services/logger-service.js';
 

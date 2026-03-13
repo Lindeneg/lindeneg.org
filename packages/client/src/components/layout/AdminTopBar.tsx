@@ -3,6 +3,7 @@ import { useAuthContext } from '@/hooks/use-auth-context';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import AuthorAvatar from '@/components/shared/AuthorAvatar';
 
 export default function AdminTopBar() {
   const { user, logout } = useAuthContext();
@@ -15,7 +16,7 @@ export default function AdminTopBar() {
       {user && (
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <UserInitials name={user.name} photo={user.photo} />
+            <AuthorAvatar name={user.name} photo={user.photo} className="h-7 w-7 text-xs" />
             <span className="hidden text-sm font-medium sm:inline">{user.name}</span>
           </div>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={logout}>
@@ -25,19 +26,5 @@ export default function AdminTopBar() {
         </div>
       )}
     </header>
-  );
-}
-
-function UserInitials({ name, photo }: { name: string; photo: string | null }) {
-  const initials = name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
-
-  if (photo) {
-    return <img src={photo} alt={name} className="h-7 w-7 rounded-full object-cover" />;
-  }
-
-  return (
-    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
-      {initials}
-    </div>
   );
 }

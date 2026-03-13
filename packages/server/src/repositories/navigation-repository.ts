@@ -7,7 +7,7 @@ import {
     type MaybeNull,
     type EmptyResult,
 } from "@lindeneg/shared";
-import type {Navigation, NavigationItem} from "../generated/prisma/index.js";
+import type {Navigation, NavigationItem} from "@prisma/client";
 import type DataService from "../services/data-service.js";
 import type LoggerService from "../services/logger-service.js";
 

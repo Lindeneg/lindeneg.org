@@ -14,7 +14,7 @@ import {
     type UserResponse,
     type RawModel,
 } from "@lindeneg/shared";
-import type {Post, User} from "../generated/prisma/index.js";
+import type {Post, User} from "@prisma/client";
 import type PostRepository from "../repositories/post-repository.js";
 import type {PostWithAuthor} from "../repositories/post-repository.js";
 import type CloudinaryService from "./cloudinary-service.js";

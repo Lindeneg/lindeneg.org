@@ -1,4 +1,3 @@
-import { useCallback } from 'react';
 import { listMessages, updateMessage, deleteMessage } from '@/api/contact';
 import type { UpdateContactInput } from '@shared';
 import { useQuery } from './use-query';
@@ -9,11 +8,9 @@ export function useMessages(page: number, pageSize: number) {
 }
 
 export function useUpdateMessage() {
-  return useMutation(
-    useCallback((id: string, input: UpdateContactInput) => updateMessage(id, input), []),
-  );
+  return useMutation((id: string, input: UpdateContactInput) => updateMessage(id, input));
 }
 
 export function useDeleteMessage() {
-  return useMutation(useCallback((id: string) => deleteMessage(id), []));
+  return useMutation((id: string) => deleteMessage(id));
 }

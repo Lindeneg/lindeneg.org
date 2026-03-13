@@ -1,4 +1,3 @@
-import { useCallback } from 'react';
 import {
   listPages,
   createPage,
@@ -22,27 +21,25 @@ export function usePageList(page: number, pageSize: number) {
 }
 
 export function useCreatePage() {
-  return useMutation(useCallback((input: CreatePageInput) => createPage(input), []));
+  return useMutation((input: CreatePageInput) => createPage(input));
 }
 
 export function useUpdatePage() {
-  return useMutation(useCallback((id: string, input: UpdatePageInput) => updatePage(id, input), []));
+  return useMutation((id: string, input: UpdatePageInput) => updatePage(id, input));
 }
 
 export function useDeletePage() {
-  return useMutation(useCallback((id: string) => deletePage(id), []));
+  return useMutation((id: string) => deletePage(id));
 }
 
 export function useCreateSection() {
-  return useMutation(useCallback((input: CreateSectionInput) => createSection(input), []));
+  return useMutation((input: CreateSectionInput) => createSection(input));
 }
 
 export function useUpdateSection() {
-  return useMutation(
-    useCallback((id: string, input: UpdateSectionInput) => updateSection(id, input), []),
-  );
+  return useMutation((id: string, input: UpdateSectionInput) => updateSection(id, input));
 }
 
 export function useDeleteSection() {
-  return useMutation(useCallback((id: string) => deleteSection(id), []));
+  return useMutation((id: string) => deleteSection(id));
 }

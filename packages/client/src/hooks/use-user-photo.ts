@@ -1,4 +1,3 @@
-import { useCallback } from 'react';
 import { getPhoto, uploadPhoto, deletePhoto, bustCache } from '@/api/user';
 import { useQuery } from './use-query';
 import { useMutation } from './use-mutation';
@@ -9,13 +8,13 @@ export function useUserPhoto() {
 }
 
 export function useUploadPhoto() {
-  return useMutation(useCallback((image: string) => uploadPhoto(image), []));
+  return useMutation((image: string) => uploadPhoto(image));
 }
 
 export function useDeletePhoto() {
-  return useMutation(useCallback(() => deletePhoto(), []));
+  return useMutation(() => deletePhoto());
 }
 
 export function useBustCache() {
-  return useMutation(useCallback(() => bustCache(), []));
+  return useMutation(() => bustCache());
 }

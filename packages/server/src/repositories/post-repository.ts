@@ -1,5 +1,5 @@
 import {success, failure, type Result, type RawModel, type MaybeNull} from "@lindeneg/shared";
-import type {Post, User} from "../generated/prisma/index.js";
+import type {Post, User} from "@prisma/client";
 import type DataService from "../services/data-service.js";
 import type LoggerService from "../services/logger-service.js";
 import type {SkipTake, PaginatedResult} from "../lib/pagination.js";

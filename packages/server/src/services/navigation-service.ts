@@ -10,7 +10,7 @@ import {
   type CreateNavItemInput,
   type UpdateNavItemInput,
 } from '@lindeneg/shared';
-import type { Navigation, NavigationItem } from '../generated/prisma/index.js';
+import type { Navigation, NavigationItem } from '@prisma/client';
 import type NavigationRepository from '../repositories/navigation-repository.js';
 import type NavigationItemRepository from '../repositories/navigation-item-repository.js';
 

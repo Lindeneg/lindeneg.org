@@ -6,7 +6,7 @@ import {
     type RawModelBase,
     type MaybeNull,
 } from "@lindeneg/shared";
-import type {User} from "../generated/prisma/index.js";
+import type {User} from "@prisma/client";
 import type DataService from "../services/data-service.js";
 import type LoggerService from "../services/logger-service.js";
 

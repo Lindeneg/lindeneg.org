@@ -2,6 +2,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeHighlight from 'rehype-highlight';
+import { slugify } from '@shared';
 import { Link as LinkIcon } from 'lucide-react';
 import CopyButton from './CopyButton';
 import 'highlight.js/styles/github-dark.css';
@@ -51,7 +52,7 @@ export default function MarkdownRenderer({ content, className = '' }: { content:
 function HeadingWithAnchor(Tag: 'h1' | 'h2' | 'h3' | 'h4') {
   return function Heading({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
     const text = extractText(children);
-    const id = text.toLowerCase().replace(/[\w\s-]/g, '').replace(/\s+/g, '-');
+    const id = slugify(text);
     return (
       <Tag id={id} className="group/heading" {...props}>
         {children}

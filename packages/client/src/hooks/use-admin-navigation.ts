@@ -1,4 +1,3 @@
-import { useCallback } from 'react';
 import {
   getNavigation,
   updateNavigation,
@@ -15,21 +14,17 @@ export function useNavigationData() {
 }
 
 export function useUpdateNavigation() {
-  return useMutation(
-    useCallback((id: string, input: UpdateNavigationInput) => updateNavigation(id, input), []),
-  );
+  return useMutation((id: string, input: UpdateNavigationInput) => updateNavigation(id, input));
 }
 
 export function useCreateNavItem() {
-  return useMutation(useCallback((input: CreateNavItemInput) => createNavItem(input), []));
+  return useMutation((input: CreateNavItemInput) => createNavItem(input));
 }
 
 export function useUpdateNavItem() {
-  return useMutation(
-    useCallback((id: string, input: UpdateNavItemInput) => updateNavItem(id, input), []),
-  );
+  return useMutation((id: string, input: UpdateNavItemInput) => updateNavItem(id, input));
 }
 
 export function useDeleteNavItem() {
-  return useMutation(useCallback((id: string) => deleteNavItem(id), []));
+  return useMutation((id: string) => deleteNavItem(id));
 }

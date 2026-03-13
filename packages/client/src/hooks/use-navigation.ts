@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import type { NavigationItemResponse } from '@shared';
 import { getNavigation } from '@/api/navigation';
-import { useAsync } from './use-async';
+import { useQuery } from './use-query';
 
 export function useNavigation() {
-  const { data, loading, error, refetch } = useAsync(() => getNavigation(), []);
+  const { data, loading, error, refetch } = useQuery(() => getNavigation(), []);
 
   const brandName = data?.brandName ?? 'John Doe';
 

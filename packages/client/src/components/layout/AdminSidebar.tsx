@@ -17,9 +17,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { Badge } from '@/components/ui/badge';
-import { useUnreadCount } from '@/hooks/use-unread-count';
-
 const NAV_ITEMS = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/pages', label: 'Pages', icon: FileText, end: false },
@@ -30,7 +27,6 @@ const NAV_ITEMS = [
 ] as const;
 
 export default function AdminSidebar() {
-  const { count: unreadCount } = useUnreadCount();
 
   return (
     <Sidebar>
@@ -60,11 +56,6 @@ export default function AdminSidebar() {
                     >
                       <item.icon className="h-4 w-4" />
                       <span className="flex-1">{item.label}</span>
-                      {item.label === 'Messages' && unreadCount > 0 && (
-                        <Badge variant="default" className="ml-auto h-5 min-w-5 justify-center px-1.5 text-xs">
-                          {unreadCount}
-                        </Badge>
-                      )}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
