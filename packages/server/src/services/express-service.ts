@@ -47,7 +47,7 @@ class ExpressService {
         this.app.use("/api", router);
 
         if (staticPublicRoot) {
-            this.app.get("*", (_req, res) => {
+            this.app.get("/{*splat}", (_req, res) => {
                 res.sendFile(path.resolve(staticPublicRoot, "index.html"));
             });
         }
