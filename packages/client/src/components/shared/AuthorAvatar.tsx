@@ -13,7 +13,7 @@ export default function AuthorAvatar({ name, photo, className = 'h-10 w-10' }: A
     .toUpperCase();
 
   if (photo) {
-    return <img src={photo} alt={name} className={`rounded-full object-cover ${className}`} />;
+    return <img src={photo} alt={name} className={`object-top rounded-full object-cover ${className}`} />;
   }
 
   return (
