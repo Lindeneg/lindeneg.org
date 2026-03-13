@@ -1,46 +1,37 @@
 {
-    "name": "lindeneg",
+    "name": "lindeneg.org",
     "private": true,
-    "main": "./dist/index.mjs",
-    "module": "./dist/index.mjs",
+    "version": "1.0.0",
+    "workspaces": [
+        "packages/shared",
+        "packages/server",
+        "packages/client"
+    ],
     "scripts": {
-        "start": "node ./dist/index.mjs",
-        "dev": "npx -y concurrently \"yarn build:server --watch\" \"yarn build:admin --watch\" \"npx -y nodemon ./dist/index.mjs --dev\"",
-        "dev:build": "npx -y concurrently \"yarn build:server --watch\" \"yarn build:admin --watch\"",
-        "build": "yarn build:server && yarn build:admin",
-        "build:server": "rollup -c",
-        "build:admin": "tsc -p tsconfig.admin.json",
-        "lint": "prettier \"src/**\" --ignore-unknown --write",
-        "studio": "npx -y prisma studio",
-        "migrate": "npx -y prisma@5.1.1 migrate dev",
-        "generate": "npx -y prisma@5.1.1 generate"
-    },
-    "dependencies": {
-        "@lindeneg/funkallero": "0.0.5",
-        "@lindeneg/funkallero-auth-service": "0.0.5",
-        "@prisma/client": "5.1.1",
-        "cloudinary": "1.40.0",
-        "cookie-parser": "1.4.6",
-        "cors": "2.8.5",
-        "dotenv": "^16.4.5",
-        "handlebars": "4.7.8",
-        "showdown": "2.1.0",
-        "zod": "3.22.0"
+        "bootstrap": "bash ./scripts/bootstrap",
+        "dev": "node scripts/dev.mjs",
+        "fix-timestamps": "npm run fix-timestamps -w packages/server",
+        "dev:server": "npm run dev -w packages/server",
+        "dev:client": "npm run dev -w packages/client",
+        "build:shared": "npm run build -w packages/shared",
+        "build:server": "npm run build -w packages/server",
+        "build:client": "npm run build -w packages/client",
+        "build": "npm run build:shared && npm run build:server && npm run build:client",
+        "db:migrate": "npm run db:migrate -w packages/server",
+        "db:generate": "npm run db:generate -w packages/server",
+        "db:studio": "npm run db:studio -w packages/server",
+        "clean:server": "rm -rf packages/server/node_modules packages/server/src/generated packages/server/dist",
+        "clean:server:hard": "npm run clean:server && rm -rf packages/server/data",
+        "clean:client": "rm -rf packages/client/node_modules packages/client/dist",
+        "clean:shared": "rm -rf packages/shared/node_modules packages/shared/dist",
+        "clean": "npm run clean:shared && npm run clean:client && npm run clean:server",
+        "clean:hard": "npm run clean:shared && npm run clean:client && npm run clean:server:hard"
     },
     "devDependencies": {
-        "@rollup/plugin-commonjs": "25.0.4",
-        "@rollup/plugin-node-resolve": "15.1.0",
-        "@types/cookie-parser": "1.4.3",
-        "@types/cors": "2.8.17",
-        "@types/express": "4.17.17",
-        "@types/handlebars": "4.1.0",
-        "@types/node": "20.5.0",
-        "@types/showdown": "2.0.1",
-        "@types/simplemde": "^1.11.8",
-        "prettier": "^3.0.2",
-        "rollup": "3.28.0",
-        "rollup-plugin-cleaner": "1.0.0",
-        "rollup-plugin-typescript2": "0.35.0",
-        "typescript": "5.1.6"
+        "@types/node": "25.3.0",
+        "typescript": "5.9.3"
+    },
+    "dependencies": {
+        "@lindeneg/cl-env": "0.1.3"
     }
 }

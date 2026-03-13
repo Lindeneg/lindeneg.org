@@ -1,10 +1,6 @@
 dist
+data
+generated
 node_modules
 .env*
-!.env.docker.example
-!.env.local.example
-*.db*
-notes
-.idea
-public/**/*.js
-!simplemde.min.js
+!.env.example

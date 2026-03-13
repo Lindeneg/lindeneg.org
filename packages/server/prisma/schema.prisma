@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String                         // bcrypt hash
+  photo     String?                        // Cloudinary URL
+  photoId   String?                        // Cloudinary public_id
+  role      String   @default("USER")
+  posts     Post[]
+  createdAt DateTime @default(now())
+}
+
+model Navigation {
+  id        String           @id @default(uuid())
+  brandName String
+  items     NavigationItem[]
+}
+
+model NavigationItem {
+  id           String      @id @default(uuid())
+  navigationId String
+  navigation   Navigation  @relation(fields: [navigationId], references: [id])
+  name         String
+  href         String
+  position     Int         @default(0)
+  alignment    String      @default("RIGHT")  // LEFT | RIGHT
+  newTab       Boolean     @default(false)
+}
+
+model Page {
+  id          String        @id @default(uuid())
+  name        String        @unique
+  slug        String        @unique
+  title       String
+  description String
+  published   Boolean       @default(false)
+  sections    PageSection[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @default(now()) @updatedAt
+}
+
+model PageSection {
+  id        String   @id @default(uuid())
+  pageId    String
+  page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  content   String                          // Markdown
+  position  Int      @default(0)
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Post {
+  id          String   @id @default(uuid())
+  title       String
+  slug        String   @unique
+  content     String                        // Markdown
+  published   Boolean  @default(false)
+  thumbnail   String                        // Cloudinary URL
+  thumbnailId String   @default("")
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+}
+
+model ContactMessage {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  message   String
+  read      Boolean  @default(false)        // NEW: track read status in admin
+  createdAt DateTime @default(now())
+}

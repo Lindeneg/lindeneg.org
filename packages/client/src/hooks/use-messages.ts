@@ -1,0 +1,16 @@
+import { listMessages, updateMessage, deleteMessage } from '@/api/contact';
+import type { UpdateContactInput } from '@shared';
+import { useQuery } from './use-query';
+import { useMutation } from './use-mutation';
+
+export function useMessages(page: number, pageSize: number) {
+  return useQuery(() => listMessages({ page, pageSize }), [page, pageSize]);
+}
+
+export function useUpdateMessage() {
+  return useMutation((id: string, input: UpdateContactInput) => updateMessage(id, input));
+}
+
+export function useDeleteMessage() {
+  return useMutation((id: string) => deleteMessage(id));
+}
