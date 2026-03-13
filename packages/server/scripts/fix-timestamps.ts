@@ -1,14 +1,6 @@
-import {
-    unwrap,
-    loadEnv,
-    withRequired,
-    withDefault,
-    refine,
-    toString,
-    nonEmpty,
-    toEnum,
-} from "@lindeneg/cl-env";
-import DataService from "../packages/server/src/services/data-service.js";
+import {unwrap, loadEnv, withRequired, refine, toString, nonEmpty} from "@lindeneg/cl-env";
+import {PrismaBetterSqlite3} from "@prisma/adapter-better-sqlite3";
+import {PrismaClient} from "@prisma/client";
 
 (async () => {
     const env = unwrap(
@@ -21,12 +13,14 @@ import DataService from "../packages/server/src/services/data-service.js";
             },
             {
                 DATABASE_URL: withRequired(refine(toString(), nonEmpty())),
-                NODE_ENV: withDefault(toEnum("test", "development", "production"), "development"),
             }
         )
     );
 
-    const db = new DataService(env.DATABASE_URL, env.NODE_ENV);
+    const adapter = new PrismaBetterSqlite3({
+        url: env.DATABASE_URL,
+    });
+    const prisma = new PrismaClient({adapter});
 
     const fixes = [
         {slug: "dynamic-steering", createdAt: "2024-06-17T18:01:42.206Z"},
@@ -37,12 +31,10 @@ import DataService from "../packages/server/src/services/data-service.js";
     ];
 
     for (const fix of fixes) {
-        await db.p.post.update({
+        await prisma.post.update({
             where: {slug: fix.slug},
             data: {createdAt: new Date(fix.createdAt), updatedAt: new Date(fix.createdAt)},
         });
         console.log(`Updated: ${fix.slug} → ${fix.createdAt}`);
     }
-
-    await db.teardown();
 })();

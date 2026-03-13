@@ -5,6 +5,7 @@
     "private": true,
     "scripts": {
         "dev": "tsx watch src/index.ts",
+        "fix-timestamps": "npx -y tsx scripts/fix-timestamps.ts",
         "build": "tsc",
         "start": "node dist/index.js",
         "db:migrate": "prisma migrate dev",
