@@ -23,11 +23,11 @@ import {PrismaClient} from "@prisma/client";
     const prisma = new PrismaClient({adapter});
 
     const fixes = [
-        {slug: "dynamic-steering", createdAt: "2024-06-17T18:01:42.206Z"},
-        {slug: "the-maestro", createdAt: "2023-09-11T17:13:28.548Z"},
-        {slug: "the-genius", createdAt: "2023-09-09T23:24:10.256Z"},
-        {slug: "the-harmonious", createdAt: "2023-09-26T20:41:13.650Z"},
-        {slug: "the-current", createdAt: "2023-09-08T21:23:05.128Z"},
+        {slug: "dynamic-steering", createdAt: "2024-06-04T18:01:42.206Z"},
+        {slug: "the-maestro", createdAt: "2022-02-03T17:13:28.548Z"},
+        {slug: "the-genius", createdAt: "2022-03-03T23:24:10.256Z"},
+        {slug: "the-harmonious", createdAt: "2023-09-17T20:41:13.650Z"},
+        {slug: "the-current", createdAt: "2022-03-06T21:23:05.128Z"},
     ];
 
     for (const fix of fixes) {
