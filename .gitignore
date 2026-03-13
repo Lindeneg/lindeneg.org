@@ -1,0 +1,6 @@
+dist
+data
+generated
+node_modules
+.env*
+!.env.example

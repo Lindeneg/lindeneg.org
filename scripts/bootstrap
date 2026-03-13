@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+copy_env() {
+  local dest="$PWD/packages/$1/.env.local"
+  if [ -f "$dest" ]; then
+    echo "Skipping copy of $1, reusing existing file"
+  else
+    echo "Copying $1 into environment"
+    cp "$PWD/packages/$1/.env.example" "$dest"
+  fi
+}
+
+echo "bootstrapping local development environment"
+#copy_env client
+copy_env server
+
+echo "installing node modules"
+npm i
+
+echo "building shared package"
+npm run build:shared
+
+echo "migrating database"
+npm run db:migrate
+
+echo "generating prisma client"
+npm run db:generate
+
+#echo "seeding database"
+#npm run db:seed -- -- -E development
+
+echo "successfully bootstrapped project"
+echo "npm run dev"
+echo "to start server and client"
+
+exit 0
