@@ -50,7 +50,7 @@ async function main() {
         loadEnv(
             {
                 files: [],
-                optionalFiles: [".env", ".env.default", ".env.local", ".env.test"],
+                optionalFiles: [".env", ".env.default", ".env.local", ".env.test", ".env.prod"],
                 transformKeys: false,
                 logger: true,
             },
