@@ -44,6 +44,7 @@ import AdminUserController from "./controllers/admin-user-controller.js";
 import {createAuthenticate} from "./middleware/authenticate.js";
 import {globalErrorHandler} from "./lib/error-handler.js";
 import {makeAppRouter} from "./routers/app-router.js";
+import {TemplateService} from "./ui/playground.js";
 
 async function main() {
     const env = unwrap(
@@ -112,11 +113,14 @@ async function main() {
         env.NODE_ENV,
         log
     );
+
     const userService = new UserService(userRepo, authService, cloudinaryService);
     const navigationService = new NavigationService(navigationRepo, navigationItemRepo);
     const pageService = new PageService(pageRepo, sectionRepo);
     const postService = new PostService(postRepo, cloudinaryService, log);
     const contactService = new ContactService(contactRepo);
+
+    const templateService = new TemplateService(pageService, navigationService, log);
 
     const authController = new AuthController(userService, authService);
     const navigationController = new NavigationController(navigationService);
@@ -161,6 +165,7 @@ async function main() {
     const expressService = new ExpressService(
         env.PORT,
         env.ORIGINS,
+        templateService,
         log,
         globalErrorHandler,
         router,

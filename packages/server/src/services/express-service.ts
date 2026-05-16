@@ -1,5 +1,4 @@
 import type {Server} from "node:http";
-import path from "node:path";
 import express, {
     static as expressStatic,
     type Request,
@@ -10,9 +9,10 @@ import express, {
 import compression from "compression";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import {failure, emptySuccess, type EmptyResult} from "@lindeneg/shared";
+import {failure, emptySuccess, type EmptyResult, slugify} from "@lindeneg/shared";
 import type LoggerService from "./logger-service.js";
 import type {GlobalErrorHandler} from "../lib/error-handler.js";
+import type {TemplateService} from "../ui/playground.js";
 
 class ExpressService {
     #server: Server | null = null;
@@ -21,6 +21,7 @@ class ExpressService {
     constructor(
         private readonly port: number,
         private readonly origins: string[],
+        private readonly templateService: TemplateService,
         private readonly log: LoggerService,
         errorHandler: GlobalErrorHandler,
         router: Router,
@@ -36,21 +37,26 @@ class ExpressService {
 
         this.app.use(compression());
         this.app.use(express.json({limit: "50mb"}));
-
-        if (staticPublicRoot) {
-            this.app.use(expressStatic(staticPublicRoot));
-        }
-
         this.app.use(cookieParser());
         this.app.use(this.log.makeRequestLogger());
 
+        if (staticPublicRoot) {
+            this.app.use(expressStatic(staticPublicRoot, {index: false, fallthrough: true}));
+        }
+
         this.app.use("/api", router);
 
-        if (staticPublicRoot) {
-            this.app.get("/{*splat}", (_req, res) => {
-                res.sendFile(path.resolve(staticPublicRoot, "index.html"));
-            });
-        }
+        this.app.use(async (req, res, next) => {
+            if (req.method !== "GET" && req.method !== "HEAD") return next();
+            const name = slugify(req.path) || "home";
+            const result = await this.templateService.getPage(name, req.path);
+            if (result.ok) {
+                res.type("html").send(result.data);
+                return;
+            }
+            const notFound = await this.templateService.getNotFound(req.path);
+            res.status(404).type("html").send(notFound);
+        });
 
         this.app.use((err: any, request: Request, response: Response, next: NextFunction) =>
             errorHandler(err, request, response, next)
