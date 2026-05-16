@@ -26,6 +26,7 @@ class ExpressService {
         private readonly log: LoggerService,
         errorHandler: GlobalErrorHandler,
         router: Router,
+        adminRouter: Router,
         staticPublicRoot?: string
     ) {
         this.app = express();
@@ -38,6 +39,7 @@ class ExpressService {
 
         this.app.use(compression());
         this.app.use(express.json({limit: "50mb"}));
+        this.app.use(express.urlencoded({extended: true, limit: "50mb"}));
         this.app.use(cookieParser());
         this.app.use(this.log.makeRequestLogger());
 
@@ -46,6 +48,7 @@ class ExpressService {
         }
 
         this.app.use("/api", router);
+        this.app.use("/admin", adminRouter);
 
         const sendNotFound = async (res: Response, currentPath: string) => {
             const notFound = await this.templateService.getNotFound(currentPath);

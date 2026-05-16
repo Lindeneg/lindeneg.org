@@ -80,10 +80,8 @@
 
     // ---- copy code buttons -----------------------------------------------
 
-    var COPY_ICON =
-        '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
-    var CHECK_ICON =
-        '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+    var COPY_ICON = '<svg class="icon" aria-hidden="true"><use href="/icons.svg#copy"/></svg>';
+    var CHECK_ICON = '<svg class="icon" aria-hidden="true"><use href="/icons.svg#check"/></svg>';
 
     function initCopyButtons() {
         var pres = document.querySelectorAll('.markdown pre');
@@ -119,8 +117,7 @@
 
     // ---- heading anchors -------------------------------------------------
 
-    var LINK_ICON =
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+    var LINK_ICON = '<svg class="icon" aria-hidden="true"><use href="/icons.svg#link"/></svg>';
 
     function slugify(text) {
         return text
@@ -140,8 +137,13 @@
             var a = document.createElement('a');
             a.href = '#' + id;
             a.className = 'heading-anchor';
-            a.setAttribute('aria-label', 'Link to ' + (h.textContent || '').trim());
+            a.setAttribute('aria-label', 'Copy link to ' + (h.textContent || '').trim());
             a.innerHTML = LINK_ICON;
+            a.addEventListener('click', function () {
+                if (!navigator.clipboard) return;
+                var url = window.location.origin + window.location.pathname + '#' + id;
+                navigator.clipboard.writeText(url);
+            });
             h.appendChild(a);
         });
     }

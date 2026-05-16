@@ -42,8 +42,10 @@ import AdminPostController from "./controllers/admin-post-controller.js";
 import AdminContactController from "./controllers/admin-contact-controller.js";
 import AdminUserController from "./controllers/admin-user-controller.js";
 import {createAuthenticate} from "./middleware/authenticate.js";
+import {createAdminAuth} from "./middleware/admin-auth.js";
 import {globalErrorHandler} from "./lib/error-handler.js";
 import {makeAppRouter} from "./routers/app-router.js";
+import {makeAdminSsrRouter} from "./routers/admin-ssr-router.js";
 import TemplateService from "./services/template-service.js";
 
 async function main() {
@@ -134,6 +136,7 @@ async function main() {
     const adminUserController = new AdminUserController(userService);
 
     const authenticate = createAuthenticate(authService, userRepo, env.JWT_COOKIE_NAME);
+    const adminAuth = createAdminAuth(authService, userRepo, env.JWT_COOKIE_NAME);
 
     const router = makeAppRouter(
         authController,
@@ -148,6 +151,22 @@ async function main() {
         adminUserController,
         authenticate
     );
+
+    const adminRouter = makeAdminSsrRouter({
+        authService,
+        userService,
+        pageService,
+        postService,
+        navigationService,
+        contactService,
+        templateService,
+        userRepo,
+        pageRepo,
+        postRepo,
+        navigationRepo,
+        contactRepo,
+        adminAuth,
+    });
 
     // TODO maybe make a seed service
     await navigationRepo.createOnce();
@@ -169,6 +188,7 @@ async function main() {
         log,
         globalErrorHandler,
         router,
+        adminRouter,
         env.PUBLIC_STATIC_ROOT
     );
 

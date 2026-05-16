@@ -1,7 +1,7 @@
 import type {NavigationWithItems, PostWithAuthor} from "../../services/template-service.js";
 import {AuthorAvatar} from "../components/author-avatar.js";
 import {Layout} from "../components/layout.js";
-import {ICON_ARROW_LEFT} from "../icons.js";
+import {icon} from "../icons.js";
 import {esc, formatDate, md, readingTime} from "../lib.js";
 
 export type BlogPostProps = {
@@ -17,7 +17,7 @@ export function BlogPost({post, nav, currentPath}: BlogPostProps): string {
         currentPath,
         children: `
             <article class="blog-post">
-                <a href="/blog" class="back-link">${ICON_ARROW_LEFT}<span>Back to blog</span></a>
+                <a href="/blog" class="back-link">${icon("arrow-left")}<span>Back to blog</span></a>
                 <header class="blog-post-header">
                     <h1 class="blog-post-title">${esc(post.title)}</h1>
                     <div class="blog-post-meta">

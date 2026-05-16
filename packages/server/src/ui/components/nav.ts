@@ -1,5 +1,5 @@
 import type {NavigationWithItems} from "../../services/template-service.js";
-import {ICON_CLOSE, ICON_EXT, ICON_MENU, ICON_MOON, ICON_SUN} from "../icons.js";
+import {icon} from "../icons.js";
 import {esc, isActive} from "../lib.js";
 
 type NavItem = NavigationWithItems["items"][number];
@@ -9,7 +9,7 @@ function navLink(item: NavItem, currentPath: string, mobile = false): string {
     const target = isExternal ? ` target="_blank" rel="noopener noreferrer"` : "";
     const current = isActive(item.href, currentPath) ? ` aria-current="page"` : "";
     const cls = mobile ? "nav-link nav-link--mobile" : "nav-link";
-    const ext = isExternal ? ICON_EXT : "";
+    const ext = isExternal ? icon("ext", "icon icon-ext") : "";
     return `<a href="${esc(item.href)}" class="${cls}"${target}${current}>${esc(item.name)}${ext}</a>`;
 }
 
@@ -32,11 +32,11 @@ export function Nav(nav: NavigationWithItems, currentPath: string): string {
                 <div class="site-nav-group">
                     <div class="site-nav-items site-nav-items--desktop">${rightDesktop}</div>
                     <button class="icon-btn" type="button" data-theme-toggle aria-label="Toggle theme">
-                        <span class="icon-slot icon-slot--sun">${ICON_SUN}</span>
-                        <span class="icon-slot icon-slot--moon">${ICON_MOON}</span>
+                        <span class="icon-slot icon-slot--sun">${icon("sun")}</span>
+                        <span class="icon-slot icon-slot--moon">${icon("moon")}</span>
                     </button>
                     <button class="icon-btn site-mobile-toggle" type="button" data-mobile-open aria-label="Open menu">
-                        ${ICON_MENU}
+                        ${icon("menu")}
                     </button>
                 </div>
             </div>
@@ -46,7 +46,7 @@ export function Nav(nav: NavigationWithItems, currentPath: string): string {
             <aside class="mobile-drawer-panel" role="dialog" aria-modal="true" aria-label="Site navigation">
                 <div class="mobile-drawer-head">
                     <span class="mobile-drawer-title">${esc(nav.brandName)}</span>
-                    <button class="icon-btn" type="button" data-mobile-close aria-label="Close menu">${ICON_CLOSE}</button>
+                    <button class="icon-btn" type="button" data-mobile-close aria-label="Close menu">${icon("close")}</button>
                 </div>
                 <div class="mobile-drawer-items">${allMobile}</div>
             </aside>

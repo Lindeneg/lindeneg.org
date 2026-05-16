@@ -87,6 +87,10 @@ class TemplateService {
         return NotFound(nav, currentPath);
     }
 
+    clearCache(): void {
+        this.#cache.clear();
+    }
+
     async #loadNav(): Promise<NavigationWithItems> {
         const result = await this.navigationRepo.get();
         if (result.ok && result.data) return result.data;

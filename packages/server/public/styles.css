@@ -180,7 +180,8 @@ img {
 .icon {
     width: 1rem;
     height: 1rem;
-    display: block;
+    display: inline-block;
+    vertical-align: middle;
 }
 
 .icon-ext {
