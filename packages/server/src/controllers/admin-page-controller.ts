@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import z from 'zod';
-import type { Paginated, PageResponse, PageSectionResponse } from '@lindeneg/shared';
+import type {Paginated} from "../lib/pagination.js";
+import type {PageResponse, PageSectionResponse} from "@lindeneg/shared";
 import { HttpException } from '../lib/http-exception.js';
 import { parsePagination } from '../lib/pagination.js';
 import { parseRequestObj } from '../lib/parse.js';

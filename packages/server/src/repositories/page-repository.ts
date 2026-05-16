@@ -1,4 +1,5 @@
-import { success, failure, type Result, type RawModel, type MaybeNull } from '@lindeneg/shared';
+import {success, failure, type Result} from "../lib/result.js";
+import type {RawModel, MaybeNull} from "../lib/types.js";
 import type { Page, PageSection } from '@prisma/client';
 import type DataService from '../services/data-service.js';
 import type LoggerService from '../services/logger-service.js';

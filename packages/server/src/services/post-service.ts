@@ -1,18 +1,13 @@
-import {
-    success,
-    emptySuccess,
-    failure,
-    slugify,
-    type Result,
-    type EmptyResult,
-    type Paginated,
-    type PaginationParams,
-    type PostResponse,
-    type PostSummaryResponse,
-    type CreatePostInput,
-    type UpdatePostInput,
-    type UserResponse,
-    type RawModel,
+import {success, emptySuccess, failure, type Result, type EmptyResult} from "../lib/result.js";
+import {slugify} from "../lib/slugify.js";
+import type {Paginated, PaginationParams} from "../lib/pagination.js";
+import type {RawModel} from "../lib/types.js";
+import type {
+    PostResponse,
+    PostSummaryResponse,
+    CreatePostInput,
+    UpdatePostInput,
+    UserResponse,
 } from "@lindeneg/shared";
 import type {Post, User} from "@prisma/client";
 import type PostRepository from "../repositories/post-repository.js";

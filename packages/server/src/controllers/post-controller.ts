@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
-import type { Paginated, PostSummaryResponse, PostResponse } from '@lindeneg/shared';
+import type {Paginated} from "../lib/pagination.js";
+import type {PostSummaryResponse, PostResponse} from "@lindeneg/shared";
 import { HttpException } from '../lib/http-exception.js';
 import { parsePagination } from '../lib/pagination.js';
 import { PostError } from '../services/post-service.js';

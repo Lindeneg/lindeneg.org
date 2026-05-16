@@ -1,15 +1,10 @@
-import {
-  success,
-  emptySuccess,
-  failure,
-  type Result,
-  type EmptyResult,
-  type Paginated,
-  type PaginationParams,
-  type ContactMessageResponse,
-  type CreateContactInput,
-  type UpdateContactInput,
-} from '@lindeneg/shared';
+import {success, emptySuccess, failure, type Result, type EmptyResult} from "../lib/result.js";
+import type {Paginated, PaginationParams} from "../lib/pagination.js";
+import type {
+    ContactMessageResponse,
+    CreateContactInput,
+    UpdateContactInput,
+} from "@lindeneg/shared";
 import type { ContactMessage } from '@prisma/client';
 import type ContactRepository from '../repositories/contact-repository.js';
 import { toSkipTake, paginate } from '../lib/pagination.js';

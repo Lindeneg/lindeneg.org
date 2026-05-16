@@ -1,15 +1,11 @@
-import {
-  success,
-  emptySuccess,
-  failure,
-  type Result,
-  type EmptyResult,
-  type NavigationResponse,
-  type NavigationItemResponse,
-  type UpdateNavigationInput,
-  type CreateNavItemInput,
-  type UpdateNavItemInput,
-} from '@lindeneg/shared';
+import {success, emptySuccess, failure, type Result, type EmptyResult} from "../lib/result.js";
+import type {
+    NavigationResponse,
+    NavigationItemResponse,
+    UpdateNavigationInput,
+    CreateNavItemInput,
+    UpdateNavItemInput,
+} from "@lindeneg/shared";
 import type { Navigation, NavigationItem } from '@prisma/client';
 import type NavigationRepository from '../repositories/navigation-repository.js';
 import type NavigationItemRepository from '../repositories/navigation-item-repository.js';

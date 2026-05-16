@@ -1,7 +1,8 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import type { Response } from 'express';
-import { success, failure, type Result, type NodeEnv } from '@lindeneg/shared';
+import {success, failure, type Result} from "../lib/result.js";
+import type {NodeEnv} from "../lib/types.js";
 import type LoggerService from './logger-service.js';
 
 export interface AuthServiceOpts {

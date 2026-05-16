@@ -1,18 +1,13 @@
-import {
-  success,
-  emptySuccess,
-  failure,
-  type Result,
-  type EmptyResult,
-  type Paginated,
-  type PaginationParams,
-  type PageResponse,
-  type PageSectionResponse,
-  type CreatePageInput,
-  type UpdatePageInput,
-  type CreateSectionInput,
-  type UpdateSectionInput,
-} from '@lindeneg/shared';
+import {success, emptySuccess, failure, type Result, type EmptyResult} from "../lib/result.js";
+import type {Paginated, PaginationParams} from "../lib/pagination.js";
+import type {
+    PageResponse,
+    PageSectionResponse,
+    CreatePageInput,
+    UpdatePageInput,
+    CreateSectionInput,
+    UpdateSectionInput,
+} from "@lindeneg/shared";
 import type { Page, PageSection } from '@prisma/client';
 import type PageRepository from '../repositories/page-repository.js';
 import type SectionRepository from '../repositories/section-repository.js';

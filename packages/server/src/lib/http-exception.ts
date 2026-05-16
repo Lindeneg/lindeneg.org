@@ -1,4 +1,4 @@
-import type {MaybeNull} from "@lindeneg/shared";
+import type {MaybeNull} from "./types.js";
 
 export const RESPONSE_MESSAGES = {
     malformedBody: "The requested action could not be exercised due to malformed syntax.",

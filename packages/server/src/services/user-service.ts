@@ -1,13 +1,6 @@
-import {
-    success,
-    emptySuccess,
-    failure,
-    type Result,
-    type EmptyResult,
-    type UserResponse,
-    type LoginInput,
-    type MaybeNull,
-} from "@lindeneg/shared";
+import {success, emptySuccess, failure, type Result, type EmptyResult} from "../lib/result.js";
+import type {MaybeNull} from "../lib/types.js";
+import type {UserResponse, LoginInput} from "@lindeneg/shared";
 import type {User} from "@prisma/client";
 import type UserRepository from "../repositories/user-repository.js";
 import type AuthService from "./auth-service.js";

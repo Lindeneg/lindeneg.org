@@ -1,7 +1,7 @@
 import pino, {type LogFn, type Logger} from "pino";
 import {pinoHttp} from "pino-http";
 import type {Request} from "express";
-import type {NodeEnv} from "@lindeneg/shared";
+import type {NodeEnv} from "../lib/types.js";
 
 // TODO just get from environment
 function getLogLevel(nodeEnv: NodeEnv) {

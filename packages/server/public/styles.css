@@ -419,7 +419,7 @@ img {
     margin: 2.5em 0;
 }
 
-.markdown code {
+.markdown :not(pre) > code {
     font-family: var(--font-mono);
     font-size: 0.875em;
     background: var(--muted);
@@ -429,22 +429,16 @@ img {
 
 .markdown pre {
     position: relative;
-    background: var(--code-bg);
-    color: var(--code-fg);
-    padding: 1rem 1.25rem;
+    padding: 0;
     border-radius: var(--radius);
-    overflow-x: auto;
+    overflow: hidden;
     font-family: var(--font-mono);
     font-size: 0.875rem;
     line-height: 1.6;
 }
 
-.markdown pre code {
-    background: transparent;
-    padding: 0;
-    border-radius: 0;
-    color: inherit;
-    font-size: inherit;
+.markdown pre code.hljs {
+    border-radius: var(--radius);
 }
 
 .markdown table {

@@ -1,5 +1,5 @@
 import z from 'zod';
-import { success, failure, type Result } from '@lindeneg/shared';
+import {success, failure, type Result} from "./result.js";
 import { HttpException } from '../lib/http-exception.js';
 
 const DEFAULT_PARSE_ERROR = 'An error occurred.';

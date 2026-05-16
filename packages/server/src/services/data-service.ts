@@ -1,5 +1,6 @@
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
-import { success, failure, type Result, type NodeEnv } from '@lindeneg/shared';
+import {success, failure, type Result} from "../lib/result.js";
+import type {NodeEnv} from "../lib/types.js";
 import { PrismaClient, Prisma } from '@prisma/client';
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };

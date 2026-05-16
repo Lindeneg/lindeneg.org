@@ -9,10 +9,11 @@ import express, {
 import compression from "compression";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import {failure, emptySuccess, type EmptyResult, slugify} from "@lindeneg/shared";
+import {failure, emptySuccess, type EmptyResult} from "../lib/result.js";
+import {slugify} from "../lib/slugify.js";
 import type LoggerService from "./logger-service.js";
 import type {GlobalErrorHandler} from "../lib/error-handler.js";
-import type {TemplateService} from "../ui/playground.js";
+import type TemplateService from "./template-service.js";
 
 class ExpressService {
     #server: Server | null = null;

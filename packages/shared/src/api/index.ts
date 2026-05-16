@@ -1,6 +1,3 @@
-export type { PaginationParams, Paginated } from './api.js';
-export { DEFAULT_PAGE, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from './api.js';
-
 export type {
   NavigationItemResponse,
   NavigationResponse,

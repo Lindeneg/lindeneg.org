@@ -1,12 +1,6 @@
 import { v2 as cloudinary, type UploadApiResponse } from 'cloudinary';
-import {
-  success,
-  emptySuccess,
-  failure,
-  type Result,
-  type EmptyResult,
-  type NodeEnv,
-} from '@lindeneg/shared';
+import {success, emptySuccess, failure, type Result, type EmptyResult} from "../lib/result.js";
+import type {NodeEnv} from "../lib/types.js";
 import type LoggerService from './logger-service.js';
 
 export interface CloudinaryUploadResult {
