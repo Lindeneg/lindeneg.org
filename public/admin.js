@@ -56,7 +56,6 @@
         source.addEventListener('input', schedule);
         render();
 
-        // ---- scroll sync ----
         var syncing = false;
         var bind = function (from, to) {
             from.addEventListener('scroll', function () {

@@ -30,7 +30,7 @@ import UserService from "./services/user-service.js";
 import PostService from "./services/post-service.js";
 import {createAdminAuth} from "./middleware/admin-auth.js";
 import {globalErrorHandler} from "./lib/error-handler.js";
-import {makeAdminSsrRouter} from "./routers/admin-ssr-router.js";
+import {makeAdminRouter} from "./routers/admin-router.js";
 import {makeSitePublicRouter} from "./routers/public-router.js";
 import TemplateService from "./services/template-service.js";
 
@@ -109,7 +109,7 @@ async function main() {
 
     const adminAuth = createAdminAuth(authService, userRepo, env.JWT_COOKIE_NAME);
 
-    const adminRouter = makeAdminSsrRouter({
+    const adminRouter = makeAdminRouter({
         authService,
         userService,
         postService,

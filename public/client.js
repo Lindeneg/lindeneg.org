@@ -1,8 +1,6 @@
 (function () {
     'use strict';
 
-    // ---- theme toggle -----------------------------------------------------
-
     function applyTheme(theme) {
         var root = document.documentElement;
         if (theme === 'dark') {
@@ -28,13 +26,10 @@
         });
     }
 
-    // ---- mobile drawer ----------------------------------------------------
-
     function openDrawer() {
         var drawer = document.querySelector('[data-mobile-drawer]');
         if (!drawer) return;
         drawer.hidden = false;
-        // force reflow so the transition runs
         void drawer.offsetWidth;
         drawer.classList.add('is-open');
         document.body.style.overflow = 'hidden';
@@ -62,7 +57,6 @@
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') closeDrawer();
         });
-        // close drawer when a nav link is clicked
         var drawer = document.querySelector('[data-mobile-drawer]');
         if (drawer) {
             drawer.addEventListener('click', function (e) {
@@ -77,8 +71,6 @@
             });
         }
     }
-
-    // ---- copy code buttons -----------------------------------------------
 
     var COPY_ICON = '<svg class="icon" aria-hidden="true"><use href="/icons.svg#copy"/></svg>';
     var CHECK_ICON = '<svg class="icon" aria-hidden="true"><use href="/icons.svg#check"/></svg>';
@@ -115,8 +107,6 @@
         });
     }
 
-    // ---- heading anchors -------------------------------------------------
-
     var LINK_ICON = '<svg class="icon" aria-hidden="true"><use href="/icons.svg#link"/></svg>';
 
     function slugify(text) {
@@ -147,8 +137,6 @@
             h.appendChild(a);
         });
     }
-
-    // ---- boot ------------------------------------------------------------
 
     function init() {
         initThemeToggle();
