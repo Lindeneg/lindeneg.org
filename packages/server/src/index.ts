@@ -120,7 +120,7 @@ async function main() {
     const postService = new PostService(postRepo, cloudinaryService, log);
     const contactService = new ContactService(contactRepo);
 
-    const templateService = new TemplateService(pageService, navigationService, log);
+    const templateService = new TemplateService(pageService, navigationService, postService, log);
 
     const authController = new AuthController(userService, authService);
     const navigationController = new NavigationController(navigationService);

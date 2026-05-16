@@ -1,16 +1,22 @@
 import {marked} from "marked";
 import sanitizeHtml from "sanitize-html";
 import {
+    DEFAULT_PAGE_SIZE,
     success,
     failure,
     type NavigationResponse,
     type NavigationItemResponse,
     type PageResponse,
+    type Paginated,
+    type PostResponse,
+    type PostSummaryResponse,
     type Result,
+    type UserResponse,
 } from "@lindeneg/shared";
 import type PageService from "../services/page-service.js";
 import type LoggerService from "../services/logger-service.js";
 import type NavigationService from "../services/navigation-service.js";
+import type PostService from "../services/post-service.js";
 
 // --- sanitize (markdown content only) --------------------------------------
 
@@ -23,12 +29,30 @@ const MD_SANITIZE: sanitizeHtml.IOptions = {
         "a", "img",
         "table", "thead", "tbody", "tr", "th", "td",
         "span", "div",
+        "iframe",
     ],
     allowedAttributes: {
         "*": ["id", "class"],
         a: ["href", "target", "rel"],
         img: ["src", "alt", "loading"],
+        iframe: [
+            "src",
+            "title",
+            "width",
+            "height",
+            "frameborder",
+            "allow",
+            "allowfullscreen",
+            "loading",
+            "referrerpolicy",
+        ],
     },
+    allowedIframeHostnames: [
+        "www.youtube.com",
+        "youtube.com",
+        "www.youtube-nocookie.com",
+        "youtube-nocookie.com",
+    ],
     transformTags: {
         a: (tagName, attribs) => {
             const href = attribs.href ?? "";
@@ -38,6 +62,7 @@ const MD_SANITIZE: sanitizeHtml.IOptions = {
             return {tagName, attribs};
         },
         img: (tagName, attribs) => ({tagName, attribs: {...attribs, loading: "lazy"}}),
+        iframe: (tagName, attribs) => ({tagName, attribs: {...attribs, loading: "lazy"}}),
     },
 };
 
@@ -78,7 +103,10 @@ function normalizePath(p: string): string {
 
 function isActive(itemHref: string, currentPath: string): boolean {
     if (/^https?:\/\//i.test(itemHref)) return false;
-    return normalizePath(itemHref) === normalizePath(currentPath);
+    const item = normalizePath(itemHref);
+    const cur = normalizePath(currentPath);
+    if (item === "/") return cur === "/";
+    return cur === item || cur.startsWith(item + "/");
 }
 
 function navLink(item: NavigationItemResponse, currentPath: string, mobile = false): string {
@@ -180,6 +208,126 @@ function Layout({title, description, nav, currentPath, children}: LayoutProps): 
 </html>`;
 }
 
+// --- formatting helpers ----------------------------------------------------
+
+const SHORT_DATE: Intl.DateTimeFormatOptions = {month: "short", day: "numeric", year: "numeric"};
+const LONG_DATE: Intl.DateTimeFormatOptions = {month: "long", day: "numeric", year: "numeric"};
+
+function formatDate(date: string, style: "short" | "long" = "short"): string {
+    return new Date(date).toLocaleDateString("en-US", style === "long" ? LONG_DATE : SHORT_DATE);
+}
+
+function readingTime(content: string): string {
+    const words = content.trim().split(/\s+/).length;
+    const minutes = Math.max(1, Math.round(words / 200));
+    return `${minutes} min read`;
+}
+
+function initials(name: string): string {
+    return name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase();
+}
+
+function authorAvatar(author: UserResponse, size = "md"): string {
+    const cls = `author-avatar author-avatar--${size}`;
+    if (author.photo) {
+        return `<img src="${esc(author.photo)}" alt="${esc(author.name)}" class="${cls}" loading="lazy" />`;
+    }
+    return `<div class="${cls} author-avatar--initials">${esc(initials(author.name))}</div>`;
+}
+
+const ICON_ARROW_LEFT = `<svg class="icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>`;
+
+// --- blog templates --------------------------------------------------------
+
+function PostCard(post: PostSummaryResponse): string {
+    const thumb = post.thumbnail
+        ? `<div class="post-card-thumb"><img src="${esc(post.thumbnail)}" alt="${esc(post.title)}" loading="lazy" /></div>`
+        : "";
+    return `
+        <a href="/blog/${esc(post.slug)}" class="post-card">
+            ${thumb}
+            <div class="post-card-body">
+                <h2 class="post-card-title">${esc(post.title)}</h2>
+                <p class="post-card-author">${esc(post.author.name)}</p>
+                <p class="post-card-date">${esc(formatDate(post.createdAt))}</p>
+            </div>
+        </a>
+    `;
+}
+
+function Pagination(page: number, totalPages: number): string {
+    if (totalPages <= 1) return "";
+    const prev = page > 1 ? `<a href="/blog?page=${page - 1}" class="pager-btn">Previous</a>` : `<span class="pager-btn is-disabled">Previous</span>`;
+    const next = page < totalPages ? `<a href="/blog?page=${page + 1}" class="pager-btn">Next</a>` : `<span class="pager-btn is-disabled">Next</span>`;
+    return `
+        <div class="pager">
+            ${prev}
+            <span class="pager-info">Page ${page} of ${totalPages}</span>
+            ${next}
+        </div>
+    `;
+}
+
+type BlogListProps = {
+    posts: Paginated<PostSummaryResponse>;
+    nav: NavigationResponse;
+    currentPath: string;
+};
+
+function BlogList({posts, nav, currentPath}: BlogListProps): string {
+    const body =
+        posts.data.length === 0
+            ? `<div class="empty-state">No posts yet. Check back soon.</div>`
+            : `
+                <div class="post-grid">${posts.data.map(PostCard).join("")}</div>
+                ${Pagination(posts.page, posts.totalPages)}
+            `;
+    return Layout({
+        title: "Blog — Lindeneg",
+        nav,
+        currentPath,
+        children: `
+            <h1 class="blog-title">Blog</h1>
+            ${body}
+        `,
+    });
+}
+
+type BlogPostProps = {
+    post: PostResponse;
+    nav: NavigationResponse;
+    currentPath: string;
+};
+
+function BlogPost({post, nav, currentPath}: BlogPostProps): string {
+    return Layout({
+        title: `${post.title} — Lindeneg`,
+        nav,
+        currentPath,
+        children: `
+            <article class="blog-post">
+                <a href="/blog" class="back-link">${ICON_ARROW_LEFT}<span>Back to blog</span></a>
+                <header class="blog-post-header">
+                    <h1 class="blog-post-title">${esc(post.title)}</h1>
+                    <div class="blog-post-meta">
+                        ${authorAvatar(post.author, "md")}
+                        <div>
+                            <p class="blog-post-author">${esc(post.author.name)}</p>
+                            <p class="blog-post-byline">${esc(formatDate(post.createdAt, "long"))} &middot; ${esc(readingTime(post.content))}</p>
+                        </div>
+                    </div>
+                </header>
+                <div class="markdown">${md(post.content)}</div>
+            </article>
+        `,
+    });
+}
+
 // --- pages -----------------------------------------------------------------
 
 type PageProps = {
@@ -225,6 +373,8 @@ interface Serializeable {
 const TEMPLATE_ERR = {
     PAGE_NOT_FOUND: 0,
     NAV_NOT_FOUND: 1,
+    POST_NOT_FOUND: 2,
+    BLOG_LIST_ERROR: 3,
 };
 
 type TemplateError = (typeof TEMPLATE_ERR)[keyof typeof TEMPLATE_ERR];
@@ -236,6 +386,7 @@ export class TemplateService {
     constructor(
         private readonly pageService: PageService,
         private readonly navigationService: NavigationService,
+        private readonly postService: PostService,
         private readonly logger: LoggerService
     ) {}
 
@@ -244,7 +395,6 @@ export class TemplateService {
         currentPath: string,
         ctx?: Serializeable
     ): Promise<Result<string, TemplateError>> {
-        this.logger.debug(name);
         const key = (ctx ? name + ":" + ctx.serialize() : name) + "@" + currentPath;
         const current = this.#cache.get(key);
         if (current) return success(current);
@@ -265,6 +415,63 @@ export class TemplateService {
         }
 
         const html = Page({page: pageResult.data, nav: navResult.data, currentPath});
+        this.#cache.set(key, html);
+        return success(html);
+    }
+
+    async getBlogList(
+        page: number,
+        currentPath: string
+    ): Promise<Result<string, TemplateError>> {
+        const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+        const key = `blog:list:${safePage}@${currentPath}`;
+        const current = this.#cache.get(key);
+        if (current) return success(current);
+
+        const [postsResult, navResult] = await Promise.all([
+            this.postService.listPosts({page: safePage, pageSize: DEFAULT_PAGE_SIZE}, true),
+            this.navigationService.getNavigation(),
+        ]);
+
+        if (!navResult.ok) {
+            this.logger.error(navResult.ctx);
+            return failure(TEMPLATE_ERR.NAV_NOT_FOUND);
+        }
+
+        if (!postsResult.ok) {
+            this.logger.error(postsResult.ctx);
+            return failure(TEMPLATE_ERR.BLOG_LIST_ERROR);
+        }
+
+        const html = BlogList({posts: postsResult.data, nav: navResult.data, currentPath});
+        this.#cache.set(key, html);
+        return success(html);
+    }
+
+    async getBlogPost(
+        slug: string,
+        currentPath: string
+    ): Promise<Result<string, TemplateError>> {
+        const key = `blog:post:${slug}@${currentPath}`;
+        const current = this.#cache.get(key);
+        if (current) return success(current);
+
+        const [postResult, navResult] = await Promise.all([
+            this.postService.getPostBySlug(slug, true),
+            this.navigationService.getNavigation(),
+        ]);
+
+        if (!navResult.ok) {
+            this.logger.error(navResult.ctx);
+            return failure(TEMPLATE_ERR.NAV_NOT_FOUND);
+        }
+
+        if (!postResult.ok) {
+            this.logger.error(postResult.ctx);
+            return failure(TEMPLATE_ERR.POST_NOT_FOUND);
+        }
+
+        const html = BlogPost({post: postResult.data, nav: navResult.data, currentPath});
         this.#cache.set(key, html);
         return success(html);
     }
