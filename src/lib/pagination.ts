@@ -1,6 +1,6 @@
 import type {Request} from "express";
 
-export const DEFAULT_PAGE_SIZE = 20;
+export const DEFAULT_PAGE_SIZE = 6;
 const DEFAULT_PAGE = 1;
 const MAX_PAGE_SIZE = 100;
 

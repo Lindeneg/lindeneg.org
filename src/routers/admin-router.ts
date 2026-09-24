@@ -13,8 +13,11 @@ export type AdminRouterDeps = AdminDeps & {adminAuth: RequestHandler};
 export function makeAdminRouter(deps: AdminRouterDeps): Router {
     const router = Router();
 
+    // public
     router.use(loginRouter(deps));
+
     router.use(deps.adminAuth);
+    // behind auth
     router.use(logoutRouter(deps));
     router.use(dashboardRouter(deps));
     router.use(pagesRouter(deps));
