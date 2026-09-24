@@ -1,6 +1,9 @@
-import type z from "zod";
+import z from "zod";
 
 export const toBool = (v: unknown) => v === "1" || v === "on" || v === "true" || v === true;
+
+// an unchecked checkbox sends no field at all; since zod 4.6 a missing key must be marked optional
+export const checkbox = () => z.unknown().optional().transform(toBool);
 
 export const optStr = (v: unknown) => (typeof v === "string" && v.trim() !== "" ? v : undefined);
 

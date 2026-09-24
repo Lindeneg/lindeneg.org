@@ -1,7 +1,7 @@
 import {Router} from "express";
 import z from "zod";
 import {send} from "../../lib/http.js";
-import {fieldErrors, toBool} from "../../lib/validation.js";
+import {checkbox, fieldErrors} from "../../lib/validation.js";
 import {getAuth} from "../../middleware/admin-auth.js";
 import {NavigationError} from "../../services/navigation-service.js";
 import type NavigationService from "../../services/navigation-service.js";
@@ -17,7 +17,7 @@ const NavItemSchema = z.object({
     href: z.string().min(1, "Required"),
     position: z.coerce.number().int().min(0, "Must be ≥ 0"),
     alignment: z.enum(["LEFT", "RIGHT"]),
-    newTab: z.unknown().transform(toBool),
+    newTab: checkbox(),
 });
 
 const currentPath = "/admin/navigation";

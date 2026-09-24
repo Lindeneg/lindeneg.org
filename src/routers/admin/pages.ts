@@ -2,7 +2,7 @@ import {Router} from "express";
 import z from "zod";
 import {send} from "../../lib/http.js";
 import {parsePagination} from "../../lib/pagination.js";
-import {fieldErrors, toBool} from "../../lib/validation.js";
+import {checkbox, fieldErrors} from "../../lib/validation.js";
 import {getAuth} from "../../middleware/admin-auth.js";
 import {PageError} from "../../services/page-service.js";
 import type PageService from "../../services/page-service.js";
@@ -13,13 +13,13 @@ const PageSchema = z.object({
     slug: z.string().optional(),
     title: z.string().min(1, "Required"),
     description: z.string().default(""),
-    published: z.unknown().transform(toBool),
+    published: checkbox(),
 });
 
 const SectionSchema = z.object({
     content: z.string().min(1, "Required"),
     position: z.coerce.number().int().min(0, "Must be ≥ 0"),
-    published: z.unknown().transform(toBool),
+    published: checkbox(),
 });
 
 const currentPath = "/admin/pages";

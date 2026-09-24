@@ -3,7 +3,7 @@ import z from "zod";
 import type {Request} from "express";
 import {slugify} from "../../../src/lib/slugify.js";
 import {DEFAULT_PAGE_SIZE, paginate, parsePagination, toSkipTake} from "../../../src/lib/pagination.js";
-import {fieldErrors, optStr, toBool} from "../../../src/lib/validation.js";
+import {checkbox, fieldErrors, optStr, toBool} from "../../../src/lib/validation.js";
 import {emptySuccess, failure, success} from "../../../src/lib/result.js";
 import {envFiles, isInTestMode} from "../../../src/lib/env.js";
 import PageCache, {CacheTag} from "../../../src/lib/page-cache.js";
@@ -61,6 +61,14 @@ describe("validation", () => {
     it("toBool accepts checkbox-ish truthy values only", () => {
         for (const v of ["1", "on", "true", true]) expect(toBool(v)).toBe(true);
         for (const v of ["0", "off", "false", false, undefined, 1]) expect(toBool(v)).toBe(false);
+    });
+
+    it("checkbox treats a missing field as unchecked", () => {
+        const schema = z.object({published: checkbox()});
+
+        expect(schema.parse({})).toEqual({published: false});
+        expect(schema.parse({published: "1"})).toEqual({published: true});
+        expect(schema.parse({published: "off"})).toEqual({published: false});
     });
 
     it("optStr returns non-blank strings only", () => {

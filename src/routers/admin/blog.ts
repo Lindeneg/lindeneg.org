@@ -2,7 +2,7 @@ import {Router} from "express";
 import z from "zod";
 import {send} from "../../lib/http.js";
 import {parsePagination} from "../../lib/pagination.js";
-import {fieldErrors, toBool} from "../../lib/validation.js";
+import {checkbox, fieldErrors} from "../../lib/validation.js";
 import {getAuth} from "../../middleware/admin-auth.js";
 import {upload} from "../../middleware/upload.js";
 import {PostError, type ThumbnailChange} from "../../services/post-service.js";
@@ -12,8 +12,8 @@ import type TemplateService from "../../services/template-service.js";
 const PostSchema = z.object({
     title: z.string().min(1, "Required"),
     content: z.string().min(1, "Required"),
-    published: z.unknown().transform(toBool),
-    removeThumbnail: z.unknown().transform(toBool),
+    published: checkbox(),
+    removeThumbnail: checkbox(),
     tags: z
         .string()
         .default("")
