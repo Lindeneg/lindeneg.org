@@ -14,7 +14,9 @@
         "db:studio": "prisma studio",
         "test:unit": "vitest run --project unit",
         "test:e2e": "bash scripts/test-e2e.sh",
-        "fix-tags": "npx -y tsx scripts/fix-tags.ts"
+        "fix-tags": "npx -y tsx scripts/fix-tags.ts",
+        "bootstrap": "bash scripts/bootstrap.sh",
+        "clean": "bash scripts/clean.sh"
     },
     "dependencies": {
         "@lindeneg/cl-env": "0.1.3",
