@@ -1,21 +1,18 @@
-import {success, failure, type AsyncResult} from "../lib/result.js";
+import type {AsyncResult} from "../lib/result.js";
 import type {RawModel, MaybeNull, RawModelUpdate} from "../lib/types.js";
 import type { Page, PageSection } from '@prisma/client';
 import type DataService from '../services/data-service.js';
-import type LoggerService from '../services/logger-service.js';
 import type { SkipTake, PaginatedResult } from '../lib/pagination.js';
 
 export type PageWithSections = Page & { sections: PageSection[] };
 
 class PageRepository {
-  constructor(
-    private readonly db: DataService,
-    private readonly log: LoggerService
-  ) {}
+  constructor(private readonly db: DataService) {}
 
-  async list(opts: Partial<SkipTake> = {}): AsyncResult<PaginatedResult<PageWithSections>> {
-    try {
-      const [data, total] = await Promise.all([
+  list(opts: Partial<SkipTake> = {}): AsyncResult<PaginatedResult<PageWithSections>> {
+    return this.db.run(
+      'page-repo.list',
+      Promise.all([
         this.db.p.page.findMany({
           include: { sections: true },
           orderBy: { createdAt: 'desc' },
@@ -23,72 +20,41 @@ class PageRepository {
           take: opts.take,
         }),
         this.db.p.page.count(),
-      ]);
-      return success({ data, total });
-    } catch (err) {
-      this.log.error(err, 'page-repo.list');
-      return failure('failed to list pages');
-    }
+      ]).then(([data, total]) => ({ data, total }))
+    );
   }
 
-  async count(): AsyncResult<number> {
-    try {
-      const count = await this.db.p.page.count();
-      return success(count);
-    } catch (err) {
-      this.log.error(err, 'page-repo.count');
-      return failure('failed to count pages');
-    }
+  count(): AsyncResult<number> {
+    return this.db.run('page-repo.count', this.db.p.page.count());
   }
 
-  async getById(id: string): AsyncResult<MaybeNull<PageWithSections>> {
-    try {
-      const page = await this.db.p.page.findUnique({ where: { id }, include: { sections: true } });
-      return success(page);
-    } catch (err) {
-      this.log.error(err, 'page-repo.getById');
-      return failure('failed to get page');
-    }
+  getById(id: string): AsyncResult<MaybeNull<PageWithSections>> {
+    return this.db.run(
+      'page-repo.getById',
+      this.db.p.page.findUnique({ where: { id }, include: { sections: true } })
+    );
   }
 
-  async getBySlug(slug: string): AsyncResult<MaybeNull<PageWithSections>> {
-    try {
-      const page = await this.db.p.page.findUnique({ where: { slug }, include: { sections: true } });
-      return success(page);
-    } catch (err) {
-      this.log.error(err, 'page-repo.getBySlug');
-      return failure('failed to get page by slug');
-    }
+  getBySlug(slug: string): AsyncResult<MaybeNull<PageWithSections>> {
+    return this.db.run(
+      'page-repo.getBySlug',
+      this.db.p.page.findUnique({ where: { slug }, include: { sections: true } })
+    );
   }
 
-  async create(data: RawModel<Page>): AsyncResult<PageWithSections> {
-    try {
-      const page = await this.db.p.page.create({ data, include: { sections: true } });
-      return success(page);
-    } catch (err) {
-      this.log.error(err, 'page-repo.create');
-      return failure('failed to create page');
-    }
+  create(data: RawModel<Page>): AsyncResult<PageWithSections> {
+    return this.db.run('page-repo.create', this.db.p.page.create({ data, include: { sections: true } }));
   }
 
-  async update(id: string, data: RawModelUpdate<Page>): AsyncResult<PageWithSections> {
-    try {
-      const page = await this.db.p.page.update({ where: { id }, data, include: { sections: true } });
-      return success(page);
-    } catch (err) {
-      this.log.error(err, 'page-repo.update');
-      return failure('failed to update page');
-    }
+  update(id: string, data: RawModelUpdate<Page>): AsyncResult<PageWithSections> {
+    return this.db.run(
+      'page-repo.update',
+      this.db.p.page.update({ where: { id }, data, include: { sections: true } })
+    );
   }
 
-  async delete(id: string): AsyncResult<Page> {
-    try {
-      const page = await this.db.p.page.delete({ where: { id } });
-      return success(page);
-    } catch (err) {
-      this.log.error(err, 'page-repo.delete');
-      return failure('failed to delete page');
-    }
+  delete(id: string): AsyncResult<Page> {
+    return this.db.run('page-repo.delete', this.db.p.page.delete({ where: { id } }));
   }
 }
 

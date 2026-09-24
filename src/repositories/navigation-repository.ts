@@ -1,57 +1,43 @@
-import {success, failure, emptySuccess, type EmptyResult, type AsyncResult} from "../lib/result.js";
+import {failure, emptySuccess, type EmptyResult, type AsyncResult} from "../lib/result.js";
 import type {MaybeNull, RawModelUpdate} from "../lib/types.js";
 import type {Navigation, NavigationItem} from "@prisma/client";
 import type DataService from "../services/data-service.js";
-import type LoggerService from "../services/logger-service.js";
 
 export type NavigationWithItems = Navigation & {items: NavigationItem[]};
 
 class NavigationRepository {
-    constructor(
-        private readonly db: DataService,
-        private readonly log: LoggerService
-    ) {}
+    constructor(private readonly db: DataService) {}
 
-    async get(): AsyncResult<MaybeNull<NavigationWithItems>> {
-        try {
-            const navigation = await this.db.p.navigation.findFirst({include: {items: true}});
-            return success(navigation);
-        } catch (err) {
-            this.log.error(err, "navigation-repo.get");
-            return failure("failed to get navigation");
-        }
+    get(): AsyncResult<MaybeNull<NavigationWithItems>> {
+        return this.db.run("navigation-repo.get", this.db.p.navigation.findFirst({include: {items: true}}));
     }
 
     async createOnce(): Promise<EmptyResult> {
-        try {
-            const count = await this.db.p.navigation.count();
-            if (count > 0) return failure("nav already created");
-            await this.db.p.navigation.create({
-                data: {brandName: "Brandname"},
-            });
-            return emptySuccess();
-        } catch (err) {
-            this.log.error(err, "navigation-repo.createOnce");
-            return failure("failed to get create navigation");
-        }
+        const count = await this.db.run("navigation-repo.createOnce.count", this.db.p.navigation.count());
+        if (!count.ok) return count;
+        if (count.data > 0) return failure("nav already created");
+
+        const created = await this.db.run(
+            "navigation-repo.createOnce.create",
+            this.db.p.navigation.create({data: {brandName: "Brandname"}})
+        );
+        if (!created.ok) return created;
+        return emptySuccess();
     }
 
-    async update(
+    update(
         id: string,
         data: RawModelUpdate<Navigation>,
         includeItems = false
     ): AsyncResult<NavigationWithItems | Navigation> {
-        try {
-            const navigation = await this.db.p.navigation.update({
+        return this.db.run(
+            "navigation-repo.update",
+            this.db.p.navigation.update({
                 where: {id},
                 data,
                 include: includeItems ? {items: true} : undefined,
-            });
-            return success(navigation);
-        } catch (err) {
-            this.log.error(err, "navigation-repo.update");
-            return failure("failed to update navigation");
-        }
+            })
+        );
     }
 }
 

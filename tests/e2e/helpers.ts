@@ -2,12 +2,13 @@ import {randomUUID} from "node:crypto";
 import {loadAppEnv} from "../../src/lib/env.js";
 import type {MaybeNull} from "../../src/lib/types.js";
 import DataService from "../../src/services/data-service.js";
+import LoggerService from "../../src/services/logger-service.js";
 
 export const env = loadAppEnv();
 
 export const BASE_URL = `http://localhost:${env.PORT}`;
 
-export const db = new DataService(env.DATABASE_URL, env.NODE_ENV);
+export const db = new DataService(env.DATABASE_URL, env.NODE_ENV, new LoggerService(env.NODE_ENV));
 
 export type TestResponse = {
     status: number;

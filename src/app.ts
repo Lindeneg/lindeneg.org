@@ -32,15 +32,15 @@ import {messagesRouter} from "./routers/admin/messages.js";
 import {settingsRouter} from "./routers/admin/settings.js";
 
 export async function startApp(env: AppEnv, log: LoggerService, imageStore: ImageStore): Promise<void> {
-    const dataService = new DataService(env.DATABASE_URL, env.NODE_ENV);
+    const dataService = new DataService(env.DATABASE_URL, env.NODE_ENV, log);
 
-    const userRepo = new UserRepository(dataService, log);
-    const navigationRepo = new NavigationRepository(dataService, log);
-    const navigationItemRepo = new NavigationItemRepository(dataService, log);
-    const pageRepo = new PageRepository(dataService, log);
-    const sectionRepo = new SectionRepository(dataService, log);
-    const postRepo = new PostRepository(dataService, log);
-    const contactRepo = new ContactRepository(dataService, log);
+    const userRepo = new UserRepository(dataService);
+    const navigationRepo = new NavigationRepository(dataService);
+    const navigationItemRepo = new NavigationItemRepository(dataService);
+    const pageRepo = new PageRepository(dataService);
+    const sectionRepo = new SectionRepository(dataService);
+    const postRepo = new PostRepository(dataService);
+    const contactRepo = new ContactRepository(dataService);
 
     const cache = new PageCache(500);
 

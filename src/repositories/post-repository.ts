@@ -1,8 +1,7 @@
-import {success, failure, type AsyncResult} from "../lib/result.js";
+import type {AsyncResult} from "../lib/result.js";
 import type {RawModel, MaybeNull, RawModelUpdate} from "../lib/types.js";
 import type {Post, Tag} from "@prisma/client";
 import type DataService from "../services/data-service.js";
-import type LoggerService from "../services/logger-service.js";
 import type {SkipTake, PaginatedResult} from "../lib/pagination.js";
 import {userOmit, type User} from "./user-repository.js";
 
@@ -19,17 +18,12 @@ function toWhere({published, tag}: PostWhere) {
 }
 
 class PostRepository {
-    constructor(
-        private readonly db: DataService,
-        private readonly log: LoggerService
-    ) {}
+    constructor(private readonly db: DataService) {}
 
-    async list(
-        opts: Partial<SkipTake> = {},
-        where: PostWhere = {}
-    ): AsyncResult<PaginatedResult<PostWithRelations>> {
-        try {
-            const [data, total] = await Promise.all([
+    list(opts: Partial<SkipTake> = {}, where: PostWhere = {}): AsyncResult<PaginatedResult<PostWithRelations>> {
+        return this.db.run(
+            "post-repo.list",
+            Promise.all([
                 this.db.p.post.findMany({
                     where: toWhere(where),
                     include,
@@ -38,77 +32,52 @@ class PostRepository {
                     take: opts.take,
                 }),
                 this.db.p.post.count({where: toWhere(where)}),
-            ]);
-            return success({data, total});
-        } catch (err) {
-            this.log.error(err, "post-repo.list");
-            return failure("failed to list posts");
-        }
+            ]).then(([data, total]) => ({data, total}))
+        );
     }
 
-    async count(where: PostWhere = {}): AsyncResult<number> {
-        try {
-            const count = await this.db.p.post.count({where: toWhere(where)});
-            return success(count);
-        } catch (err) {
-            this.log.error(err, "post-repo.count");
-            return failure("failed to count posts");
-        }
+    count(where: PostWhere = {}): AsyncResult<number> {
+        return this.db.run("post-repo.count", this.db.p.post.count({where: toWhere(where)}));
     }
 
-    async listPublishedTags(): AsyncResult<TagWithCount[]> {
-        try {
-            const tags = await this.db.p.tag.findMany({
-                where: {posts: {some: {published: true}}},
-                select: {name: true, _count: {select: {posts: {where: {published: true}}}}},
-                orderBy: {name: "asc"},
-            });
-            return success(tags.map((t) => ({name: t.name, count: t._count.posts})));
-        } catch (err) {
-            this.log.error(err, "post-repo.listPublishedTags");
-            return failure("failed to list tags");
-        }
+    listPublishedTags(): AsyncResult<TagWithCount[]> {
+        return this.db.run(
+            "post-repo.listPublishedTags",
+            this.db.p.tag
+                .findMany({
+                    where: {posts: {some: {published: true}}},
+                    select: {name: true, _count: {select: {posts: {where: {published: true}}}}},
+                    orderBy: {name: "asc"},
+                })
+                .then((tags) => tags.map((t) => ({name: t.name, count: t._count.posts})))
+        );
     }
 
-    async getById(id: string): AsyncResult<MaybeNull<PostWithRelations>> {
-        try {
-            const post = await this.db.p.post.findUnique({where: {id}, include});
-            return success(post);
-        } catch (err) {
-            this.log.error(err, "post-repo.getById");
-            return failure("failed to get post");
-        }
+    getById(id: string): AsyncResult<MaybeNull<PostWithRelations>> {
+        return this.db.run("post-repo.getById", this.db.p.post.findUnique({where: {id}, include}));
     }
 
-    async getBySlug(slug: string): AsyncResult<MaybeNull<PostWithRelations>> {
-        try {
-            const post = await this.db.p.post.findUnique({where: {slug}, include});
-            return success(post);
-        } catch (err) {
-            this.log.error(err, "post-repo.getBySlug");
-            return failure("failed to get post by slug");
-        }
+    getBySlug(slug: string): AsyncResult<MaybeNull<PostWithRelations>> {
+        return this.db.run("post-repo.getBySlug", this.db.p.post.findUnique({where: {slug}, include}));
     }
 
-    async create(data: RawModel<Post>, tags: string[]): AsyncResult<PostWithRelations> {
-        try {
-            const post = await this.db.p.post.create({
+    create(data: RawModel<Post>, tags: string[]): AsyncResult<PostWithRelations> {
+        return this.db.run(
+            "post-repo.create",
+            this.db.p.post.create({
                 data: {
                     ...data,
                     tags: {connectOrCreate: tags.map((name) => ({where: {name}, create: {name}}))},
                 },
                 include,
-            });
-            return success(post);
-        } catch (err) {
-            this.log.error(err, "post-repo.create");
-            return failure("failed to create post");
-        }
+            })
+        );
     }
 
-    async update(id: string, data: RawModelUpdate<Post>, tags: string[]): AsyncResult<PostWithRelations> {
-        try {
-            const post = await this.db.p.$transaction(async (tx) => {
+    update(id: string, data: RawModelUpdate<Post>, tags: string[]): AsyncResult<PostWithRelations> {
+        return this.db.run(
+            "post-repo.update",
+            this.db.p.$transaction(async (tx) => {
                 for (const name of tags) {
                     await tx.tag.upsert({where: {name}, create: {name}, update: {}});
                 }
@@ -117,22 +86,12 @@ class PostRepository {
                     data: {...data, tags: {set: tags.map((name) => ({name}))}},
                     include,
                 });
-            });
-            return success(post);
-        } catch (err) {
-            this.log.error(err, "post-repo.update");
-            return failure("failed to update post");
-        }
+            })
+        );
     }
 
-    async delete(id: string): AsyncResult<Post> {
-        try {
-            const post = await this.db.p.post.delete({where: {id}});
-            return success(post);
-        } catch (err) {
-            this.log.error(err, "post-repo.delete");
-            return failure("failed to delete post");
-        }
+    delete(id: string): AsyncResult<Post> {
+        return this.db.run("post-repo.delete", this.db.p.post.delete({where: {id}}));
     }
 }
 
