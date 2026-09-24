@@ -1,6 +1,6 @@
 import type {AsyncResult} from "../lib/result.js";
 import type {RawModel, RawModelUpdate, MaybeNull} from "../lib/types.js";
-import type {User as UserModel} from "@prisma/client";
+import type {User as UserModel} from "../generated/prisma/client.js";
 import type DataService from "../services/data-service.js";
 
 export type User = Omit<UserModel, "password">;

@@ -1,6 +1,6 @@
 import type {AsyncResult} from "../lib/result.js";
 import type {RawModel, MaybeNull, RawModelUpdate} from "../lib/types.js";
-import type { ContactMessage } from '@prisma/client';
+import type { ContactMessage } from '../generated/prisma/client.js';
 import type DataService from '../services/data-service.js';
 import type { SkipTake, PaginatedResult } from '../lib/pagination.js';
 

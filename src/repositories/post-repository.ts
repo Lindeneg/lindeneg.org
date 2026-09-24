@@ -1,6 +1,6 @@
 import type {AsyncResult} from "../lib/result.js";
 import type {RawModel, MaybeNull, RawModelUpdate} from "../lib/types.js";
-import type {Post, Tag} from "@prisma/client";
+import type {Post, Tag} from "../generated/prisma/client.js";
 import type DataService from "../services/data-service.js";
 import type {SkipTake, PaginatedResult} from "../lib/pagination.js";
 import {userOmit, type User} from "./user-repository.js";

@@ -1,4 +1,4 @@
-import type {PageSection} from "@prisma/client";
+import type {PageSection} from "../../../generated/prisma/client.js";
 import type {User} from "../../../repositories/user-repository.js";
 import type {PageWithSections} from "../../../repositories/page-repository.js";
 import {esc, formatDate} from "../../lib.js";

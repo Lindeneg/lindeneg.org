@@ -1,7 +1,7 @@
 import {success, emptySuccess, failure, type EmptyResult, type AsyncResult} from "../lib/result.js";
 import type {ValueOf} from "../lib/types.js";
 import {paginate, toSkipTake, type Paginated, type PaginationParams} from "../lib/pagination.js";
-import type {ContactMessage} from "@prisma/client";
+import type {ContactMessage} from "../generated/prisma/client.js";
 import type ContactRepository from "../repositories/contact-repository.js";
 
 export const MessageError = {

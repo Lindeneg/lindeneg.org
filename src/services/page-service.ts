@@ -4,7 +4,7 @@ import {paginate, toSkipTake, type Paginated, type PaginationParams} from "../li
 import {CacheTag} from "../lib/page-cache.js";
 import type PageCache from "../lib/page-cache.js";
 import {slugify} from "../lib/slugify.js";
-import type {Page, PageSection} from "@prisma/client";
+import type {Page, PageSection} from "../generated/prisma/client.js";
 import type PageRepository from "../repositories/page-repository.js";
 import type {PageWithSections} from "../repositories/page-repository.js";
 import type SectionRepository from "../repositories/section-repository.js";

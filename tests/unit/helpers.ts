@@ -1,5 +1,5 @@
 import {vi, type Mock} from "vitest";
-import type {ContactMessage, NavigationItem, PageSection} from "@prisma/client";
+import type {ContactMessage, NavigationItem, PageSection} from "../../src/generated/prisma/client.js";
 import type LoggerService from "../../src/services/logger-service.js";
 import type PageCache from "../../src/lib/page-cache.js";
 import type {User, UserWithPassword} from "../../src/repositories/user-repository.js";

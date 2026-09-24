@@ -1,6 +1,6 @@
 import {failure, emptySuccess, type EmptyResult, type AsyncResult} from "../lib/result.js";
 import type {MaybeNull, RawModelUpdate} from "../lib/types.js";
-import type {Navigation, NavigationItem} from "@prisma/client";
+import type {Navigation, NavigationItem} from "../generated/prisma/client.js";
 import type DataService from "../services/data-service.js";
 
 export type NavigationWithItems = Navigation & {items: NavigationItem[]};

@@ -1,5 +1,9 @@
 generator client {
-  provider = "prisma-client-js"
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  // tsc compiles to dist and node runs the .js output, so generated imports must end in .js
+  importFileExtension = "js"
 }
 
 datasource db {

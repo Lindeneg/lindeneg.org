@@ -4,7 +4,7 @@ import {CacheTag} from "../lib/page-cache.js";
 import type PageCache from "../lib/page-cache.js";
 import {slugify} from "../lib/slugify.js";
 import type {ValueOf, RawModelUpdate} from "../lib/types.js";
-import type {Post} from "@prisma/client";
+import type {Post} from "../generated/prisma/client.js";
 import type PostRepository from "../repositories/post-repository.js";
 import type {PostWithRelations} from "../repositories/post-repository.js";
 import type {ImageFile, ImageStore} from "./image-store.js";

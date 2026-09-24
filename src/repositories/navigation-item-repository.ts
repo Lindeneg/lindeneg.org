@@ -1,6 +1,6 @@
 import type {AsyncResult} from "../lib/result.js";
 import type {RawModel, RawModelUpdate} from "../lib/types.js";
-import type { NavigationItem } from '@prisma/client';
+import type { NavigationItem } from '../generated/prisma/client.js';
 import type DataService from '../services/data-service.js';
 
 class NavigationItemRepository {

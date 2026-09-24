@@ -1,4 +1,4 @@
-import type {NavigationItem} from "@prisma/client";
+import type {NavigationItem} from "../../../generated/prisma/client.js";
 import type {User} from "../../../repositories/user-repository.js";
 import type {NavigationWithItems} from "../../../repositories/navigation-repository.js";
 import {esc} from "../../lib.js";

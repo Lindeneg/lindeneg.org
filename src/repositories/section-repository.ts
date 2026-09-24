@@ -1,6 +1,6 @@
 import type {AsyncResult} from "../lib/result.js";
 import type {RawModel, MaybeNull, RawModelUpdate} from "../lib/types.js";
-import type { Page, PageSection } from '@prisma/client';
+import type { Page, PageSection } from '../generated/prisma/client.js';
 import type DataService from '../services/data-service.js';
 
 export type SectionWithPage = PageSection & { page: Page };

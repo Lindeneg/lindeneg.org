@@ -112,8 +112,8 @@ export function EditorLayout({title, headerBar, children}: EditorLayoutProps): s
             title,
             styles: [...ADMIN_STYLES, "/highlight-github-dark.css"],
             scripts: [
-                "https://cdn.jsdelivr.net/npm/marked@18.0.3/lib/marked.umd.js",
-                "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js",
+                "https://cdn.jsdelivr.net/npm/marked@18.0.14/lib/marked.umd.js",
+                "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.12.0/highlight.min.js",
             ],
         }),
         `

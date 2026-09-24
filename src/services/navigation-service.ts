@@ -2,7 +2,7 @@ import {success, emptySuccess, failure, type EmptyResult, type AsyncResult} from
 import {CacheTag} from "../lib/page-cache.js";
 import type PageCache from "../lib/page-cache.js";
 import type {RawModel, ValueOf} from "../lib/types.js";
-import type {NavigationItem} from "@prisma/client";
+import type {NavigationItem} from "../generated/prisma/client.js";
 import type NavigationRepository from "../repositories/navigation-repository.js";
 import type {NavigationWithItems} from "../repositories/navigation-repository.js";
 import type NavigationItemRepository from "../repositories/navigation-item-repository.js";

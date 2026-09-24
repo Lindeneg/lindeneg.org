@@ -1,4 +1,4 @@
-import type {Page, PageSection} from "@prisma/client";
+import type {Page, PageSection} from "../../../generated/prisma/client.js";
 import {esc} from "../../lib.js";
 import {EditorLayout} from "../../components/layout.js";
 import {TopError} from "../../components/form.js";

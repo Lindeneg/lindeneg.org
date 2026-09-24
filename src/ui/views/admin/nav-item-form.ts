@@ -1,4 +1,4 @@
-import type {Navigation, NavigationItem} from "@prisma/client";
+import type {Navigation, NavigationItem} from "../../../generated/prisma/client.js";
 import type {User} from "../../../repositories/user-repository.js";
 import {AdminLayout} from "../../components/layout.js";
 import {ConfirmForm} from "../../components/confirm-form.js";

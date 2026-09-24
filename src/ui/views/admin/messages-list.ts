@@ -1,4 +1,4 @@
-import type {ContactMessage} from "@prisma/client";
+import type {ContactMessage} from "../../../generated/prisma/client.js";
 import type {User} from "../../../repositories/user-repository.js";
 import type {Paginated} from "../../../lib/pagination.js";
 import {esc, formatDate} from "../../lib.js";
