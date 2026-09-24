@@ -10,11 +10,12 @@ import compression from "compression";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import {failure, emptySuccess, type EmptyResult} from "../lib/result.js";
+import type {MaybeNull} from "../lib/types.js";
 import type LoggerService from "./logger-service.js";
 import type {GlobalErrorHandler} from "../lib/error-handler.js";
 
 class ExpressService {
-    #server: Server | null = null;
+    #server: MaybeNull<Server> = null;
     readonly app;
 
     constructor(

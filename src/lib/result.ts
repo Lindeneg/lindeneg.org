@@ -10,6 +10,8 @@ export interface ResultFailure<TCtx> {
 
 export type Result<TData, TErrorCtx = string> = ResultSuccess<TData> | ResultFailure<TErrorCtx>;
 
+export type AsyncResult<TData, TErrorCtx = string> = Promise<Result<TData, TErrorCtx>>;
+
 export type EmptyResult<TErrorCtx = string> = Result<void, TErrorCtx>;
 
 export function success<TData>(data: TData): ResultSuccess<TData> {

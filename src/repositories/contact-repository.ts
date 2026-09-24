@@ -1,5 +1,5 @@
-import {success, failure, type Result} from "../lib/result.js";
-import type {RawModel} from "../lib/types.js";
+import {success, failure, type AsyncResult} from "../lib/result.js";
+import type {RawModel, MaybeNull, RawModelUpdate} from "../lib/types.js";
 import type { ContactMessage } from '@prisma/client';
 import type DataService from '../services/data-service.js';
 import type LoggerService from '../services/logger-service.js';
@@ -11,7 +11,7 @@ class ContactRepository {
     private readonly log: LoggerService
   ) {}
 
-  async list(opts: Partial<SkipTake> = {}): Promise<Result<PaginatedResult<ContactMessage>>> {
+  async list(opts: Partial<SkipTake> = {}): AsyncResult<PaginatedResult<ContactMessage>> {
     try {
       const [data, total] = await Promise.all([
         this.db.p.contactMessage.findMany({
@@ -28,7 +28,27 @@ class ContactRepository {
     }
   }
 
-  async create(data: RawModel<ContactMessage>): Promise<Result<ContactMessage>> {
+  async count(where: { read?: boolean } = {}): AsyncResult<number> {
+    try {
+      const count = await this.db.p.contactMessage.count({ where });
+      return success(count);
+    } catch (err) {
+      this.log.error(err, 'contact-repo.count');
+      return failure('failed to count contact messages');
+    }
+  }
+
+  async getById(id: string): AsyncResult<MaybeNull<ContactMessage>> {
+    try {
+      const message = await this.db.p.contactMessage.findUnique({ where: { id } });
+      return success(message);
+    } catch (err) {
+      this.log.error(err, 'contact-repo.getById');
+      return failure('failed to get contact message');
+    }
+  }
+
+  async create(data: RawModel<ContactMessage>): AsyncResult<ContactMessage> {
     try {
       const message = await this.db.p.contactMessage.create({ data });
       return success(message);
@@ -38,7 +58,7 @@ class ContactRepository {
     }
   }
 
-  async update(id: string, data: Partial<RawModel<ContactMessage>>): Promise<Result<ContactMessage>> {
+  async update(id: string, data: RawModelUpdate<ContactMessage>): AsyncResult<ContactMessage> {
     try {
       const message = await this.db.p.contactMessage.update({ where: { id }, data });
       return success(message);
@@ -48,7 +68,7 @@ class ContactRepository {
     }
   }
 
-  async delete(id: string): Promise<Result<ContactMessage>> {
+  async delete(id: string): AsyncResult<ContactMessage> {
     try {
       const message = await this.db.p.contactMessage.delete({ where: { id } });
       return success(message);

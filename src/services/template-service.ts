@@ -1,13 +1,29 @@
-import type {Navigation, NavigationItem, Page, PageSection, Post, User} from "@prisma/client";
-import {success, failure, type Result} from "../lib/result.js";
-import {DEFAULT_PAGE_SIZE, paginate, toSkipTake, type Paginated} from "../lib/pagination.js";
-import {BlogList} from "../ui/views/blog-list.js";
-import {BlogPost} from "../ui/views/blog-post.js";
-import {NotFound} from "../ui/views/not-found.js";
-import {Page as PageView} from "../ui/views/page.js";
+import {success, failure, type AsyncResult} from "../lib/result.js";
+import type {MaybeNull, ValueOf} from "../lib/types.js";
+import {DEFAULT_PAGE_SIZE, paginate, toSkipTake} from "../lib/pagination.js";
+import {CacheTag, type CacheStats} from "../lib/page-cache.js";
+import type PageCache from "../lib/page-cache.js";
 import type NavigationRepository from "../repositories/navigation-repository.js";
+import type {NavigationWithItems} from "../repositories/navigation-repository.js";
 import type PageRepository from "../repositories/page-repository.js";
 import type PostRepository from "../repositories/post-repository.js";
+import {normalizePath} from "../ui/lib.js";
+import {BlogListView} from "../ui/views/site/blog-list.js";
+import {BlogPostView} from "../ui/views/site/blog-post.js";
+import {NotFoundView} from "../ui/views/site/not-found.js";
+import {PageView} from "../ui/views/site/page.js";
+import {BlogListView as AdminBlogListView} from "../ui/views/admin/blog-list.js";
+import {DashboardView} from "../ui/views/admin/dashboard.js";
+import {ErrorView} from "../ui/views/admin/error.js";
+import {LoginView} from "../ui/views/admin/login.js";
+import {MessagesListView} from "../ui/views/admin/messages-list.js";
+import {NavItemFormView} from "../ui/views/admin/nav-item-form.js";
+import {NavView} from "../ui/views/admin/nav.js";
+import {PageFormView} from "../ui/views/admin/page-form.js";
+import {PagesListView} from "../ui/views/admin/pages-list.js";
+import {PostFormView} from "../ui/views/admin/post-form.js";
+import {SectionFormView} from "../ui/views/admin/section-form.js";
+import {SettingsView} from "../ui/views/admin/settings.js";
 
 export const TEMPLATE_ERR = {
     PAGE_NOT_FOUND: "page-not-found",
@@ -16,11 +32,7 @@ export const TEMPLATE_ERR = {
     BLOG_LIST_ERROR: "blog-list-error",
 } as const;
 
-export type TemplateError = (typeof TEMPLATE_ERR)[keyof typeof TEMPLATE_ERR];
-
-export type NavigationWithItems = Navigation & {items: NavigationItem[]};
-export type PageWithSections = Page & {sections: PageSection[]};
-export type PostWithAuthor = Post & {author: User};
+export type TemplateError = ValueOf<typeof TEMPLATE_ERR>;
 
 const FALLBACK_NAV: NavigationWithItems = {
     id: "",
@@ -29,18 +41,33 @@ const FALLBACK_NAV: NavigationWithItems = {
 };
 
 class TemplateService {
-    // TODO think about invalidation, TTL etc..
-    #cache: Map<string, string> = new Map();
+    readonly admin = {
+        blogList: AdminBlogListView,
+        dashboard: DashboardView,
+        error: ErrorView,
+        login: LoginView,
+        messagesList: MessagesListView,
+        nav: NavView,
+        navItemForm: NavItemFormView,
+        pageForm: PageFormView,
+        pagesList: PagesListView,
+        postForm: PostFormView,
+        sectionForm: SectionFormView,
+        settings: SettingsView,
+    };
 
     constructor(
         private readonly pageRepo: PageRepository,
         private readonly navigationRepo: NavigationRepository,
-        private readonly postRepo: PostRepository
+        private readonly postRepo: PostRepository,
+        private readonly cache: PageCache
     ) {}
 
-    async getPage(slug: string, currentPath: string): Promise<Result<string, TemplateError>> {
+    async getPage(slug: string, currentPath: string): AsyncResult<string, TemplateError> {
+        const path = normalizePath(currentPath);
+        const isCanonical = path === `/${slug}` || (slug === "home" && path === "/");
         return this.#render(
-            `page:${slug}@${currentPath}`,
+            isCanonical ? `page:${path}` : null,
             async () => {
                 const result = await this.pageRepo.getBySlug(slug);
                 if (!result.ok) return failure(TEMPLATE_ERR.PAGE_NOT_FOUND);
@@ -49,27 +76,33 @@ class TemplateService {
                 }
                 return success(result.data);
             },
-            (page, nav) => PageView({page, nav, currentPath})
+            (page) => [CacheTag.page(page.id)],
+            (page, nav) => PageView({page, nav, currentPath: path})
         );
     }
 
-    async getBlogList(page: number, currentPath: string): Promise<Result<string, TemplateError>> {
+    async getBlogList(page: number): AsyncResult<string, TemplateError> {
         const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
         const pagination = {page: safePage, pageSize: DEFAULT_PAGE_SIZE};
         return this.#render(
-            `blog:list:${safePage}@${currentPath}`,
+            `blog:list:${safePage}`,
             async () => {
                 const result = await this.postRepo.list(toSkipTake(pagination), {published: true});
                 if (!result.ok) return failure(TEMPLATE_ERR.BLOG_LIST_ERROR);
-                return success(paginate(result.data.data, result.data.total, pagination));
+                const posts = paginate(result.data.data, result.data.total, pagination);
+                if (safePage > 1 && safePage > posts.totalPages) {
+                    return failure(TEMPLATE_ERR.PAGE_NOT_FOUND);
+                }
+                return success(posts);
             },
-            (posts, nav) => BlogList({posts, nav, currentPath})
+            () => [CacheTag.blogList],
+            (posts, nav) => BlogListView({posts, nav, currentPath: "/blog"})
         );
     }
 
-    async getBlogPost(slug: string, currentPath: string): Promise<Result<string, TemplateError>> {
+    async getBlogPost(slug: string): AsyncResult<string, TemplateError> {
         return this.#render(
-            `blog:post:${slug}@${currentPath}`,
+            `blog:post:${slug}`,
             async () => {
                 const result = await this.postRepo.getBySlug(slug);
                 if (!result.ok) return failure(TEMPLATE_ERR.POST_NOT_FOUND);
@@ -78,17 +111,22 @@ class TemplateService {
                 }
                 return success(result.data);
             },
-            (post, nav) => BlogPost({post, nav, currentPath})
+            (post) => [CacheTag.post(post.id), CacheTag.user(post.authorId)],
+            (post, nav) => BlogPostView({post, nav, currentPath: `/blog/${slug}`})
         );
     }
 
     async getNotFound(currentPath: string): Promise<string> {
         const nav = await this.#loadNav();
-        return NotFound(nav, currentPath);
+        return NotFoundView({nav, currentPath});
     }
 
     clearCache(): void {
-        this.#cache.clear();
+        this.cache.clear();
+    }
+
+    cacheStats(): CacheStats {
+        return this.cache.stats();
     }
 
     async #loadNav(): Promise<NavigationWithItems> {
@@ -98,11 +136,12 @@ class TemplateService {
     }
 
     async #render<T>(
-        cacheKey: string,
-        load: () => Promise<Result<T, TemplateError>>,
+        cacheKey: MaybeNull<string>,
+        load: () => AsyncResult<T, TemplateError>,
+        tags: (data: T) => string[],
         render: (data: T, nav: NavigationWithItems) => string
-    ): Promise<Result<string, TemplateError>> {
-        const cached = this.#cache.get(cacheKey);
+    ): AsyncResult<string, TemplateError> {
+        const cached = cacheKey ? this.cache.get(cacheKey) : undefined;
         if (cached) return success(cached);
 
         const [dataResult, navResult] = await Promise.all([load(), this.navigationRepo.get()]);
@@ -118,10 +157,9 @@ class TemplateService {
         }
 
         const html = render(dataResult.data, navResult.data);
-        this.#cache.set(cacheKey, html);
+        if (cacheKey) this.cache.set(cacheKey, html, [CacheTag.nav, ...tags(dataResult.data)]);
         return success(html);
     }
 }
 
-export {type Paginated};
 export default TemplateService;

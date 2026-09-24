@@ -1,5 +1,5 @@
-import {success, failure, type Result} from "../lib/result.js";
-import type {RawModel} from "../lib/types.js";
+import {success, failure, type AsyncResult} from "../lib/result.js";
+import type {RawModel, RawModelUpdate} from "../lib/types.js";
 import type { NavigationItem } from '@prisma/client';
 import type DataService from '../services/data-service.js';
 import type LoggerService from '../services/logger-service.js';
@@ -10,7 +10,7 @@ class NavigationItemRepository {
     private readonly log: LoggerService
   ) {}
 
-  async create(data: RawModel<NavigationItem>): Promise<Result<NavigationItem>> {
+  async create(data: RawModel<NavigationItem>): AsyncResult<NavigationItem> {
     try {
       const navigationItem = await this.db.p.navigationItem.create({ data });
       return success(navigationItem);
@@ -20,7 +20,7 @@ class NavigationItemRepository {
     }
   }
 
-  async update(id: string, data: Partial<RawModel<NavigationItem>>) {
+  async update(id: string, data: RawModelUpdate<NavigationItem>): AsyncResult<NavigationItem> {
     try {
       const navigationItem = await this.db.p.navigationItem.update({ where: { id }, data });
       return success(navigationItem);
@@ -30,7 +30,7 @@ class NavigationItemRepository {
     }
   }
 
-  async delete(id: string) {
+  async delete(id: string): AsyncResult<NavigationItem> {
     try {
       const navigationItem = await this.db.p.navigationItem.delete({ where: { id } });
       return success(navigationItem);

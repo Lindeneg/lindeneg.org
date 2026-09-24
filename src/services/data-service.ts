@@ -1,5 +1,5 @@
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
-import {success, failure, type Result} from "../lib/result.js";
+import {success, failure, type AsyncResult} from "../lib/result.js";
 import type {NodeEnv} from "../lib/types.js";
 import { PrismaClient, Prisma } from '@prisma/client';
 
@@ -35,7 +35,7 @@ class DataService {
     return this.#prisma;
   }
 
-  async checkHealth(): Promise<Result<number>> {
+  async checkHealth(): AsyncResult<number> {
     try {
       await this.p.$queryRaw`SELECT 1`;
       return success(0);

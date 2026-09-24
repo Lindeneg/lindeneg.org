@@ -1,14 +1,10 @@
 import { v2 as cloudinary, type UploadApiResponse } from 'cloudinary';
-import {success, emptySuccess, failure, type Result, type EmptyResult} from "../lib/result.js";
+import {success, emptySuccess, failure, type EmptyResult, type AsyncResult} from "../lib/result.js";
 import type {NodeEnv} from "../lib/types.js";
 import type LoggerService from './logger-service.js';
+import type { ImageFile, ImageStore, UploadedImage } from './image-store.js';
 
-export interface CloudinaryUploadResult {
-  url: string;
-  publicId: string;
-}
-
-class CloudinaryService {
+class CloudinaryService implements ImageStore {
   constructor(
     cloudinaryName: string,
     cloudinaryKey: string,
@@ -23,11 +19,11 @@ class CloudinaryService {
     });
   }
 
-  async upload(image: string): Promise<Result<CloudinaryUploadResult>> {
-    let result: UploadApiResponse | null = null;
+  async upload(file: ImageFile): AsyncResult<UploadedImage> {
+    let result: UploadApiResponse;
     try {
-      const folder = 'lindeneg.org' + (this.mode ? '/' + this.mode : '');
-      result = await cloudinary.uploader.upload(image, { folder });
+      const dataUri = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+      result = await cloudinary.uploader.upload(dataUri, { folder: `lindeneg.org/${this.mode}` });
     } catch (err) {
       this.log.warn(err, 'cloudinary-service.upload');
       return failure('failed to upload image to cloudinary');
@@ -36,9 +32,8 @@ class CloudinaryService {
   }
 
   async delete(publicId: string): Promise<EmptyResult> {
-    let result: UploadApiResponse | null = null;
     try {
-      result = await cloudinary.uploader.destroy(publicId);
+      await cloudinary.uploader.destroy(publicId);
     } catch (err) {
       this.log.warn(err, 'cloudinary-service.delete');
       return failure('failed to delete image from cloudinary');

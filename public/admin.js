@@ -39,12 +39,24 @@
             });
         }
 
+        // scrollTop we set programmatically, per pane, so the resulting scroll event is ignored
+        var expected = new Map();
+
+        var syncTo = function (from, to) {
+            var max = from.scrollHeight - from.clientHeight;
+            var ratio = max > 0 ? from.scrollTop / max : 0;
+            var before = to.scrollTop;
+            to.scrollTop = ratio * (to.scrollHeight - to.clientHeight);
+            if (to.scrollTop !== before) expected.set(to, to.scrollTop);
+        };
+
         var render = function () {
             try {
                 preview.innerHTML = window.marked.parse(source.value);
             } catch (e) {
                 preview.textContent = String(e);
             }
+            syncTo(source, preview);
         };
 
         var raf = null;
@@ -56,19 +68,14 @@
         source.addEventListener('input', schedule);
         render();
 
-        var syncing = false;
         var bind = function (from, to) {
             from.addEventListener('scroll', function () {
-                if (syncing) return;
-                console.log("SCROLLING")
-                syncing = true;
-                var max = from.scrollHeight - from.clientHeight;
-                var ratio = max > 0 ? from.scrollTop / max : 0;
-                var toMax = to.scrollHeight - to.clientHeight;
-                to.scrollTop = ratio * toMax;
-                requestAnimationFrame(function () {
-                    syncing = false;
-                });
+                if (expected.has(from)) {
+                    var echo = Math.abs(from.scrollTop - expected.get(from)) < 1;
+                    expected.delete(from);
+                    if (echo) return;
+                }
+                syncTo(from, to);
             });
         };
         bind(source, preview);

@@ -1,4 +1,4 @@
-import type {NavigationWithItems} from "../../services/template-service.js";
+import type {NavigationWithItems} from "../../repositories/navigation-repository.js";
 import {icon} from "../icons.js";
 import {esc, isActive} from "../lib.js";
 

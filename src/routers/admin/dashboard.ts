@@ -1,37 +1,16 @@
 import {Router} from "express";
-import {DashboardView} from "../../ui/admin/views/dashboard.js";
-import {type AdminDeps, loadUser, send} from "./lib.js";
+import {send} from "../../lib/http.js";
+import {getAuth} from "../../middleware/admin-auth.js";
+import type DashboardService from "../../services/dashboard-service.js";
+import type TemplateService from "../../services/template-service.js";
 
-export function dashboardRouter(deps: AdminDeps): Router {
+export function dashboardRouter(dashboardService: DashboardService, templates: TemplateService): Router {
     const router = Router();
 
     router.get("/", async (req, res) => {
-        const user = await loadUser(deps, req);
-        if (!user) return res.redirect(302, "/admin/login");
-
-        const [pages, posts, messages] = await Promise.all([
-            deps.pageRepo.list({}),
-            deps.postRepo.list({}, {}),
-            deps.contactRepo.list({}),
-        ]);
-
-        const unread = messages.ok
-            ? messages.data.data.filter((m) => !m.read).length
-            : 0;
-
-        send(
-            res,
-            DashboardView({
-                user,
-                currentPath: "/admin",
-                counts: {
-                    pages: pages.ok ? pages.data.total : 0,
-                    posts: posts.ok ? posts.data.total : 0,
-                    messages: messages.ok ? messages.data.total : 0,
-                    unreadMessages: unread,
-                },
-            })
-        );
+        const user = getAuth(req);
+        const counts = await dashboardService.counts();
+        send(res, templates.admin.dashboard({user, currentPath: "/admin", counts}));
     });
 
     return router;

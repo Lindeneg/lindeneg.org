@@ -1,4 +1,4 @@
-import type {PostWithAuthor} from "../../services/template-service.js";
+import type {PostWithAuthor} from "../../repositories/post-repository.js";
 import {esc, formatDate} from "../lib.js";
 
 export function PostCard(post: PostWithAuthor): string {

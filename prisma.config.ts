@@ -1,11 +1,17 @@
 import { defineConfig } from 'prisma/config';
 import { unwrap, loadEnv, withRequired, toString, refine, nonEmpty } from '@lindeneg/cl-env';
 
+// mirrors envFiles() in src/lib/env.ts
+const envFiles =
+  process.env.NODE_ENV === 'test'
+    ? ['.env.test']
+    : ['.env', '.env.default', '.env.local', '.env.prod'];
+
 const env = unwrap(
   loadEnv(
     {
       files: [],
-      optionalFiles: ['.env', '.env.default', '.env.local', '.env.test'],
+      optionalFiles: envFiles,
       includeProcessEnv: false,
       transformKeys: false,
     },

@@ -1,10 +1,10 @@
-import {success, failure, emptySuccess, type Result, type EmptyResult} from "../lib/result.js";
-import type {RawModel, MaybeNull} from "../lib/types.js";
+import {success, failure, emptySuccess, type EmptyResult, type AsyncResult} from "../lib/result.js";
+import type {MaybeNull, RawModelUpdate} from "../lib/types.js";
 import type {Navigation, NavigationItem} from "@prisma/client";
 import type DataService from "../services/data-service.js";
 import type LoggerService from "../services/logger-service.js";
 
-type NavigationWithItems = Navigation & {items: NavigationItem[]};
+export type NavigationWithItems = Navigation & {items: NavigationItem[]};
 
 class NavigationRepository {
     constructor(
@@ -12,7 +12,7 @@ class NavigationRepository {
         private readonly log: LoggerService
     ) {}
 
-    async get(): Promise<Result<MaybeNull<NavigationWithItems>>> {
+    async get(): AsyncResult<MaybeNull<NavigationWithItems>> {
         try {
             const navigation = await this.db.p.navigation.findFirst({include: {items: true}});
             return success(navigation);
@@ -38,9 +38,9 @@ class NavigationRepository {
 
     async update(
         id: string,
-        data: Partial<RawModel<Navigation>>,
+        data: RawModelUpdate<Navigation>,
         includeItems = false
-    ): Promise<Result<NavigationWithItems | Navigation>> {
+    ): AsyncResult<NavigationWithItems | Navigation> {
         try {
             const navigation = await this.db.p.navigation.update({
                 where: {id},

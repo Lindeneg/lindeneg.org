@@ -100,11 +100,11 @@ export function normalizePath(p: string): string {
     return lower.length > 1 && lower.endsWith("/") ? lower.slice(0, -1) : lower;
 }
 
-export function isActive(itemHref: string, currentPath: string): boolean {
+export function isActive(itemHref: string, currentPath: string, root = "/"): boolean {
     if (/^https?:\/\//i.test(itemHref)) return false;
     const item = normalizePath(itemHref);
     const cur = normalizePath(currentPath);
-    if (item === "/") return cur === "/";
+    if (item === normalizePath(root)) return cur === item;
     return cur === item || cur.startsWith(item + "/");
 }
 

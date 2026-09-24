@@ -1,8 +1,10 @@
-import {success, failure, type Result} from "../lib/result.js";
-import type {RawModel} from "../lib/types.js";
-import type { PageSection } from '@prisma/client';
+import {success, failure, type AsyncResult} from "../lib/result.js";
+import type {RawModel, MaybeNull, RawModelUpdate} from "../lib/types.js";
+import type { Page, PageSection } from '@prisma/client';
 import type DataService from '../services/data-service.js';
 import type LoggerService from '../services/logger-service.js';
+
+export type SectionWithPage = PageSection & { page: Page };
 
 class SectionRepository {
   constructor(
@@ -10,7 +12,17 @@ class SectionRepository {
     private readonly log: LoggerService
   ) {}
 
-  async create(data: RawModel<PageSection>): Promise<Result<PageSection>> {
+  async getById(id: string): AsyncResult<MaybeNull<SectionWithPage>> {
+    try {
+      const section = await this.db.p.pageSection.findUnique({ where: { id }, include: { page: true } });
+      return success(section);
+    } catch (err) {
+      this.log.error(err, 'section-repo.getById');
+      return failure('failed to get section');
+    }
+  }
+
+  async create(data: RawModel<PageSection>): AsyncResult<PageSection> {
     try {
       const section = await this.db.p.pageSection.create({ data });
       return success(section);
@@ -20,7 +32,7 @@ class SectionRepository {
     }
   }
 
-  async update(id: string, data: Partial<RawModel<PageSection>>): Promise<Result<PageSection>> {
+  async update(id: string, data: RawModelUpdate<PageSection>): AsyncResult<PageSection> {
     try {
       const section = await this.db.p.pageSection.update({ where: { id }, data });
       return success(section);
@@ -30,7 +42,7 @@ class SectionRepository {
     }
   }
 
-  async delete(id: string): Promise<Result<PageSection>> {
+  async delete(id: string): AsyncResult<PageSection> {
     try {
       const section = await this.db.p.pageSection.delete({ where: { id } });
       return success(section);

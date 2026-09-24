@@ -1,11 +1,16 @@
-import {success, failure, type Result} from "../lib/result.js";
-import type {RawModel, MaybeNull} from "../lib/types.js";
-import type {Post, User} from "@prisma/client";
+import {success, failure, type AsyncResult} from "../lib/result.js";
+import type {RawModel, MaybeNull, RawModelUpdate} from "../lib/types.js";
+import type {Post} from "@prisma/client";
 import type DataService from "../services/data-service.js";
 import type LoggerService from "../services/logger-service.js";
 import type {SkipTake, PaginatedResult} from "../lib/pagination.js";
+import {userOmit, type User} from "./user-repository.js";
 
 export type PostWithAuthor = Post & {author: User};
+
+type PostWhere = {published?: boolean};
+
+const includeAuthor = {author: {omit: userOmit}} as const;
 
 class PostRepository {
     constructor(
@@ -15,13 +20,13 @@ class PostRepository {
 
     async list(
         opts: Partial<SkipTake> = {},
-        where: {published?: boolean} = {}
-    ): Promise<Result<PaginatedResult<PostWithAuthor>>> {
+        where: PostWhere = {}
+    ): AsyncResult<PaginatedResult<PostWithAuthor>> {
         try {
             const [data, total] = await Promise.all([
                 this.db.p.post.findMany({
                     where,
-                    include: {author: true},
+                    include: includeAuthor,
                     orderBy: {createdAt: "desc"},
                     skip: opts.skip,
                     take: opts.take,
@@ -35,9 +40,19 @@ class PostRepository {
         }
     }
 
-    async getById(id: string): Promise<Result<MaybeNull<PostWithAuthor>>> {
+    async count(where: PostWhere = {}): AsyncResult<number> {
         try {
-            const post = await this.db.p.post.findUnique({where: {id}, include: {author: true}});
+            const count = await this.db.p.post.count({where});
+            return success(count);
+        } catch (err) {
+            this.log.error(err, "post-repo.count");
+            return failure("failed to count posts");
+        }
+    }
+
+    async getById(id: string): AsyncResult<MaybeNull<PostWithAuthor>> {
+        try {
+            const post = await this.db.p.post.findUnique({where: {id}, include: includeAuthor});
             return success(post);
         } catch (err) {
             this.log.error(err, "post-repo.getById");
@@ -45,9 +60,9 @@ class PostRepository {
         }
     }
 
-    async getBySlug(slug: string): Promise<Result<MaybeNull<PostWithAuthor>>> {
+    async getBySlug(slug: string): AsyncResult<MaybeNull<PostWithAuthor>> {
         try {
-            const post = await this.db.p.post.findUnique({where: {slug}, include: {author: true}});
+            const post = await this.db.p.post.findUnique({where: {slug}, include: includeAuthor});
             return success(post);
         } catch (err) {
             this.log.error(err, "post-repo.getBySlug");
@@ -55,9 +70,9 @@ class PostRepository {
         }
     }
 
-    async create(data: RawModel<Omit<Post, "thumbnailId">>): Promise<Result<PostWithAuthor>> {
+    async create(data: RawModel<Post>): AsyncResult<PostWithAuthor> {
         try {
-            const post = await this.db.p.post.create({data, include: {author: true}});
+            const post = await this.db.p.post.create({data, include: includeAuthor});
             return success(post);
         } catch (err) {
             this.log.error(err, "post-repo.create");
@@ -65,9 +80,9 @@ class PostRepository {
         }
     }
 
-    async update(id: string, data: Partial<RawModel<Post>>): Promise<Result<PostWithAuthor>> {
+    async update(id: string, data: RawModelUpdate<Post>): AsyncResult<PostWithAuthor> {
         try {
-            const post = await this.db.p.post.update({where: {id}, data, include: {author: true}});
+            const post = await this.db.p.post.update({where: {id}, data, include: includeAuthor});
             return success(post);
         } catch (err) {
             this.log.error(err, "post-repo.update");
@@ -75,7 +90,7 @@ class PostRepository {
         }
     }
 
-    async delete(id: string): Promise<Result<Post>> {
+    async delete(id: string): AsyncResult<Post> {
         try {
             const post = await this.db.p.post.delete({where: {id}});
             return success(post);

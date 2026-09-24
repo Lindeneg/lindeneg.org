@@ -1,44 +1,46 @@
 import {Router} from "express";
-import {parsePagination, toSkipTake} from "../../lib/pagination.js";
-import {MessagesListView} from "../../ui/admin/views/messages-list.js";
-import {type AdminDeps, loadUser, send} from "./lib.js";
+import {send} from "../../lib/http.js";
+import {parsePagination} from "../../lib/pagination.js";
+import {getAuth} from "../../middleware/admin-auth.js";
+import {MessageError} from "../../services/message-service.js";
+import type MessageService from "../../services/message-service.js";
+import type TemplateService from "../../services/template-service.js";
 
-export function messagesRouter(deps: AdminDeps): Router {
+const currentPath = "/admin/messages";
+
+export function messagesRouter(messageService: MessageService, templates: TemplateService): Router {
     const router = Router();
 
     router.get("/messages", async (req, res) => {
-        const user = await loadUser(deps, req);
-        if (!user) return res.redirect(302, "/admin/login");
-        const pagination = parsePagination(req);
-        const result = await deps.contactRepo.list(toSkipTake(pagination));
-        if (!result.ok) return send(res, "Failed", 500);
-        const totalPages = Math.max(1, Math.ceil(result.data.total / pagination.pageSize));
-        send(
-            res,
-            MessagesListView({
-                user,
-                currentPath: "/admin/messages",
-                messages: result.data.data,
-                page: pagination.page,
-                totalPages,
-            })
-        );
+        const user = getAuth(req);
+        const result = await messageService.list(parsePagination(req));
+        if (!result.ok) {
+            return send(res, templates.admin.error({user, currentPath, message: "Failed to load messages"}), 500);
+        }
+        send(res, templates.admin.messagesList({user, currentPath, messages: result.data}));
     });
 
     router.post("/messages/:id/toggle-read", async (req, res) => {
-        const all = await deps.contactRepo.list({});
-        if (!all.ok) return send(res, "Failed", 500);
-        const found = all.data.data.find((m) => m.id === req.params.id);
-        if (!found) return send(res, "Not found", 404);
-        const result = await deps.contactRepo.update(req.params.id, {read: !found.read});
-        if (!result.ok) return send(res, "Failed", 500);
-        res.redirect(302, "/admin/messages");
+        const user = getAuth(req);
+        const result = await messageService.toggleRead(req.params.id);
+        if (!result.ok) {
+            const notFound = result.ctx === MessageError.NOT_FOUND;
+            return send(
+                res,
+                templates.admin.error({user, currentPath, message: notFound ? "Message not found" : "Failed to update message"}),
+                notFound ? 404 : 500
+            );
+        }
+        res.redirect(302, currentPath);
     });
 
     router.post("/messages/:id/delete", async (req, res) => {
-        const result = await deps.contactRepo.delete(req.params.id);
-        if (!result.ok) return send(res, "Failed", 500);
-        res.redirect(302, "/admin/messages");
+        const user = getAuth(req);
+        const result = await messageService.delete(req.params.id);
+        if (!result.ok) {
+            return send(res, templates.admin.error({user, currentPath, message: "Failed to delete message"}), 500);
+        }
+        res.redirect(302, currentPath);
     });
 
     return router;

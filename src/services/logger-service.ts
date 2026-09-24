@@ -58,12 +58,12 @@ class LoggerService {
             quietReqLogger: true,
             customSuccessMessage: (req, res, responseTime) => {
                 const r = req as Request;
-                const user = r.auth?.userId ? ` user=${r.auth.userId}` : "";
+                const user = r.auth ? ` user=${r.auth.id}` : "";
                 return `${req.id} ${req.method} ${req.url} ${res.statusCode}${user} ${responseTime}ms`;
             },
             customErrorMessage: (req, res, err) => {
                 const r = req as Request;
-                const user = r.auth?.userId ? ` user=${r.auth.userId}` : "";
+                const user = r.auth ? ` user=${r.auth.id}` : "";
                 return `${req.id} ${req.method} ${req.url} ${res.statusCode}${user} ${err.message}`;
             },
         });

@@ -1,11 +1,11 @@
-import {success, failure, type Result} from "../lib/result.js";
-import type {RawModel, MaybeNull} from "../lib/types.js";
+import {success, failure, type AsyncResult} from "../lib/result.js";
+import type {RawModel, MaybeNull, RawModelUpdate} from "../lib/types.js";
 import type { Page, PageSection } from '@prisma/client';
 import type DataService from '../services/data-service.js';
 import type LoggerService from '../services/logger-service.js';
 import type { SkipTake, PaginatedResult } from '../lib/pagination.js';
 
-type PageWithSections = Page & { sections: PageSection[] };
+export type PageWithSections = Page & { sections: PageSection[] };
 
 class PageRepository {
   constructor(
@@ -13,7 +13,7 @@ class PageRepository {
     private readonly log: LoggerService
   ) {}
 
-  async list(opts: Partial<SkipTake> = {}): Promise<Result<PaginatedResult<PageWithSections>>> {
+  async list(opts: Partial<SkipTake> = {}): AsyncResult<PaginatedResult<PageWithSections>> {
     try {
       const [data, total] = await Promise.all([
         this.db.p.page.findMany({
@@ -31,7 +31,17 @@ class PageRepository {
     }
   }
 
-  async getById(id: string): Promise<Result<MaybeNull<PageWithSections>>> {
+  async count(): AsyncResult<number> {
+    try {
+      const count = await this.db.p.page.count();
+      return success(count);
+    } catch (err) {
+      this.log.error(err, 'page-repo.count');
+      return failure('failed to count pages');
+    }
+  }
+
+  async getById(id: string): AsyncResult<MaybeNull<PageWithSections>> {
     try {
       const page = await this.db.p.page.findUnique({ where: { id }, include: { sections: true } });
       return success(page);
@@ -41,7 +51,7 @@ class PageRepository {
     }
   }
 
-  async getBySlug(slug: string): Promise<Result<MaybeNull<PageWithSections>>> {
+  async getBySlug(slug: string): AsyncResult<MaybeNull<PageWithSections>> {
     try {
       const page = await this.db.p.page.findUnique({ where: { slug }, include: { sections: true } });
       return success(page);
@@ -51,7 +61,7 @@ class PageRepository {
     }
   }
 
-  async create(data: RawModel<Page>): Promise<Result<PageWithSections>> {
+  async create(data: RawModel<Page>): AsyncResult<PageWithSections> {
     try {
       const page = await this.db.p.page.create({ data, include: { sections: true } });
       return success(page);
@@ -61,7 +71,7 @@ class PageRepository {
     }
   }
 
-  async update(id: string, data: Partial<RawModel<Page>>): Promise<Result<PageWithSections>> {
+  async update(id: string, data: RawModelUpdate<Page>): AsyncResult<PageWithSections> {
     try {
       const page = await this.db.p.page.update({ where: { id }, data, include: { sections: true } });
       return success(page);
@@ -71,7 +81,7 @@ class PageRepository {
     }
   }
 
-  async delete(id: string): Promise<Result<Page>> {
+  async delete(id: string): AsyncResult<Page> {
     try {
       const page = await this.db.p.page.delete({ where: { id } });
       return success(page);

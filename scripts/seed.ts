@@ -18,7 +18,10 @@ import {hash} from "bcrypt";
         loadEnv(
             {
                 files: [],
-                optionalFiles: [".env", ".env.default", ".env.local", ".env.test"],
+                optionalFiles:
+                    process.env.NODE_ENV === "test"
+                        ? [".env.test"]
+                        : [".env", ".env.default", ".env.local", ".env.prod"],
                 includeProcessEnv: false,
                 transformKeys: false,
             },

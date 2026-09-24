@@ -4,7 +4,7 @@ export const DEFAULT_PAGE_SIZE = 6;
 const DEFAULT_PAGE = 1;
 const MAX_PAGE_SIZE = 100;
 
-interface PaginationParams {
+export interface PaginationParams {
     page: number;
     pageSize: number;
 }

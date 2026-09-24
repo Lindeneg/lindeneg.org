@@ -2,11 +2,7 @@ import {Router, type Response} from "express";
 import {slugify} from "../lib/slugify.js";
 import type TemplateService from "../services/template-service.js";
 
-export type SitePublicRouterDeps = {
-    templateService: TemplateService;
-};
-
-export function makeSitePublicRouter({templateService}: SitePublicRouterDeps): Router {
+export function makeSitePublicRouter(templateService: TemplateService): Router {
     const router = Router();
 
     const sendNotFound = async (res: Response, currentPath: string) => {
@@ -16,13 +12,13 @@ export function makeSitePublicRouter({templateService}: SitePublicRouterDeps): R
 
     router.get("/blog", async (req, res) => {
         const page = Number(req.query.page) || 1;
-        const result = await templateService.getBlogList(page, req.path);
+        const result = await templateService.getBlogList(page);
         if (result.ok) return res.type("html").send(result.data);
         await sendNotFound(res, req.path);
     });
 
     router.get("/blog/:slug", async (req, res) => {
-        const result = await templateService.getBlogPost(req.params.slug, req.path);
+        const result = await templateService.getBlogPost(req.params.slug);
         if (result.ok) return res.type("html").send(result.data);
         await sendNotFound(res, req.path);
     });

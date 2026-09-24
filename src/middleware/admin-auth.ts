@@ -1,28 +1,18 @@
 import type {Request, Response, NextFunction} from "express";
 import type AuthService from "../services/auth-service.js";
-import type UserRepository from "../repositories/user-repository.js";
+import type {User} from "../repositories/user-repository.js";
 
-export function createAdminAuth(
-    authService: AuthService,
-    userRepo: UserRepository,
-    cookieName: string
-) {
-    const toLogin = (res: Response) => res.redirect(302, "/admin/login");
-
+export function createAdminAuth(authService: AuthService) {
     return async (req: Request, res: Response, next: NextFunction) => {
+        const result = await authService.authenticate(authService.getToken(req));
+        if (!result.ok) return res.redirect(302, "/admin/login");
 
-        const token = req.cookies?.[cookieName];
-        if (!token) return toLogin(res);
-
-        const verified = authService.verifyAccessToken(token);
-        if (!verified.ok) return toLogin(res);
-
-        const userResult = await userRepo.get(verified.data.userId);
-        if (!userResult.ok || !userResult.data || userResult.data.name !== verified.data.name) {
-            return toLogin(res);
-        }
-
-        req.auth = {...verified.data};
+        req.auth = result.data;
         next();
     };
+}
+
+export function getAuth(req: Request): User {
+    if (!req.auth) throw new Error("getAuth used on a route not behind adminAuth");
+    return req.auth;
 }
