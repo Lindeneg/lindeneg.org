@@ -1,4 +1,4 @@
-import type {Post} from "@prisma/client";
+import type {PostWithRelations} from "../../../repositories/post-repository.js";
 import {esc} from "../../lib.js";
 import {EditorLayout} from "../../components/layout.js";
 import {TopError} from "../../components/form.js";
@@ -7,11 +7,12 @@ export type PostFormValues = {
     title?: string;
     content?: string;
     published?: boolean;
+    tags?: string;
 };
 
 export type PostFormViewProps = {
     mode: "create" | "edit";
-    post?: Post;
+    post?: PostWithRelations;
     values?: PostFormValues;
     errors?: Record<string, string>;
     topError?: string;
@@ -22,6 +23,7 @@ export function PostFormView({mode, post, values, errors, topError}: PostFormVie
         title: post?.title ?? "",
         content: post?.content ?? "",
         published: post?.published ?? false,
+        tags: post?.tags.map((tag) => tag.name).join(", ") ?? "",
     };
     const e = errors ?? {};
     const action = mode === "create" ? "/admin/blog/new" : `/admin/blog/${post!.id}/edit`;
@@ -65,6 +67,13 @@ export function PostFormView({mode, post, values, errors, topError}: PostFormVie
                     <input id="f_thumbnail" type="file" name="thumbnail" accept="image/*" class="form-input" />
                     ${thumbnailError}
                     ${post?.thumbnail ? `<label class="form-check"><input type="checkbox" name="removeThumbnail" value="1" /><span>Remove current thumbnail</span></label>` : ""}
+                </div>
+            </details>
+            <details class="md-editor-meta">
+                <summary>Tags${v.tags ? `: ${esc(v.tags)}` : ""}</summary>
+                <div class="md-editor-meta-body">
+                    <label class="form-label" for="f_tags">Broad topics, comma separated, e.g. music, programming</label>
+                    <input id="f_tags" type="text" name="tags" value="${esc(v.tags ?? "")}" class="form-input" />
                 </div>
             </details>
             <div class="md-editor-split">

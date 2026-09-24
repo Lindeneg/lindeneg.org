@@ -716,6 +716,71 @@ img {
     margin: 0;
 }
 
+.blog-title-tag {
+    color: var(--muted-foreground);
+    font-weight: 500;
+}
+
+.tag-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+    margin: -1rem 0 2rem;
+}
+
+.tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    margin: 0;
+}
+
+.blog-post-header .tag-list {
+    margin-top: 1rem;
+}
+
+.tag {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.15rem;
+    padding: 0.1rem 0;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    border-bottom: 1px solid transparent;
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.tag-hash {
+    opacity: 0.5;
+}
+
+a.tag:hover {
+    color: var(--foreground);
+}
+
+.tag[aria-current="page"] {
+    color: var(--foreground);
+    border-bottom-color: var(--foreground);
+}
+
+.tag-count {
+    align-self: flex-start;
+    margin-left: 0.15rem;
+    font-size: 0.625rem;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.65;
+}
+
+.post-card-topic {
+    margin: 0 0 0.35rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+}
+
 /* ---- pagination ---- */
 
 .pager {

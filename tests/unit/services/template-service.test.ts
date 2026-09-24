@@ -11,6 +11,7 @@ describe("TemplateService", () => {
     let getBySlug: Mock;
     let getNav: Mock;
     let listPosts: Mock;
+    let listTags: Mock;
     let getPost: Mock;
     let cache: PageCache;
     let service: TemplateService;
@@ -19,14 +20,56 @@ describe("TemplateService", () => {
         getBySlug = vi.fn().mockResolvedValue(success(makePage()));
         getNav = vi.fn().mockResolvedValue(success(makeNav()));
         listPosts = vi.fn().mockResolvedValue(success({data: [makePost()], total: 1}));
+        listTags = vi.fn().mockResolvedValue(success([{name: "jazz", count: 1}]));
         getPost = vi.fn().mockImplementation(async (slug: string) => success(makePost({id: slug, slug})));
         cache = new PageCache(100);
         service = new TemplateService(
             fake<PageRepository>({getBySlug}),
             fake<NavigationRepository>({get: getNav}),
-            fake<PostRepository>({list: listPosts, getBySlug: getPost}),
+            fake<PostRepository>({list: listPosts, getBySlug: getPost, listPublishedTags: listTags}),
             cache
         );
+    });
+
+    describe("getBlogList with tags", () => {
+        it("filters by the tag and marks it active in the tag bar", async () => {
+            const result = await service.getBlogList(1, "jazz");
+
+            if (!result.ok) throw new Error("expected success");
+            expect(listPosts).toHaveBeenCalledWith(expect.anything(), {published: true, tag: "jazz"});
+            expect(result.data).toContain(`href="/blog" class="tag" aria-current="page"><span class="tag-hash">#</span>jazz`);
+            expect(result.data).toContain("#jazz</span></h1>");
+        });
+
+        it("renders the tag bar without an active tag", async () => {
+            const result = await service.getBlogList(1, undefined);
+
+            if (!result.ok) throw new Error("expected success");
+            expect(result.data).toContain(`<a href="/blog" class="tag" aria-current="page">All</a>`);
+            expect(result.data).toContain(`href="/blog?tag=jazz"`);
+        });
+
+        it("treats a tag without published posts as not found and does not cache it", async () => {
+            listPosts.mockResolvedValue(success({data: [], total: 0}));
+
+            expect(await service.getBlogList(1, "nope")).toEqual(failure(TEMPLATE_ERR.PAGE_NOT_FOUND));
+            await service.getBlogList(1, "nope");
+            expect(listPosts).toHaveBeenCalledTimes(2);
+        });
+
+        it("caches each tag separately", async () => {
+            await service.getBlogList(1, "jazz");
+            await service.getBlogList(1, "jazz");
+            await service.getBlogList(1, undefined);
+
+            expect(listPosts).toHaveBeenCalledTimes(2);
+        });
+
+        it("fails when the tags can't be loaded", async () => {
+            listTags.mockResolvedValue(failure("db"));
+
+            expect(await service.getBlogList(1, undefined)).toEqual(failure(TEMPLATE_ERR.BLOG_LIST_ERROR));
+        });
     });
 
     describe("cache tags", () => {
@@ -51,11 +94,11 @@ describe("TemplateService", () => {
         });
 
         it("drops the blog list but not posts on blog-list invalidation", async () => {
-            await service.getBlogList(1);
+            await service.getBlogList(1, undefined);
             await service.getBlogPost("a");
 
             cache.invalidate([CacheTag.blogList]);
-            await service.getBlogList(1);
+            await service.getBlogList(1, undefined);
             await service.getBlogPost("a");
 
             expect(listPosts).toHaveBeenCalledTimes(2);
@@ -73,7 +116,7 @@ describe("TemplateService", () => {
 
         it("drops everything on a nav change", async () => {
             await service.getPage("about", "/about");
-            await service.getBlogList(1);
+            await service.getBlogList(1, undefined);
             await service.getBlogPost("a");
 
             cache.invalidate([CacheTag.nav]);
@@ -137,7 +180,7 @@ describe("TemplateService", () => {
 
     describe("getBlogList", () => {
         it("renders the requested page of published posts", async () => {
-            const result = await service.getBlogList(1);
+            const result = await service.getBlogList(1, undefined);
 
             expect(result.ok).toBe(true);
             expect(listPosts).toHaveBeenCalledWith(expect.objectContaining({skip: 0}), {published: true});
@@ -146,21 +189,21 @@ describe("TemplateService", () => {
         it("renders an empty first page", async () => {
             listPosts.mockResolvedValue(success({data: [], total: 0}));
 
-            const result = await service.getBlogList(1);
+            const result = await service.getBlogList(1, undefined);
 
             if (!result.ok) throw new Error("expected success");
             expect(result.data).toContain("No posts yet");
         });
 
         it("rejects pages past the end so they are never cached", async () => {
-            expect(await service.getBlogList(999)).toEqual(failure(TEMPLATE_ERR.PAGE_NOT_FOUND));
-            await service.getBlogList(999);
+            expect(await service.getBlogList(999, undefined)).toEqual(failure(TEMPLATE_ERR.PAGE_NOT_FOUND));
+            await service.getBlogList(999, undefined);
             expect(listPosts).toHaveBeenCalledTimes(2);
         });
 
         it("treats invalid page numbers as page 1", async () => {
-            await service.getBlogList(NaN);
-            await service.getBlogList(-3);
+            await service.getBlogList(NaN, undefined);
+            await service.getBlogList(-3, undefined);
 
             expect(listPosts).toHaveBeenCalledOnce();
         });

@@ -3,7 +3,7 @@ import type {ContactMessage, NavigationItem, PageSection} from "@prisma/client";
 import type LoggerService from "../../src/services/logger-service.js";
 import type PageCache from "../../src/lib/page-cache.js";
 import type {User, UserWithPassword} from "../../src/repositories/user-repository.js";
-import type {PostWithAuthor} from "../../src/repositories/post-repository.js";
+import type {PostWithRelations} from "../../src/repositories/post-repository.js";
 import type {PageWithSections} from "../../src/repositories/page-repository.js";
 import type {NavigationWithItems} from "../../src/repositories/navigation-repository.js";
 
@@ -47,7 +47,7 @@ export function makeUserWithPassword(password: string, overrides: Partial<User> 
     return {...makeUser(overrides), password};
 }
 
-export function makePost(overrides: Partial<PostWithAuthor> = {}): PostWithAuthor {
+export function makePost(overrides: Partial<PostWithRelations> = {}): PostWithRelations {
     return {
         id: "post-1",
         title: "Hello World",
@@ -58,6 +58,7 @@ export function makePost(overrides: Partial<PostWithAuthor> = {}): PostWithAutho
         thumbnailId: "",
         authorId: "user-1",
         author: makeUser(),
+        tags: [{id: "tag-1", name: "jazz"}],
         createdAt: date,
         updatedAt: date,
         ...overrides,

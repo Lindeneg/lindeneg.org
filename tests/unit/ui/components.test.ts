@@ -2,6 +2,7 @@ import {describe, expect, it} from "vitest";
 import {Pagination} from "../../../src/ui/components/pagination.js";
 import {Avatar} from "../../../src/ui/components/avatar.js";
 import {Field, TopError} from "../../../src/ui/components/form.js";
+import {TagBar, TagLinks, TopicLabel} from "../../../src/ui/components/tags.js";
 
 describe("Pagination", () => {
     it("renders nothing for a single page", () => {
@@ -20,6 +21,40 @@ describe("Pagination", () => {
         const html = Pagination({page: 3, totalPages: 3, basePath: "/admin/pages", buttonClass: "btn"});
         expect(html).toContain(`<a href="/admin/pages?page=2" class="btn">Previous</a>`);
         expect(html).toContain(`<span class="btn is-disabled">Next</span>`);
+    });
+
+    it("keeps extra params, escaped, in the page links", () => {
+        const html = Pagination({page: 2, totalPages: 3, basePath: "/blog", params: {tag: "c&c"}});
+        expect(html).toContain(`href="/blog?tag=c%26c&amp;page=1"`);
+        expect(html).toContain(`href="/blog?tag=c%26c&amp;page=3"`);
+    });
+});
+
+describe("tags", () => {
+    const hash = `<span class="tag-hash">#</span>`;
+
+    it("renders nothing without tags", () => {
+        expect(TopicLabel([])).toBe("");
+        expect(TagLinks([])).toBe("");
+        expect(TagBar({tags: [], active: undefined})).toBe("");
+    });
+
+    it("links tags to the filtered blog list", () => {
+        expect(TagLinks([{name: "music"}])).toContain(`<a href="/blog?tag=music" class="tag">${hash}music</a>`);
+    });
+
+    it("shows only the first tag as an escaped topic label, without a link", () => {
+        const html = TopicLabel([{name: "<music>"}, {name: "programming"}]);
+        expect(html).toBe(`<p class="post-card-topic">&lt;music&gt;</p>`);
+    });
+
+    it("marks the active tag and links it back to the unfiltered list", () => {
+        const html = TagBar({tags: [{name: "music", count: 4}, {name: "programming", count: 2}], active: "music"});
+        expect(html).toContain(`<a href="/blog" class="tag">All</a>`);
+        expect(html).toContain(
+            `<a href="/blog" class="tag" aria-current="page">${hash}music<span class="tag-count">4</span></a>`
+        );
+        expect(html).toContain(`<a href="/blog?tag=programming" class="tag">${hash}programming`);
     });
 });
 

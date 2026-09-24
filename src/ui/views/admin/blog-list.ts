@@ -1,5 +1,5 @@
 import type {User} from "../../../repositories/user-repository.js";
-import type {PostWithAuthor} from "../../../repositories/post-repository.js";
+import type {PostWithRelations} from "../../../repositories/post-repository.js";
 import type {Paginated} from "../../../lib/pagination.js";
 import {esc, formatDate} from "../../lib.js";
 import {AdminLayout} from "../../components/layout.js";
@@ -10,10 +10,10 @@ import {Pagination} from "../../components/pagination.js";
 export type BlogListViewProps = {
     user: User;
     currentPath: string;
-    posts: Paginated<PostWithAuthor>;
+    posts: Paginated<PostWithRelations>;
 };
 
-function row(p: PostWithAuthor): string {
+function row(p: PostWithRelations): string {
     return `
         <tr>
             <td>

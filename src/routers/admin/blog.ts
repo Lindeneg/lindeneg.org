@@ -14,6 +14,10 @@ const PostSchema = z.object({
     content: z.string().min(1, "Required"),
     published: z.unknown().transform(toBool),
     removeThumbnail: z.unknown().transform(toBool),
+    tags: z
+        .string()
+        .default("")
+        .transform((tags) => tags.split(",")),
 });
 
 const currentPath = "/admin/blog";
@@ -44,8 +48,8 @@ export function blogRouter(postService: PostService, templates: TemplateService)
                 400
             );
         }
-        const {title, content, published} = parsed.data;
-        const result = await postService.create(user.id, {title, content, published, thumbnail: req.file});
+        const {title, content, published, tags} = parsed.data;
+        const result = await postService.create(user.id, {title, content, published, tags, thumbnail: req.file});
         if (!result.ok) {
             const topError =
                 result.ctx === PostError.UPLOAD_ERROR
@@ -97,14 +101,14 @@ export function blogRouter(postService: PostService, templates: TemplateService)
             );
         }
 
-        const {title, content, published, removeThumbnail} = parsed.data;
+        const {title, content, published, removeThumbnail, tags} = parsed.data;
         const thumbnail: ThumbnailChange = req.file
             ? {kind: "replace", file: req.file}
             : removeThumbnail
               ? {kind: "remove"}
               : {kind: "keep"};
 
-        const result = await postService.update(id, {title, content, published, thumbnail});
+        const result = await postService.update(id, {title, content, published, tags, thumbnail});
         if (!result.ok) {
             const topError =
                 result.ctx === PostError.UPLOAD_ERROR ? "Failed to upload thumbnail" : "Failed to update post";

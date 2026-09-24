@@ -34,26 +34,46 @@ describe("PostService", () => {
 
     describe("create", () => {
         it("uploads the thumbnail before creating the post", async () => {
-            const result = await service.create("user-1", {title: "My Post!", content: "c", published: true, thumbnail: file});
+            const result = await service.create("user-1", {
+                title: "My Post!",
+                content: "c",
+                published: true,
+                tags: [],
+                thumbnail: file,
+            });
 
             expect(result.ok).toBe(true);
             expect(store.upload.mock.invocationCallOrder[0]).toBeLessThan(repo.create.mock.invocationCallOrder[0]);
-            expect(repo.create).toHaveBeenCalledWith({
-                title: "My Post!",
-                slug: "my-post",
+            expect(repo.create).toHaveBeenCalledWith(
+                {
+                    title: "My Post!",
+                    slug: "my-post",
+                    content: "c",
+                    published: true,
+                    thumbnail: uploaded.url,
+                    thumbnailId: uploaded.publicId,
+                    authorId: "user-1",
+                },
+                []
+            );
+            expect(invalidate).toHaveBeenCalledExactlyOnceWith(["blog-list"]);
+        });
+
+        it("normalizes and dedupes tags", async () => {
+            await service.create("user-1", {
+                title: "t",
                 content: "c",
                 published: true,
-                thumbnail: uploaded.url,
-                thumbnailId: uploaded.publicId,
-                authorId: "user-1",
+                tags: ["Jazz", " Error Handling ", "", "jazz", "C++"],
             });
-            expect(invalidate).toHaveBeenCalledExactlyOnceWith(["blog-list"]);
+
+            expect(repo.create).toHaveBeenCalledWith(expect.anything(), ["jazz", "error-handling", "c"]);
         });
 
         it("does not create the post when the upload fails", async () => {
             store.upload.mockResolvedValue(failure("boom"));
 
-            const result = await service.create("user-1", {title: "t", content: "c", published: false, thumbnail: file});
+            const result = await service.create("user-1", {title: "t", content: "c", published: false, tags: [], thumbnail: file});
 
             expect(result).toEqual(failure(PostError.UPLOAD_ERROR));
             expect(repo.create).not.toHaveBeenCalled();
@@ -63,7 +83,7 @@ describe("PostService", () => {
         it("deletes the uploaded image when the post can't be created", async () => {
             repo.create.mockResolvedValue(failure("unique constraint"));
 
-            const result = await service.create("user-1", {title: "t", content: "c", published: false, thumbnail: file});
+            const result = await service.create("user-1", {title: "t", content: "c", published: false, tags: [], thumbnail: file});
 
             expect(result).toEqual(failure(PostError.DB_ERROR));
             expect(store.delete).toHaveBeenCalledWith(uploaded.publicId);
@@ -71,15 +91,15 @@ describe("PostService", () => {
         });
 
         it("creates without a thumbnail", async () => {
-            await service.create("user-1", {title: "t", content: "c", published: false});
+            await service.create("user-1", {title: "t", content: "c", published: false, tags: []});
 
             expect(store.upload).not.toHaveBeenCalled();
-            expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({thumbnail: "", thumbnailId: ""}));
+            expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({thumbnail: "", thumbnailId: ""}), []);
         });
     });
 
     describe("update", () => {
-        const input = {title: "New Title", content: "c", published: true};
+        const input = {title: "New Title", content: "c", published: true, tags: ["Jazz", "music"]};
 
         it("returns NOT_FOUND for a missing post", async () => {
             repo.getById.mockResolvedValue(success(null));
@@ -95,12 +115,16 @@ describe("PostService", () => {
 
             expect(store.upload).not.toHaveBeenCalled();
             expect(store.delete).not.toHaveBeenCalled();
-            expect(repo.update).toHaveBeenCalledWith("post-1", {
-                title: "New Title",
-                slug: "new-title",
-                content: "c",
-                published: true,
-            });
+            expect(repo.update).toHaveBeenCalledWith(
+                "post-1",
+                {
+                    title: "New Title",
+                    slug: "new-title",
+                    content: "c",
+                    published: true,
+                },
+                ["jazz", "music"]
+            );
             expect(invalidate).toHaveBeenCalledExactlyOnceWith(["post:post-1", "blog-list"]);
         });
 
@@ -109,7 +133,8 @@ describe("PostService", () => {
 
             expect(repo.update).toHaveBeenCalledWith(
                 "post-1",
-                expect.objectContaining({thumbnail: uploaded.url, thumbnailId: uploaded.publicId})
+                expect.objectContaining({thumbnail: uploaded.url, thumbnailId: uploaded.publicId}),
+                ["jazz", "music"]
             );
             expect(store.delete).toHaveBeenCalledWith("old-id");
             expect(repo.update.mock.invocationCallOrder[0]).toBeLessThan(store.delete.mock.invocationCallOrder[0]);
@@ -130,7 +155,11 @@ describe("PostService", () => {
             await service.update("post-1", {...input, thumbnail: {kind: "remove"}});
 
             expect(store.upload).not.toHaveBeenCalled();
-            expect(repo.update).toHaveBeenCalledWith("post-1", expect.objectContaining({thumbnail: "", thumbnailId: ""}));
+            expect(repo.update).toHaveBeenCalledWith(
+                "post-1",
+                expect.objectContaining({thumbnail: "", thumbnailId: ""}),
+                ["jazz", "music"]
+            );
             expect(store.delete).toHaveBeenCalledWith("old-id");
         });
 

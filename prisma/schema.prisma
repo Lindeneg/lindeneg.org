@@ -68,8 +68,15 @@ model Post {
   thumbnailId String   @default("")
   authorId    String
   author      User     @relation(fields: [authorId], references: [id])
+  tags        Tag[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now()) @updatedAt
+}
+
+model Tag {
+  id    String @id @default(uuid())
+  name  String @unique                      // normalized: lowercase, dash-separated
+  posts Post[]
 }
 
 model ContactMessage {

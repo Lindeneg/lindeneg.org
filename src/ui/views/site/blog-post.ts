@@ -1,12 +1,13 @@
 import type {NavigationWithItems} from "../../../repositories/navigation-repository.js";
-import type {PostWithAuthor} from "../../../repositories/post-repository.js";
+import type {PostWithRelations} from "../../../repositories/post-repository.js";
 import {Avatar} from "../../components/avatar.js";
 import {SiteLayout} from "../../components/layout.js";
+import {TagLinks} from "../../components/tags.js";
 import {icon} from "../../icons.js";
 import {esc, formatDate, md, readingTime} from "../../lib.js";
 
 export type BlogPostViewProps = {
-    post: PostWithAuthor;
+    post: PostWithRelations;
     nav: NavigationWithItems;
     currentPath: string;
 };
@@ -28,6 +29,7 @@ export function BlogPostView({post, nav, currentPath}: BlogPostViewProps): strin
                             <p class="blog-post-byline">${esc(formatDate(post.createdAt, "long"))} &middot; ${esc(readingTime(post.content))}</p>
                         </div>
                     </div>
+                    ${TagLinks(post.tags)}
                 </header>
                 <div class="markdown">${md(post.content)}</div>
             </article>

@@ -1,7 +1,8 @@
-import type {PostWithAuthor} from "../../repositories/post-repository.js";
+import type {PostWithRelations} from "../../repositories/post-repository.js";
 import {esc, formatDate} from "../lib.js";
+import {TopicLabel} from "./tags.js";
 
-export function PostCard(post: PostWithAuthor): string {
+export function PostCard(post: PostWithRelations): string {
     const thumb = post.thumbnail
         ? `<div class="post-card-thumb"><img src="${esc(post.thumbnail)}" alt="${esc(post.title)}" loading="lazy" /></div>`
         : "";
@@ -9,6 +10,7 @@ export function PostCard(post: PostWithAuthor): string {
         <a href="/blog/${esc(post.slug)}" class="post-card">
             ${thumb}
             <div class="post-card-body">
+                ${TopicLabel(post.tags)}
                 <h2 class="post-card-title">${esc(post.title)}</h2>
                 <p class="post-card-author">${esc(post.author.name)}</p>
                 <p class="post-card-date">${esc(formatDate(post.createdAt))}</p>

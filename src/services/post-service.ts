@@ -6,7 +6,7 @@ import {slugify} from "../lib/slugify.js";
 import type {ValueOf, RawModelUpdate} from "../lib/types.js";
 import type {Post} from "@prisma/client";
 import type PostRepository from "../repositories/post-repository.js";
-import type {PostWithAuthor} from "../repositories/post-repository.js";
+import type {PostWithRelations} from "../repositories/post-repository.js";
 import type {ImageFile, ImageStore} from "./image-store.js";
 import type LoggerService from "./logger-service.js";
 
@@ -24,6 +24,7 @@ export interface CreatePostInput {
     title: string;
     content: string;
     published: boolean;
+    tags: string[];
     thumbnail?: ImageFile;
 }
 
@@ -31,7 +32,13 @@ export interface UpdatePostInput {
     title: string;
     content: string;
     published: boolean;
+    tags: string[];
     thumbnail: ThumbnailChange;
+}
+
+// e.g. ["Error Handling", "jazz", "", "Jazz"] -> ["error-handling", "jazz"]
+function normalizeTags(tags: string[]): string[] {
+    return [...new Set(tags.map(slugify).filter((tag) => tag !== ""))];
 }
 
 class PostService {
@@ -42,20 +49,20 @@ class PostService {
         private readonly log: LoggerService
     ) {}
 
-    async list(pagination: PaginationParams): AsyncResult<Paginated<PostWithAuthor>, PostError> {
+    async list(pagination: PaginationParams): AsyncResult<Paginated<PostWithRelations>, PostError> {
         const result = await this.postRepo.list(toSkipTake(pagination));
         if (!result.ok) return failure(PostError.DB_ERROR);
         return success(paginate(result.data.data, result.data.total, pagination));
     }
 
-    async get(id: string): AsyncResult<PostWithAuthor, PostError> {
+    async get(id: string): AsyncResult<PostWithRelations, PostError> {
         const result = await this.postRepo.getById(id);
         if (!result.ok) return failure(PostError.DB_ERROR);
         if (!result.data) return failure(PostError.NOT_FOUND);
         return success(result.data);
     }
 
-    async create(authorId: string, input: CreatePostInput): AsyncResult<PostWithAuthor, PostError> {
+    async create(authorId: string, input: CreatePostInput): AsyncResult<PostWithRelations, PostError> {
         let thumbnail = {url: "", publicId: ""};
         if (input.thumbnail) {
             const upload = await this.imageStore.upload(input.thumbnail);
@@ -63,15 +70,18 @@ class PostService {
             thumbnail = upload.data;
         }
 
-        const result = await this.postRepo.create({
-            title: input.title,
-            slug: slugify(input.title),
-            content: input.content,
-            published: input.published,
-            thumbnail: thumbnail.url,
-            thumbnailId: thumbnail.publicId,
-            authorId,
-        });
+        const result = await this.postRepo.create(
+            {
+                title: input.title,
+                slug: slugify(input.title),
+                content: input.content,
+                published: input.published,
+                thumbnail: thumbnail.url,
+                thumbnailId: thumbnail.publicId,
+                authorId,
+            },
+            normalizeTags(input.tags)
+        );
         if (!result.ok) {
             if (thumbnail.publicId) await this.#deleteImage(thumbnail.publicId);
             return failure(PostError.DB_ERROR);
@@ -81,7 +91,7 @@ class PostService {
         return success(result.data);
     }
 
-    async update(id: string, input: UpdatePostInput): AsyncResult<PostWithAuthor, PostError> {
+    async update(id: string, input: UpdatePostInput): AsyncResult<PostWithRelations, PostError> {
         const existing = await this.get(id);
         if (!existing.ok) return existing;
 
@@ -104,7 +114,7 @@ class PostService {
             payload.thumbnailId = upload.data.publicId;
         }
 
-        const result = await this.postRepo.update(id, payload);
+        const result = await this.postRepo.update(id, payload, normalizeTags(input.tags));
         if (!result.ok) {
             if (uploadedId) await this.#deleteImage(uploadedId);
             return failure(PostError.DB_ERROR);

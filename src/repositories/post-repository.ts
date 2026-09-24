@@ -1,16 +1,22 @@
 import {success, failure, type AsyncResult} from "../lib/result.js";
 import type {RawModel, MaybeNull, RawModelUpdate} from "../lib/types.js";
-import type {Post} from "@prisma/client";
+import type {Post, Tag} from "@prisma/client";
 import type DataService from "../services/data-service.js";
 import type LoggerService from "../services/logger-service.js";
 import type {SkipTake, PaginatedResult} from "../lib/pagination.js";
 import {userOmit, type User} from "./user-repository.js";
 
-export type PostWithAuthor = Post & {author: User};
+export type PostWithRelations = Post & {author: User; tags: Tag[]};
 
-type PostWhere = {published?: boolean};
+export type TagWithCount = {name: string; count: number};
 
-const includeAuthor = {author: {omit: userOmit}} as const;
+type PostWhere = {published?: boolean; tag?: string};
+
+const include = {author: {omit: userOmit}, tags: {orderBy: {name: "asc"}}} as const;
+
+function toWhere({published, tag}: PostWhere) {
+    return {published, ...(tag ? {tags: {some: {name: tag}}} : {})};
+}
 
 class PostRepository {
     constructor(
@@ -21,17 +27,17 @@ class PostRepository {
     async list(
         opts: Partial<SkipTake> = {},
         where: PostWhere = {}
-    ): AsyncResult<PaginatedResult<PostWithAuthor>> {
+    ): AsyncResult<PaginatedResult<PostWithRelations>> {
         try {
             const [data, total] = await Promise.all([
                 this.db.p.post.findMany({
-                    where,
-                    include: includeAuthor,
+                    where: toWhere(where),
+                    include,
                     orderBy: {createdAt: "desc"},
                     skip: opts.skip,
                     take: opts.take,
                 }),
-                this.db.p.post.count({where}),
+                this.db.p.post.count({where: toWhere(where)}),
             ]);
             return success({data, total});
         } catch (err) {
@@ -42,7 +48,7 @@ class PostRepository {
 
     async count(where: PostWhere = {}): AsyncResult<number> {
         try {
-            const count = await this.db.p.post.count({where});
+            const count = await this.db.p.post.count({where: toWhere(where)});
             return success(count);
         } catch (err) {
             this.log.error(err, "post-repo.count");
@@ -50,9 +56,23 @@ class PostRepository {
         }
     }
 
-    async getById(id: string): AsyncResult<MaybeNull<PostWithAuthor>> {
+    async listPublishedTags(): AsyncResult<TagWithCount[]> {
         try {
-            const post = await this.db.p.post.findUnique({where: {id}, include: includeAuthor});
+            const tags = await this.db.p.tag.findMany({
+                where: {posts: {some: {published: true}}},
+                select: {name: true, _count: {select: {posts: {where: {published: true}}}}},
+                orderBy: {name: "asc"},
+            });
+            return success(tags.map((t) => ({name: t.name, count: t._count.posts})));
+        } catch (err) {
+            this.log.error(err, "post-repo.listPublishedTags");
+            return failure("failed to list tags");
+        }
+    }
+
+    async getById(id: string): AsyncResult<MaybeNull<PostWithRelations>> {
+        try {
+            const post = await this.db.p.post.findUnique({where: {id}, include});
             return success(post);
         } catch (err) {
             this.log.error(err, "post-repo.getById");
@@ -60,9 +80,9 @@ class PostRepository {
         }
     }
 
-    async getBySlug(slug: string): AsyncResult<MaybeNull<PostWithAuthor>> {
+    async getBySlug(slug: string): AsyncResult<MaybeNull<PostWithRelations>> {
         try {
-            const post = await this.db.p.post.findUnique({where: {slug}, include: includeAuthor});
+            const post = await this.db.p.post.findUnique({where: {slug}, include});
             return success(post);
         } catch (err) {
             this.log.error(err, "post-repo.getBySlug");
@@ -70,9 +90,15 @@ class PostRepository {
         }
     }
 
-    async create(data: RawModel<Post>): AsyncResult<PostWithAuthor> {
+    async create(data: RawModel<Post>, tags: string[]): AsyncResult<PostWithRelations> {
         try {
-            const post = await this.db.p.post.create({data, include: includeAuthor});
+            const post = await this.db.p.post.create({
+                data: {
+                    ...data,
+                    tags: {connectOrCreate: tags.map((name) => ({where: {name}, create: {name}}))},
+                },
+                include,
+            });
             return success(post);
         } catch (err) {
             this.log.error(err, "post-repo.create");
@@ -80,9 +106,18 @@ class PostRepository {
         }
     }
 
-    async update(id: string, data: RawModelUpdate<Post>): AsyncResult<PostWithAuthor> {
+    async update(id: string, data: RawModelUpdate<Post>, tags: string[]): AsyncResult<PostWithRelations> {
         try {
-            const post = await this.db.p.post.update({where: {id}, data, include: includeAuthor});
+            const post = await this.db.p.$transaction(async (tx) => {
+                for (const name of tags) {
+                    await tx.tag.upsert({where: {name}, create: {name}, update: {}});
+                }
+                return tx.post.update({
+                    where: {id},
+                    data: {...data, tags: {set: tags.map((name) => ({name}))}},
+                    include,
+                });
+            });
             return success(post);
         } catch (err) {
             this.log.error(err, "post-repo.update");

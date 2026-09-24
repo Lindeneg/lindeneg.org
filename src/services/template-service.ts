@@ -1,5 +1,5 @@
 import {success, failure, type AsyncResult} from "../lib/result.js";
-import type {MaybeNull, ValueOf} from "../lib/types.js";
+import type {MaybeNull, MaybeUndefined, ValueOf} from "../lib/types.js";
 import {DEFAULT_PAGE_SIZE, paginate, toSkipTake} from "../lib/pagination.js";
 import {CacheTag, type CacheStats} from "../lib/page-cache.js";
 import type PageCache from "../lib/page-cache.js";
@@ -81,22 +81,26 @@ class TemplateService {
         );
     }
 
-    async getBlogList(page: number): AsyncResult<string, TemplateError> {
+    async getBlogList(page: number, tag: MaybeUndefined<string>): AsyncResult<string, TemplateError> {
         const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
         const pagination = {page: safePage, pageSize: DEFAULT_PAGE_SIZE};
         return this.#render(
-            `blog:list:${safePage}`,
+            `blog:list:${tag ?? ""}:${safePage}`,
             async () => {
-                const result = await this.postRepo.list(toSkipTake(pagination), {published: true});
-                if (!result.ok) return failure(TEMPLATE_ERR.BLOG_LIST_ERROR);
+                const [result, tags] = await Promise.all([
+                    this.postRepo.list(toSkipTake(pagination), {published: true, tag}),
+                    this.postRepo.listPublishedTags(),
+                ]);
+                if (!result.ok || !tags.ok) return failure(TEMPLATE_ERR.BLOG_LIST_ERROR);
                 const posts = paginate(result.data.data, result.data.total, pagination);
-                if (safePage > 1 && safePage > posts.totalPages) {
+                // an unknown tag or a page past the end is a 404, which also keeps them out of the cache
+                if ((tag && posts.total === 0) || (safePage > 1 && safePage > posts.totalPages)) {
                     return failure(TEMPLATE_ERR.PAGE_NOT_FOUND);
                 }
-                return success(posts);
+                return success({posts, tags: tags.data});
             },
             () => [CacheTag.blogList],
-            (posts, nav) => BlogListView({posts, nav, currentPath: "/blog"})
+            ({posts, tags}, nav) => BlogListView({posts, tags, activeTag: tag, nav, currentPath: "/blog"})
         );
     }
 

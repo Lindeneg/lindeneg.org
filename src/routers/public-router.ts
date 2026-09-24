@@ -12,7 +12,8 @@ export function makeSitePublicRouter(templateService: TemplateService): Router {
 
     router.get("/blog", async (req, res) => {
         const page = Number(req.query.page) || 1;
-        const result = await templateService.getBlogList(page);
+        const tag = typeof req.query.tag === "string" && req.query.tag !== "" ? req.query.tag : undefined;
+        const result = await templateService.getBlogList(page, tag);
         if (result.ok) return res.type("html").send(result.data);
         await sendNotFound(res, req.path);
     });
