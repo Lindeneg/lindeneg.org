@@ -60,6 +60,7 @@
         var bind = function (from, to) {
             from.addEventListener('scroll', function () {
                 if (syncing) return;
+                console.log("SCROLLING")
                 syncing = true;
                 var max = from.scrollHeight - from.clientHeight;
                 var ratio = max > 0 ? from.scrollTop / max : 0;
@@ -73,26 +74,15 @@
         bind(source, preview);
         bind(preview, source);
 
-        // ---- tab → 2 spaces ----
+        const TAB_SIZE = 2;
         source.addEventListener('keydown', function (e) {
             if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
                 e.preventDefault();
                 var start = source.selectionStart;
                 var end = source.selectionEnd;
                 source.value = source.value.slice(0, start) + '  ' + source.value.slice(end);
-                source.selectionStart = source.selectionEnd = start + 2;
+                source.selectionStart = source.selectionEnd = start + TAB_SIZE;
                 schedule();
-            }
-        });
-
-        // ---- Cmd/Ctrl+S submits ----
-        document.addEventListener('keydown', function (e) {
-            if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'S')) {
-                var form = document.getElementById('md-form');
-                if (form) {
-                    e.preventDefault();
-                    form.requestSubmit ? form.requestSubmit() : form.submit();
-                }
             }
         });
     }
