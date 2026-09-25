@@ -103,12 +103,20 @@ export function isActive(itemHref: string, currentPath: string, root = "/"): boo
     return cur === item || cur.startsWith(item + "/");
 }
 
-const SHORT_DATE: Intl.DateTimeFormatOptions = {month: "short", day: "numeric", year: "numeric"};
-const LONG_DATE: Intl.DateTimeFormatOptions = {month: "long", day: "numeric", year: "numeric"};
+type DateStyle = "short" | "long";
 
-export function formatDate(date: Date | string, style: "short" | "long" = "short"): string {
+const SHORT_DATE: Intl.DateTimeFormatOptions = {month: "short", day: "numeric", year: "numeric", timeZone: "UTC"};
+const LONG_DATE: Intl.DateTimeFormatOptions = {month: "long", day: "numeric", year: "numeric", timeZone: "UTC"};
+
+export function formatDate(date: Date | string, style: DateStyle = "short"): string {
     const d = date instanceof Date ? date : new Date(date);
     return d.toLocaleDateString("en-US", style === "long" ? LONG_DATE : SHORT_DATE);
+}
+
+// rendered in UTC so the cached html is the same for every visitor; /local-dates.js rewrites it in their timezone
+export function localDate(date: Date | string, style: DateStyle = "short"): string {
+    const d = date instanceof Date ? date : new Date(date);
+    return `<time datetime="${d.toISOString()}" data-local-date="${style}">${esc(formatDate(d, style))}</time>`;
 }
 
 export function readingTime(content: string): string {

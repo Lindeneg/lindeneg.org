@@ -1,5 +1,6 @@
 import {beforeAll, describe, expect, it} from "vitest";
 import {DEFAULT_PAGE_SIZE} from "../../src/lib/pagination.js";
+import {MAX_UPLOAD_BYTES} from "../../src/lib/http.js";
 import {db, get, idFromLocation, imageBlob, login, postForm, postMultipart, uid} from "./helpers.js";
 
 const POST_EDIT = /^\/admin\/blog\/([^/]+)\/edit$/;
@@ -71,8 +72,41 @@ describe("blog", () => {
         await createPost(title);
 
         const res = await postMultipart("/admin/blog/new", postFields(title), cookie);
+        expect(res.status).toBe(409);
+        expect(res.html).toContain("Another post already uses this slug");
+    });
+
+    it("keeps an explicit slug when the title changes", async () => {
+        const slug = `kept-${uid()}`;
+        const create = postFields(`Post ${uid()}`, {published: true});
+        create.set("slug", slug);
+        const res = await postMultipart("/admin/blog/new", create, cookie);
+        const id = idFromLocation(res.location, POST_EDIT);
+
+        const edit = postFields(`Renamed ${uid()}`, {published: true});
+        edit.set("slug", slug);
+        expect((await postMultipart(`/admin/blog/${id}/edit`, edit, cookie)).status).toBe(302);
+
+        expect((await db.p.post.findUniqueOrThrow({where: {id}})).slug).toBe(slug);
+        expect((await get(`/blog/${slug}`)).status).toBe(200);
+    });
+
+    it("rejects an oversized thumbnail with a form error instead of the error page", async () => {
+        const form = postFields(`Post ${uid()}`);
+        form.set("thumbnail", new Blob([Buffer.alloc(MAX_UPLOAD_BYTES + 1)], {type: "image/png"}), "big.png");
+
+        const res = await postMultipart("/admin/blog/new", form, cookie);
         expect(res.status).toBe(400);
-        expect(res.html).toContain("title may collide");
+        expect(res.html).toContain("Image must be 10MB or smaller");
+    });
+
+    it("dates a post when it is first published", async () => {
+        const title = `Post ${uid()}`;
+        const {id} = await createPost(title);
+        expect((await db.p.post.findUniqueOrThrow({where: {id}})).publishedAt).toBeNull();
+
+        await postMultipart(`/admin/blog/${id}/edit`, postFields(title, {published: true}), cookie);
+        expect((await db.p.post.findUniqueOrThrow({where: {id}})).publishedAt).toBeInstanceOf(Date);
     });
 
     it("replaces and removes the thumbnail", async () => {
@@ -98,7 +132,7 @@ describe("blog", () => {
         );
         expect(removed.status).toBe(302);
         const post = await db.p.post.findUnique({where: {id}});
-        expect(post).toMatchObject({thumbnail: "", thumbnailId: ""});
+        expect(post).toMatchObject({thumbnail: null, thumbnailId: null});
     });
 
     it("updates the title and slug", async () => {

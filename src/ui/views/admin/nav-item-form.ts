@@ -1,4 +1,4 @@
-import type {Navigation, NavigationItem} from "../../../generated/prisma/client.js";
+import type {NavigationItem} from "../../../generated/prisma/client.js";
 import type {User} from "../../../repositories/user-repository.js";
 import {AdminLayout} from "../../components/layout.js";
 import {ConfirmForm} from "../../components/confirm-form.js";
@@ -17,7 +17,6 @@ export type NavItemFormViewProps = {
     user: User;
     currentPath: string;
     mode: "create" | "edit";
-    nav: Navigation;
     item?: NavigationItem;
     values?: NavItemFormValues;
     errors?: Record<string, string>;
@@ -28,7 +27,6 @@ export function NavItemFormView({
     user,
     currentPath,
     mode,
-    nav,
     item,
     values,
     errors,
@@ -64,7 +62,6 @@ export function NavItemFormView({
             })}
             <form method="post" action="${action}" class="admin-form">
                 ${TopError(topError)}
-                <input type="hidden" name="navigationId" value="${nav.id}" />
                 ${Field({name: "name", label: "Name", value: v.name, error: e.name, required: true})}
                 ${Field({name: "href", label: "Href", value: v.href, error: e.href, required: true, placeholder: "/about or https://..."})}
                 ${Field({name: "position", label: "Position", type: "number", value: v.position, error: e.position, required: true})}

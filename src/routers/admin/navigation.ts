@@ -1,20 +1,21 @@
 import {Router} from "express";
 import z from "zod";
+import {AppError} from "../../lib/errors.js";
 import {send} from "../../lib/http.js";
-import {checkbox, fieldErrors} from "../../lib/validation.js";
+import {checkbox, fieldErrors, requiredText} from "../../lib/validation.js";
 import {getAuth} from "../../middleware/admin-auth.js";
-import {NavigationError} from "../../services/navigation-service.js";
 import type NavigationService from "../../services/navigation-service.js";
-import type TemplateService from "../../services/template-service.js";
+import {NavView} from "../../ui/views/admin/nav.js";
+import {NavItemFormView} from "../../ui/views/admin/nav-item-form.js";
+import {errorStatus, sendActionError, sendLoadError} from "./respond.js";
 
 const NavBrandSchema = z.object({
-    brandName: z.string().min(1, "Required"),
+    brandName: requiredText(),
 });
 
 const NavItemSchema = z.object({
-    navigationId: z.string().min(1, "Required"),
-    name: z.string().min(1, "Required"),
-    href: z.string().min(1, "Required"),
+    name: requiredText(),
+    href: requiredText(),
     position: z.coerce.number().int().min(0, "Must be ≥ 0"),
     alignment: z.enum(["LEFT", "RIGHT"]),
     newTab: checkbox(),
@@ -22,46 +23,26 @@ const NavItemSchema = z.object({
 
 const currentPath = "/admin/navigation";
 
-export function navigationRouter(navigationService: NavigationService, templates: TemplateService): Router {
+export function navigationRouter(navigationService: NavigationService): Router {
     const router = Router();
 
-    const loadError = (ctx: NavigationError, what: string) => {
-        const notFound = ctx === NavigationError.NOT_FOUND;
-        return {
-            status: notFound ? 404 : 500,
-            message: notFound ? `${what} not found` : `Failed to load ${what.toLowerCase()}`,
-        };
-    };
-
     router.get("/navigation", async (req, res) => {
-        const user = getAuth(req);
+        const page = {user: getAuth(req), currentPath};
         const nav = await navigationService.get();
-        if (!nav.ok) {
-            const {status, message} = loadError(nav.ctx, "Navigation");
-            return send(res, templates.admin.error({user, currentPath, message}), status);
-        }
-        send(res, templates.admin.nav({user, currentPath, nav: nav.data}));
+        if (!nav.ok) return sendLoadError(res, page, nav.ctx, "Navigation");
+        send(res, NavView({...page, nav: nav.data}));
     });
 
     router.post("/navigation", async (req, res) => {
-        const user = getAuth(req);
+        const page = {user: getAuth(req), currentPath};
         const nav = await navigationService.get();
-        if (!nav.ok) {
-            const {status, message} = loadError(nav.ctx, "Navigation");
-            return send(res, templates.admin.error({user, currentPath, message}), status);
-        }
+        if (!nav.ok) return sendLoadError(res, page, nav.ctx, "Navigation");
 
         const parsed = NavBrandSchema.safeParse(req.body);
         if (!parsed.success) {
             return send(
                 res,
-                templates.admin.nav({
-                    user,
-                    currentPath,
-                    nav: nav.data,
-                    brandValues: req.body,
-                    brandErrors: fieldErrors(parsed.error),
-                }),
+                NavView({...page, nav: nav.data, brandValues: req.body, brandErrors: fieldErrors(parsed.error)}),
                 400
             );
         }
@@ -69,106 +50,60 @@ export function navigationRouter(navigationService: NavigationService, templates
         if (!result.ok) {
             return send(
                 res,
-                templates.admin.nav({
-                    user,
-                    currentPath,
-                    nav: nav.data,
-                    brandValues: req.body,
-                    brandTopError: "Failed to update",
-                }),
-                500
+                NavView({...page, nav: nav.data, brandValues: req.body, brandTopError: "Failed to update"}),
+                errorStatus(result.ctx)
             );
         }
         res.redirect(302, currentPath);
     });
 
-    router.get("/nav-items/new", async (req, res) => {
-        const user = getAuth(req);
-        const nav = await navigationService.get();
-        if (!nav.ok) {
-            const {status, message} = loadError(nav.ctx, "Navigation");
-            return send(res, templates.admin.error({user, currentPath, message}), status);
-        }
-        send(res, templates.admin.navItemForm({user, currentPath, mode: "create", nav: nav.data}));
+    router.get("/nav-items/new", (req, res) => {
+        send(res, NavItemFormView({user: getAuth(req), currentPath, mode: "create"}));
     });
 
     router.post("/nav-items/new", async (req, res) => {
-        const user = getAuth(req);
+        const page = {user: getAuth(req), currentPath};
         const nav = await navigationService.get();
-        if (!nav.ok) {
-            const {status, message} = loadError(nav.ctx, "Navigation");
-            return send(res, templates.admin.error({user, currentPath, message}), status);
-        }
+        if (!nav.ok) return sendLoadError(res, page, nav.ctx, "Navigation");
 
         const parsed = NavItemSchema.safeParse(req.body);
         if (!parsed.success) {
             return send(
                 res,
-                templates.admin.navItemForm({
-                    user,
-                    currentPath,
-                    mode: "create",
-                    nav: nav.data,
-                    values: req.body,
-                    errors: fieldErrors(parsed.error),
-                }),
+                NavItemFormView({...page, mode: "create", values: req.body, errors: fieldErrors(parsed.error)}),
                 400
             );
         }
-        const result = await navigationService.createItem(parsed.data);
+        const result = await navigationService.createItem(nav.data.id, parsed.data);
         if (!result.ok) {
             return send(
                 res,
-                templates.admin.navItemForm({
-                    user,
-                    currentPath,
-                    mode: "create",
-                    nav: nav.data,
-                    values: req.body,
-                    topError: "Failed to create",
-                }),
-                500
+                NavItemFormView({...page, mode: "create", values: req.body, topError: "Failed to create"}),
+                errorStatus(result.ctx)
             );
         }
         res.redirect(302, currentPath);
     });
 
     router.get("/nav-items/:id/edit", async (req, res) => {
-        const user = getAuth(req);
+        const page = {user: getAuth(req), currentPath};
         const found = await navigationService.getItem(req.params.id);
-        if (!found.ok) {
-            const {status, message} = loadError(found.ctx, "Item");
-            return send(res, templates.admin.error({user, currentPath, message}), status);
-        }
-        send(
-            res,
-            templates.admin.navItemForm({
-                user,
-                currentPath,
-                mode: "edit",
-                nav: found.data.nav,
-                item: found.data.item,
-            })
-        );
+        if (!found.ok) return sendLoadError(res, page, found.ctx, "Item");
+        send(res, NavItemFormView({...page, mode: "edit", item: found.data.item}));
     });
 
     router.post("/nav-items/:id/edit", async (req, res) => {
-        const user = getAuth(req);
+        const page = {user: getAuth(req), currentPath};
         const found = await navigationService.getItem(req.params.id);
-        if (!found.ok) {
-            const {status, message} = loadError(found.ctx, "Item");
-            return send(res, templates.admin.error({user, currentPath, message}), status);
-        }
+        if (!found.ok) return sendLoadError(res, page, found.ctx, "Item");
 
         const parsed = NavItemSchema.safeParse(req.body);
         if (!parsed.success) {
             return send(
                 res,
-                templates.admin.navItemForm({
-                    user,
-                    currentPath,
+                NavItemFormView({
+                    ...page,
                     mode: "edit",
-                    nav: found.data.nav,
                     item: found.data.item,
                     values: req.body,
                     errors: fieldErrors(parsed.error),
@@ -178,28 +113,26 @@ export function navigationRouter(navigationService: NavigationService, templates
         }
         const result = await navigationService.updateItem(req.params.id, parsed.data);
         if (!result.ok) {
+            if (result.ctx === AppError.NOT_FOUND) return sendLoadError(res, page, result.ctx, "Item");
             return send(
                 res,
-                templates.admin.navItemForm({
-                    user,
-                    currentPath,
+                NavItemFormView({
+                    ...page,
                     mode: "edit",
-                    nav: found.data.nav,
                     item: found.data.item,
                     values: req.body,
                     topError: "Failed to update",
                 }),
-                500
+                errorStatus(result.ctx)
             );
         }
         res.redirect(302, currentPath);
     });
 
     router.post("/nav-items/:id/delete", async (req, res) => {
-        const user = getAuth(req);
         const result = await navigationService.deleteItem(req.params.id);
         if (!result.ok) {
-            return send(res, templates.admin.error({user, currentPath, message: "Failed to delete item"}), 500);
+            return sendActionError(res, {user: getAuth(req), currentPath}, result.ctx, "Item", "delete item");
         }
         res.redirect(302, currentPath);
     });

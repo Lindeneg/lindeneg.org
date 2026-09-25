@@ -1,10 +1,12 @@
 import type {PostWithRelations} from "../../../repositories/post-repository.js";
+import {MAX_UPLOAD_BYTES} from "../../../lib/http.js";
 import {esc} from "../../lib.js";
 import {EditorLayout} from "../../components/layout.js";
 import {TopError} from "../../components/form.js";
 
 export type PostFormValues = {
     title?: string;
+    slug?: string;
     content?: string;
     published?: boolean;
     tags?: string;
@@ -21,6 +23,7 @@ export type PostFormViewProps = {
 export function PostFormView({mode, post, values, errors, topError}: PostFormViewProps): string {
     const v: PostFormValues = values ?? {
         title: post?.title ?? "",
+        slug: post?.slug ?? "",
         content: post?.content ?? "",
         published: post?.published ?? false,
         tags: post?.tags.map((tag) => tag.name).join(", ") ?? "",
@@ -30,6 +33,7 @@ export function PostFormView({mode, post, values, errors, topError}: PostFormVie
     const thumbExisting = post?.thumbnail ? `<img src="${esc(post.thumbnail)}" alt="" class="thumb-preview" />` : "";
     const titleError = e.title ? `<p class="form-error">${esc(e.title)}</p>` : "";
     const thumbnailError = e.thumbnail ? `<p class="form-error">${esc(e.thumbnail)}</p>` : "";
+    const slugError = e.slug ? `<p class="form-error">${esc(e.slug)}</p>` : "";
     const contentError = e.content ? `<div class="form-top-error">${esc(e.content)}</div>` : "";
 
     const headerBar = `
@@ -59,12 +63,20 @@ export function PostFormView({mode, post, values, errors, topError}: PostFormVie
         ${TopError(topError)}
         ${contentError}
         <form id="md-form" method="post" action="${action}" enctype="multipart/form-data" class="md-editor-form">
-            <details class="md-editor-meta">
+            <details class="md-editor-meta"${slugError ? " open" : ""}>
+                <summary>Slug${v.slug ? `: /blog/${esc(v.slug)}` : ""}</summary>
+                <div class="md-editor-meta-body">
+                    <label class="form-label" for="f_slug">Derived from the title when blank; changing it breaks existing links</label>
+                    <input id="f_slug" type="text" name="slug" value="${esc(v.slug ?? "")}" class="form-input" />
+                    ${slugError}
+                </div>
+            </details>
+            <details class="md-editor-meta"${thumbnailError ? " open" : ""}>
                 <summary>Thumbnail${post?.thumbnail ? " (current set)" : ""}</summary>
                 <div class="md-editor-meta-body">
                     ${thumbExisting}
                     <label class="form-label" for="f_thumbnail">Replace thumbnail</label>
-                    <input id="f_thumbnail" type="file" name="thumbnail" accept="image/*" class="form-input" />
+                    <input id="f_thumbnail" type="file" name="thumbnail" accept="image/*" data-max-bytes="${MAX_UPLOAD_BYTES}" class="form-input" />
                     ${thumbnailError}
                     ${post?.thumbnail ? `<label class="form-check"><input type="checkbox" name="removeThumbnail" value="1" /><span>Remove current thumbnail</span></label>` : ""}
                 </div>

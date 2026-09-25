@@ -1,24 +1,9 @@
-import {unwrap, loadEnv, withRequired, refine, toString, nonEmpty} from "@lindeneg/cl-env";
 import {PrismaBetterSqlite3} from "@prisma/adapter-better-sqlite3";
 import {PrismaClient} from "../src/generated/prisma/client.js";
+import {loadDatabaseEnv} from "../src/lib/env.js";
 
 (async () => {
-    const env = unwrap(
-        loadEnv(
-            {
-                files: [],
-                optionalFiles:
-                    process.env.NODE_ENV === "test"
-                        ? [".env.test"]
-                        : [".env", ".env.default", ".env.local", ".env.prod"],
-                includeProcessEnv: false,
-                transformKeys: false,
-            },
-            {
-                DATABASE_URL: withRequired(refine(toString(), nonEmpty())),
-            }
-        )
-    );
+    const env = loadDatabaseEnv();
 
     const adapter = new PrismaBetterSqlite3({
         url: env.DATABASE_URL,
@@ -33,10 +18,12 @@ import {PrismaClient} from "../src/generated/prisma/client.js";
         {slug: "the-current", createdAt: "2022-03-06T21:23:05.128Z"},
     ];
 
+    // publishedAt is the date the site shows, so it gets the original date too
     for (const fix of fixes) {
+        const date = new Date(fix.createdAt);
         await prisma.post.update({
             where: {slug: fix.slug},
-            data: {createdAt: new Date(fix.createdAt), updatedAt: new Date(fix.createdAt)},
+            data: {createdAt: date, updatedAt: date, publishedAt: date},
         });
         console.log(`Updated: ${fix.slug} → ${fix.createdAt}`);
     }

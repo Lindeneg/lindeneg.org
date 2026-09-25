@@ -1,6 +1,7 @@
 import {beforeEach, describe, expect, it, vi, type Mock} from "vitest";
 import {emptySuccess, failure, success} from "../../../src/lib/result.js";
-import UserService, {UserError} from "../../../src/services/user-service.js";
+import {AppError} from "../../../src/lib/errors.js";
+import UserService from "../../../src/services/user-service.js";
 import type UserRepository from "../../../src/repositories/user-repository.js";
 import type {ImageStore} from "../../../src/services/image-store.js";
 import {fake, fakeCache, fakeLog, makeUser} from "../helpers.js";
@@ -44,15 +45,15 @@ describe("UserService", () => {
         it("keeps the old photo when the upload fails", async () => {
             store.upload.mockResolvedValue(failure("boom"));
 
-            expect(await service.uploadPhoto(user, file)).toEqual(failure(UserError.UPLOAD_ERROR));
+            expect(await service.uploadPhoto(user, file)).toEqual(failure(AppError.UPLOAD_ERROR));
             expect(update).not.toHaveBeenCalled();
             expect(store.delete).not.toHaveBeenCalled();
         });
 
         it("deletes the new upload and keeps the old photo when the update fails", async () => {
-            update.mockResolvedValue(failure("db"));
+            update.mockResolvedValue(failure(AppError.DB_ERROR));
 
-            expect(await service.uploadPhoto(user, file)).toEqual(failure(UserError.DB_ERROR));
+            expect(await service.uploadPhoto(user, file)).toEqual(failure(AppError.DB_ERROR));
             expect(store.delete).toHaveBeenCalledOnce();
             expect(store.delete).toHaveBeenCalledWith(uploaded.publicId);
             expect(invalidate).not.toHaveBeenCalled();
@@ -83,9 +84,9 @@ describe("UserService", () => {
         });
 
         it("keeps the image when the update fails", async () => {
-            update.mockResolvedValue(failure("db"));
+            update.mockResolvedValue(failure(AppError.DB_ERROR));
 
-            expect(await service.deletePhoto(user)).toEqual(failure(UserError.DB_ERROR));
+            expect(await service.deletePhoto(user)).toEqual(failure(AppError.DB_ERROR));
             expect(store.delete).not.toHaveBeenCalled();
         });
     });

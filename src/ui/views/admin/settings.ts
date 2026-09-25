@@ -1,10 +1,10 @@
 import type {User} from "../../../repositories/user-repository.js";
 import type {CacheStats} from "../../../lib/page-cache.js";
-import {esc} from "../../lib.js";
+import {MAX_UPLOAD_BYTES} from "../../../lib/http.js";
 import {AdminLayout} from "../../components/layout.js";
 import {Avatar} from "../../components/avatar.js";
 import {ConfirmForm} from "../../components/confirm-form.js";
-import {TopError} from "../../components/form.js";
+import {Field, TopError} from "../../components/form.js";
 import {PageHeader} from "../../components/page-header.js";
 
 export type SettingsViewProps = {
@@ -12,7 +12,9 @@ export type SettingsViewProps = {
     currentPath: string;
     cacheStats: CacheStats;
     photoError?: string;
-    photoMessage?: string;
+    passwordErrors?: Record<string, string>;
+    passwordTopError?: string;
+    passwordChanged?: boolean;
 };
 
 function hitRate({hits, misses}: CacheStats): string {
@@ -20,24 +22,26 @@ function hitRate({hits, misses}: CacheStats): string {
     return lookups === 0 ? "—" : `${Math.round((hits / lookups) * 100)}%`;
 }
 
-export function SettingsView({user, currentPath, cacheStats, photoError, photoMessage}: SettingsViewProps): string {
-    const message = photoMessage ? `<p class="form-success">${esc(photoMessage)}</p>` : "";
+export function SettingsView({
+    user,
+    currentPath,
+    cacheStats,
+    photoError,
+    passwordErrors,
+    passwordTopError,
+    passwordChanged,
+}: SettingsViewProps): string {
+    const removePhoto = user.photo
+        ? ConfirmForm({
+              action: "/admin/settings/photo/delete",
+              confirm: "Remove profile photo?",
+              label: "Remove photo",
+              variant: "danger",
+          })
+        : "";
+    const e = passwordErrors ?? {};
+    const changed = passwordChanged ? `<p class="form-success">Password changed</p>` : "";
 
-    const photoBody = user.photo
-        ? `
-            <p class="row-sub">Profile photo is set. Remove it to upload a new one.</p>
-            ${ConfirmForm({action: "/admin/settings/photo/delete", confirm: "Remove profile photo?", label: "Remove photo", variant: "danger"})}
-        `
-        : `
-            <form method="post" action="/admin/settings/photo" enctype="multipart/form-data" class="admin-form">
-                ${TopError(photoError)}
-                ${message}
-                <input type="file" name="photo" accept="image/*" required class="form-input" />
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Upload</button>
-                </div>
-            </form>
-        `;
     return AdminLayout({
         title: "Settings",
         user,
@@ -48,8 +52,31 @@ export function SettingsView({user, currentPath, cacheStats, photoError, photoMe
                 <h2 class="admin-h2">Profile photo</h2>
                 <div class="settings-photo">
                     ${Avatar({person: user, block: "settings-avatar"})}
-                    <div class="settings-photo-body">${photoBody}</div>
+                    <div class="settings-photo-body">
+                        <form method="post" action="/admin/settings/photo" enctype="multipart/form-data" class="admin-form">
+                            ${TopError(photoError)}
+                            <input type="file" name="photo" accept="image/*" data-max-bytes="${MAX_UPLOAD_BYTES}" required class="form-input" />
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">${user.photo ? "Replace photo" : "Upload"}</button>
+                            </div>
+                        </form>
+                        ${removePhoto}
+                    </div>
                 </div>
+            </section>
+            <section class="admin-card">
+                <h2 class="admin-h2">Password</h2>
+                <p class="row-sub">Changing it signs out every other session.</p>
+                <form method="post" action="/admin/settings/password" class="admin-form">
+                    ${TopError(passwordTopError)}
+                    ${changed}
+                    ${Field({name: "currentPassword", label: "Current password", type: "password", error: e.currentPassword, required: true, autocomplete: "current-password"})}
+                    ${Field({name: "newPassword", label: "New password", type: "password", error: e.newPassword, required: true, autocomplete: "new-password"})}
+                    ${Field({name: "confirmPassword", label: "Confirm new password", type: "password", error: e.confirmPassword, required: true, autocomplete: "new-password"})}
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Change password</button>
+                    </div>
+                </form>
             </section>
             <section class="admin-card">
                 <h2 class="admin-h2">Cache</h2>

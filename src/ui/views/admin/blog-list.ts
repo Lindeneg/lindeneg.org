@@ -1,7 +1,7 @@
 import type {User} from "../../../repositories/user-repository.js";
 import type {PostWithRelations} from "../../../repositories/post-repository.js";
 import type {Paginated} from "../../../lib/pagination.js";
-import {esc, formatDate} from "../../lib.js";
+import {esc, localDate} from "../../lib.js";
 import {AdminLayout} from "../../components/layout.js";
 import {ConfirmForm} from "../../components/confirm-form.js";
 import {PageHeader} from "../../components/page-header.js";
@@ -20,7 +20,7 @@ function row(p: PostWithRelations): string {
                 <a href="/admin/blog/${esc(p.id)}/edit" class="row-link">${esc(p.title)}</a>
                 <p class="row-sub">/${esc(p.slug)} · ${esc(p.author.name)}</p>
             </td>
-            <td>${esc(formatDate(p.updatedAt))}</td>
+            <td>${localDate(p.updatedAt)}</td>
             <td>
                 <span class="badge ${p.published ? "badge-on" : "badge-off"}">${p.published ? "Published" : "Draft"}</span>
             </td>

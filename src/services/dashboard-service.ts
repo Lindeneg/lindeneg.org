@@ -1,4 +1,5 @@
 import type {Result} from "../lib/result.js";
+import type {DbError} from "../lib/errors.js";
 import type PageRepository from "../repositories/page-repository.js";
 import type PostRepository from "../repositories/post-repository.js";
 import type ContactRepository from "../repositories/contact-repository.js";
@@ -10,7 +11,7 @@ export type DashboardCounts = {
     unreadMessages: number;
 };
 
-const orZero = (r: Result<number>) => (r.ok ? r.data : 0);
+const orZero = (r: Result<number, DbError>) => (r.ok ? r.data : 0);
 
 class DashboardService {
     constructor(

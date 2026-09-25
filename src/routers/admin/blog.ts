@@ -1,105 +1,117 @@
 import {Router} from "express";
 import z from "zod";
+import {AppError} from "../../lib/errors.js";
 import {send} from "../../lib/http.js";
 import {parsePagination} from "../../lib/pagination.js";
-import {checkbox, fieldErrors} from "../../lib/validation.js";
+import {checkbox, fieldErrors, requiredText} from "../../lib/validation.js";
 import {getAuth} from "../../middleware/admin-auth.js";
-import {upload} from "../../middleware/upload.js";
-import {PostError, type ThumbnailChange} from "../../services/post-service.js";
+import {singleImage} from "../../middleware/upload.js";
+import {postSlug, type ThumbnailChange} from "../../services/post-service.js";
 import type PostService from "../../services/post-service.js";
-import type TemplateService from "../../services/template-service.js";
+import {BlogListView} from "../../ui/views/admin/blog-list.js";
+import {PostFormView} from "../../ui/views/admin/post-form.js";
+import {errorStatus, sendActionError, sendLoadError} from "./respond.js";
 
-const PostSchema = z.object({
-    title: z.string().min(1, "Required"),
-    content: z.string().min(1, "Required"),
-    published: checkbox(),
-    removeThumbnail: checkbox(),
-    tags: z
-        .string()
-        .default("")
-        .transform((tags) => tags.split(",")),
-});
+const PostSchema = z
+    .object({
+        title: requiredText(),
+        slug: z.string().trim().optional(),
+        content: z.string().refine((content) => content.trim() !== "", "Required"),
+        published: checkbox(),
+        removeThumbnail: checkbox(),
+        tags: z
+            .string()
+            .default("")
+            .transform((tags) => tags.split(",")),
+    })
+    .refine((post) => postSlug(post) !== "", {
+        path: ["slug"],
+        message: "Enter a slug with at least one letter or digit",
+    });
 
 const currentPath = "/admin/blog";
 
-export function blogRouter(postService: PostService, templates: TemplateService): Router {
+function saveErrors(ctx: AppError): {errors?: Record<string, string>; topError?: string} {
+    if (ctx === AppError.CONFLICT) return {errors: {slug: "Another post already uses this slug"}};
+    if (ctx === AppError.UPLOAD_ERROR) return {errors: {thumbnail: "Failed to upload thumbnail"}};
+    return {topError: "Failed to save post"};
+}
+
+export function blogRouter(postService: PostService): Router {
     const router = Router();
 
     router.get("/blog", async (req, res) => {
-        const user = getAuth(req);
+        const page = {user: getAuth(req), currentPath};
         const result = await postService.list(parsePagination(req));
-        if (!result.ok) {
-            return send(res, templates.admin.error({user, currentPath, message: "Failed to load posts"}), 500);
-        }
-        send(res, templates.admin.blogList({user, currentPath, posts: result.data}));
+        if (!result.ok) return sendLoadError(res, page, result.ctx, "Posts");
+        send(res, BlogListView({...page, posts: result.data}));
     });
 
     router.get("/blog/new", (_req, res) => {
-        send(res, templates.admin.postForm({mode: "create"}));
+        send(res, PostFormView({mode: "create"}));
     });
 
-    router.post("/blog/new", upload.single("thumbnail"), async (req, res) => {
+    router.post("/blog/new", singleImage("thumbnail"), async (req, res) => {
         const user = getAuth(req);
-        const parsed = PostSchema.safeParse(req.body);
-        if (!parsed.success) {
+        if (req.uploadError) {
             return send(
                 res,
-                templates.admin.postForm({mode: "create", values: req.body, errors: fieldErrors(parsed.error)}),
+                PostFormView({mode: "create", values: req.body, errors: {thumbnail: req.uploadError}}),
                 400
             );
         }
-        const {title, content, published, tags} = parsed.data;
-        const result = await postService.create(user.id, {title, content, published, tags, thumbnail: req.file});
+        const parsed = PostSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return send(res, PostFormView({mode: "create", values: req.body, errors: fieldErrors(parsed.error)}), 400);
+        }
+        const {title, slug, content, published, tags} = parsed.data;
+        const result = await postService.create(user.id, {
+            title,
+            slug,
+            content,
+            published,
+            tags,
+            thumbnail: req.file,
+        });
         if (!result.ok) {
-            const topError =
-                result.ctx === PostError.UPLOAD_ERROR
-                    ? "Failed to upload thumbnail"
-                    : "Failed to create post (title may collide)";
-            return send(res, templates.admin.postForm({mode: "create", values: req.body, topError}), 400);
+            return send(
+                res,
+                PostFormView({mode: "create", values: req.body, ...saveErrors(result.ctx)}),
+                errorStatus(result.ctx)
+            );
         }
         res.redirect(302, `/admin/blog/${result.data.id}/edit`);
     });
 
     router.get("/blog/:id/edit", async (req, res) => {
-        const user = getAuth(req);
         const result = await postService.get(req.params.id);
-        if (!result.ok) {
-            const notFound = result.ctx === PostError.NOT_FOUND;
-            return send(
-                res,
-                templates.admin.error({
-                    user,
-                    currentPath,
-                    message: notFound ? "Post not found" : "Failed to load post",
-                }),
-                notFound ? 404 : 500
-            );
-        }
-        send(res, templates.admin.postForm({mode: "edit", post: result.data}));
+        if (!result.ok) return sendLoadError(res, {user: getAuth(req), currentPath}, result.ctx, "Post");
+        send(res, PostFormView({mode: "edit", post: result.data}));
     });
 
-    router.post("/blog/:id/edit", upload.single("thumbnail"), async (req, res) => {
-        const user = getAuth(req);
+    router.post("/blog/:id/edit", singleImage("thumbnail"), async (req, res) => {
+        const page = {user: getAuth(req), currentPath};
         const id = req.params.id as string;
         const existing = await postService.get(id);
-        if (!existing.ok) {
-            const notFound = existing.ctx === PostError.NOT_FOUND;
+        if (!existing.ok) return sendLoadError(res, page, existing.ctx, "Post");
+
+        if (req.uploadError) {
             return send(
                 res,
-                templates.admin.error({
-                    user,
-                    currentPath,
-                    message: notFound ? "Post not found" : "Failed to load post",
+                PostFormView({
+                    mode: "edit",
+                    post: existing.data,
+                    values: req.body,
+                    errors: {thumbnail: req.uploadError},
                 }),
-                notFound ? 404 : 500
+                400
             );
         }
-
         const parsed = PostSchema.safeParse(req.body);
         if (!parsed.success) {
             return send(
                 res,
-                templates.admin.postForm({
+                PostFormView({
                     mode: "edit",
                     post: existing.data,
                     values: req.body,
@@ -109,31 +121,29 @@ export function blogRouter(postService: PostService, templates: TemplateService)
             );
         }
 
-        const {title, content, published, removeThumbnail, tags} = parsed.data;
+        const {title, slug, content, published, removeThumbnail, tags} = parsed.data;
         const thumbnail: ThumbnailChange = req.file
             ? {kind: "replace", file: req.file}
             : removeThumbnail
               ? {kind: "remove"}
               : {kind: "keep"};
 
-        const result = await postService.update(id, {title, content, published, tags, thumbnail});
+        const result = await postService.update(id, {title, slug, content, published, tags, thumbnail});
         if (!result.ok) {
-            const topError =
-                result.ctx === PostError.UPLOAD_ERROR ? "Failed to upload thumbnail" : "Failed to update post";
+            if (result.ctx === AppError.NOT_FOUND) return sendLoadError(res, page, result.ctx, "Post");
             return send(
                 res,
-                templates.admin.postForm({mode: "edit", post: existing.data, values: req.body, topError}),
-                400
+                PostFormView({mode: "edit", post: existing.data, values: req.body, ...saveErrors(result.ctx)}),
+                errorStatus(result.ctx)
             );
         }
         res.redirect(302, `/admin/blog/${id}/edit`);
     });
 
     router.post("/blog/:id/delete", async (req, res) => {
-        const user = getAuth(req);
         const result = await postService.delete(req.params.id);
         if (!result.ok) {
-            return send(res, templates.admin.error({user, currentPath, message: "Failed to delete post"}), 500);
+            return sendActionError(res, {user: getAuth(req), currentPath}, result.ctx, "Post", "delete post");
         }
         res.redirect(302, currentPath);
     });

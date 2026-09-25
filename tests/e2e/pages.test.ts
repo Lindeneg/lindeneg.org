@@ -62,8 +62,35 @@ describe("pages", () => {
         await createPage(name);
 
         const res = await postForm("/admin/pages/new", pageFields(name), cookie);
+        expect(res.status).toBe(409);
+        expect(res.html).toContain("Another page already uses this name or slug");
+    });
+
+    it("rejects slugs the site routes itself", async () => {
+        const res = await postForm("/admin/pages/new", pageFields(`Page ${uid()}`, {slug: "blog"}), cookie);
+
         expect(res.status).toBe(400);
-        expect(res.html).toContain("may already exist");
+        expect(res.html).toContain("Reserved by the site");
+    });
+
+    it("redirects url variants to the canonical page url", async () => {
+        const id = await createPage(`Page ${uid()}`);
+        const slug = (await db.p.page.findUnique({where: {id}}))!.slug;
+
+        const upper = await get(`/${slug.toUpperCase()}/?x=1`);
+        expect(upper.status).toBe(301);
+        expect(upper.location).toBe(`/${slug}?x=1`);
+
+        const home = await get("/home");
+        expect(home.status).toBe(301);
+        expect(home.location).toBe("/");
+    });
+
+    it("answers missing static files with a plain 404", async () => {
+        const res = await get(`/missing-${uid()}.js`);
+
+        expect(res.status).toBe(404);
+        expect(res.html).toBe("Not found");
     });
 
     it("hides unpublished pages and reflects edits immediately", async () => {

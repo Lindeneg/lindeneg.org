@@ -6,6 +6,8 @@ declare global {
         interface Request {
             log: PinoLogger;
             auth?: User;
+            // set by singleImage when multer rejects the file
+            uploadError?: string;
         }
     }
 }

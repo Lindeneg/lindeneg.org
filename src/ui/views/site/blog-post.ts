@@ -4,7 +4,7 @@ import {Avatar} from "../../components/avatar.js";
 import {SiteLayout} from "../../components/layout.js";
 import {TagLinks} from "../../components/tags.js";
 import {icon} from "../../icons.js";
-import {esc, formatDate, md, readingTime} from "../../lib.js";
+import {esc, localDate, md, readingTime} from "../../lib.js";
 
 export type BlogPostViewProps = {
     post: PostWithRelations;
@@ -26,7 +26,7 @@ export function BlogPostView({post, nav, currentPath}: BlogPostViewProps): strin
                         ${Avatar({person: post.author, block: "author-avatar", modifier: "md", alt: post.author.name, lazy: true})}
                         <div>
                             <p class="blog-post-author">${esc(post.author.name)}</p>
-                            <p class="blog-post-byline">${esc(formatDate(post.createdAt, "long"))} &middot; ${esc(readingTime(post.content))}</p>
+                            <p class="blog-post-byline">${localDate(post.publishedAt ?? post.createdAt, "long")} &middot; ${esc(readingTime(post.content))}</p>
                         </div>
                     </div>
                     ${TagLinks(post.tags)}

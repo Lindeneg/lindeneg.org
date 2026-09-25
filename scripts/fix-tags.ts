@@ -1,24 +1,9 @@
-import {unwrap, loadEnv, withRequired, refine, toString, nonEmpty} from "@lindeneg/cl-env";
 import {PrismaBetterSqlite3} from "@prisma/adapter-better-sqlite3";
 import {PrismaClient} from "../src/generated/prisma/client.js";
+import {loadDatabaseEnv} from "../src/lib/env.js";
 
 (async () => {
-    const env = unwrap(
-        loadEnv(
-            {
-                files: [],
-                optionalFiles:
-                    process.env.NODE_ENV === "test"
-                        ? [".env.test"]
-                        : [".env", ".env.default", ".env.local", ".env.prod"],
-                includeProcessEnv: false,
-                transformKeys: false,
-            },
-            {
-                DATABASE_URL: withRequired(refine(toString(), nonEmpty())),
-            }
-        )
-    );
+    const env = loadDatabaseEnv();
 
     const adapter = new PrismaBetterSqlite3({
         url: env.DATABASE_URL,

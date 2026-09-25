@@ -1,9 +1,10 @@
 import {beforeEach, describe, expect, it, vi, type Mock} from "vitest";
 import {emptySuccess, failure, success} from "../../../src/lib/result.js";
-import PageService, {PageError} from "../../../src/services/page-service.js";
-import MessageService, {MessageError} from "../../../src/services/message-service.js";
+import {AppError} from "../../../src/lib/errors.js";
+import PageService from "../../../src/services/page-service.js";
+import MessageService from "../../../src/services/message-service.js";
 import DashboardService from "../../../src/services/dashboard-service.js";
-import NavigationService, {NavigationError} from "../../../src/services/navigation-service.js";
+import NavigationService from "../../../src/services/navigation-service.js";
 import type PageRepository from "../../../src/repositories/page-repository.js";
 import type SectionRepository from "../../../src/repositories/section-repository.js";
 import type ContactRepository from "../../../src/repositories/contact-repository.js";
@@ -68,19 +69,36 @@ describe("PageService", () => {
         for (const call of invalidate.mock.calls) expect(call).toEqual([["page:page-1"]]);
     });
 
-    it("leaves the cache alone when a mutation fails", async () => {
-        pages.update.mockResolvedValue(failure("unique"));
+    it("transliterates danish letters in a derived slug", async () => {
+        await service.create({...input, name: "Blåbær Grød"});
 
-        expect(await service.update("page-1", input)).toEqual(failure(PageError.DB_ERROR));
+        expect(pages.create).toHaveBeenCalledWith(expect.objectContaining({slug: "blaabaer-groed"}));
+    });
+
+    it("leaves the cache alone when a mutation fails, passing the conflict through", async () => {
+        pages.update.mockResolvedValue(failure(AppError.CONFLICT));
+
+        expect(await service.update("page-1", input)).toEqual(failure(AppError.CONFLICT));
         expect(invalidate).not.toHaveBeenCalled();
     });
 
     it("distinguishes missing pages and sections from db errors", async () => {
         pages.getById.mockResolvedValue(success(null));
-        sections.getById.mockResolvedValue(failure("db"));
+        sections.getById.mockResolvedValue(failure(AppError.DB_ERROR));
 
-        expect(await service.get("x")).toEqual(failure(PageError.NOT_FOUND));
-        expect(await service.getSection("x")).toEqual(failure(PageError.DB_ERROR));
+        expect(await service.get("x")).toEqual(failure(AppError.NOT_FOUND));
+        expect(await service.getSection("x")).toEqual(failure(AppError.DB_ERROR));
+    });
+
+    it("hides unpublished pages from the public lookup", async () => {
+        const getBySlug = vi.fn().mockResolvedValue(success(makePage({published: false})));
+        const publicService = new PageService(
+            fake<PageRepository>({getBySlug}),
+            fake<SectionRepository>(sections),
+            fakeCache().cache
+        );
+
+        expect(await publicService.getPublishedBySlug("about")).toEqual(failure(AppError.NOT_FOUND));
     });
 });
 
@@ -88,16 +106,26 @@ describe("NavigationService", () => {
     let invalidate: Mock;
     let service: NavigationService;
     let get: Mock;
+    let createItem: Mock;
 
     beforeEach(() => {
         get = vi.fn().mockResolvedValue(success(makeNav()));
+        createItem = vi.fn().mockResolvedValue(success(makeNav().items[0]));
         const c = fakeCache();
         invalidate = c.invalidate;
         service = new NavigationService(
             fake<NavigationRepository>({get, update: vi.fn().mockResolvedValue(success(makeNav()))}),
-            fake<NavigationItemRepository>({delete: vi.fn().mockResolvedValue(emptySuccess())}),
+            fake<NavigationItemRepository>({create: createItem, delete: vi.fn().mockResolvedValue(emptySuccess())}),
             c.cache
         );
+    });
+
+    it("creates an item in the navigation the server passes", async () => {
+        const input = {name: "Blog", href: "/blog", position: 0, alignment: "RIGHT" as const, newTab: false};
+
+        await service.createItem("nav-1", input);
+
+        expect(createItem).toHaveBeenCalledWith({...input, navigationId: "nav-1"});
     });
 
     it("finds an item within the navigation", async () => {
@@ -109,9 +137,9 @@ describe("NavigationService", () => {
     });
 
     it("returns NOT_FOUND for an unknown item or missing navigation", async () => {
-        expect(await service.getItem("nope")).toEqual(failure(NavigationError.NOT_FOUND));
+        expect(await service.getItem("nope")).toEqual(failure(AppError.NOT_FOUND));
         get.mockResolvedValue(success(null));
-        expect(await service.get()).toEqual(failure(NavigationError.NOT_FOUND));
+        expect(await service.get()).toEqual(failure(AppError.NOT_FOUND));
     });
 
     it("invalidates everything tagged with the nav on changes", async () => {
@@ -124,15 +152,23 @@ describe("NavigationService", () => {
 });
 
 describe("MessageService", () => {
-    let repo: Record<"getById" | "update", Mock>;
+    let repo: Record<"getById" | "update" | "create", Mock>;
     let service: MessageService;
 
     beforeEach(() => {
         repo = {
             getById: vi.fn().mockResolvedValue(success(makeMessage({read: false}))),
             update: vi.fn().mockResolvedValue(success(makeMessage())),
+            create: vi.fn().mockResolvedValue(success(makeMessage())),
         };
         service = new MessageService(fake<ContactRepository>(repo));
+    });
+
+    it("stores a new message as unread", async () => {
+        const input = {name: "Grace", email: "grace@example.com", message: "Hi"};
+
+        expect((await service.create(input)).ok).toBe(true);
+        expect(repo.create).toHaveBeenCalledWith({...input, read: false});
     });
 
     it("flips the read flag", async () => {
@@ -143,7 +179,7 @@ describe("MessageService", () => {
     it("returns NOT_FOUND for an unknown message", async () => {
         repo.getById.mockResolvedValue(success(null));
 
-        expect(await service.toggleRead("nope")).toEqual(failure(MessageError.NOT_FOUND));
+        expect(await service.toggleRead("nope")).toEqual(failure(AppError.NOT_FOUND));
         expect(repo.update).not.toHaveBeenCalled();
     });
 });

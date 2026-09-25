@@ -1,6 +1,7 @@
 import {beforeEach, describe, expect, it, vi, type Mock} from "vitest";
 import {emptySuccess, failure, success} from "../../../src/lib/result.js";
-import PostService, {PostError} from "../../../src/services/post-service.js";
+import {AppError} from "../../../src/lib/errors.js";
+import PostService from "../../../src/services/post-service.js";
 import type PostRepository from "../../../src/repositories/post-repository.js";
 import type {ImageStore} from "../../../src/services/image-store.js";
 import {fake, fakeCache, fakeLog, makePost} from "../helpers.js";
@@ -9,7 +10,7 @@ const file = {buffer: Buffer.from("img"), mimetype: "image/png"};
 const uploaded = {url: "https://img/new.png", publicId: "new-id"};
 
 describe("PostService", () => {
-    let repo: Record<"getById" | "create" | "update" | "delete", Mock>;
+    let repo: Record<"getById" | "getBySlug" | "list" | "create" | "update" | "delete", Mock>;
     let store: Record<"upload" | "delete", Mock>;
     let invalidate: Mock;
     let log: ReturnType<typeof fakeLog>;
@@ -20,6 +21,8 @@ describe("PostService", () => {
             getById: vi
                 .fn()
                 .mockResolvedValue(success(makePost({thumbnail: "https://img/old.png", thumbnailId: "old-id"}))),
+            getBySlug: vi.fn().mockResolvedValue(success(makePost())),
+            list: vi.fn().mockResolvedValue(success({data: [makePost()], total: 1})),
             create: vi.fn().mockResolvedValue(success(makePost())),
             update: vi.fn().mockResolvedValue(success(makePost())),
             delete: vi.fn().mockResolvedValue(success(makePost({thumbnailId: "old-id"}))),
@@ -52,6 +55,7 @@ describe("PostService", () => {
                     slug: "my-post",
                     content: "c",
                     published: true,
+                    publishedAt: expect.any(Date),
                     thumbnail: uploaded.url,
                     thumbnailId: uploaded.publicId,
                     authorId: "user-1",
@@ -59,6 +63,18 @@ describe("PostService", () => {
                 []
             );
             expect(invalidate).toHaveBeenCalledExactlyOnceWith(["blog-list"]);
+        });
+
+        it("uses a custom slug over the title", async () => {
+            await service.create("user-1", {title: "t", slug: "Custom Slug", content: "c", published: false, tags: []});
+
+            expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({slug: "custom-slug"}), []);
+        });
+
+        it("leaves a draft without a publish date", async () => {
+            await service.create("user-1", {title: "t", content: "c", published: false, tags: []});
+
+            expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({publishedAt: undefined}), []);
         });
 
         it("normalizes and dedupes tags", async () => {
@@ -83,13 +99,13 @@ describe("PostService", () => {
                 thumbnail: file,
             });
 
-            expect(result).toEqual(failure(PostError.UPLOAD_ERROR));
+            expect(result).toEqual(failure(AppError.UPLOAD_ERROR));
             expect(repo.create).not.toHaveBeenCalled();
             expect(invalidate).not.toHaveBeenCalled();
         });
 
         it("deletes the uploaded image when the post can't be created", async () => {
-            repo.create.mockResolvedValue(failure("unique constraint"));
+            repo.create.mockResolvedValue(failure(AppError.CONFLICT));
 
             const result = await service.create("user-1", {
                 title: "t",
@@ -99,7 +115,7 @@ describe("PostService", () => {
                 thumbnail: file,
             });
 
-            expect(result).toEqual(failure(PostError.DB_ERROR));
+            expect(result).toEqual(failure(AppError.CONFLICT));
             expect(store.delete).toHaveBeenCalledWith(uploaded.publicId);
             expect(invalidate).not.toHaveBeenCalled();
         });
@@ -108,7 +124,10 @@ describe("PostService", () => {
             await service.create("user-1", {title: "t", content: "c", published: false, tags: []});
 
             expect(store.upload).not.toHaveBeenCalled();
-            expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({thumbnail: "", thumbnailId: ""}), []);
+            expect(repo.create).toHaveBeenCalledWith(
+                expect.objectContaining({thumbnail: undefined, thumbnailId: undefined}),
+                []
+            );
         });
     });
 
@@ -120,7 +139,7 @@ describe("PostService", () => {
 
             const result = await service.update("post-1", {...input, thumbnail: {kind: "keep"}});
 
-            expect(result).toEqual(failure(PostError.NOT_FOUND));
+            expect(result).toEqual(failure(AppError.NOT_FOUND));
             expect(repo.update).not.toHaveBeenCalled();
         });
 
@@ -142,6 +161,27 @@ describe("PostService", () => {
             expect(invalidate).toHaveBeenCalledExactlyOnceWith(["post:post-1", "blog-list"]);
         });
 
+        it("keeps the slug the form sends even when the title changes", async () => {
+            await service.update("post-1", {...input, slug: "hello-world", thumbnail: {kind: "keep"}});
+
+            expect(repo.update).toHaveBeenCalledWith("post-1", expect.objectContaining({slug: "hello-world"}), [
+                "jazz",
+                "music",
+            ]);
+        });
+
+        it("dates the post when it is published for the first time", async () => {
+            repo.getById.mockResolvedValue(success(makePost({published: false, publishedAt: null})));
+
+            await service.update("post-1", {...input, thumbnail: {kind: "keep"}});
+
+            expect(repo.update).toHaveBeenCalledWith(
+                "post-1",
+                expect.objectContaining({publishedAt: expect.any(Date)}),
+                expect.anything()
+            );
+        });
+
         it("replaces: uploads, updates, then deletes the old image", async () => {
             await service.update("post-1", {...input, thumbnail: {kind: "replace", file}});
 
@@ -155,11 +195,11 @@ describe("PostService", () => {
         });
 
         it("keeps the old image and removes the new one when the update fails", async () => {
-            repo.update.mockResolvedValue(failure("db"));
+            repo.update.mockResolvedValue(failure(AppError.DB_ERROR));
 
             const result = await service.update("post-1", {...input, thumbnail: {kind: "replace", file}});
 
-            expect(result).toEqual(failure(PostError.DB_ERROR));
+            expect(result).toEqual(failure(AppError.DB_ERROR));
             expect(store.delete).toHaveBeenCalledOnce();
             expect(store.delete).toHaveBeenCalledWith(uploaded.publicId);
             expect(invalidate).not.toHaveBeenCalled();
@@ -171,7 +211,7 @@ describe("PostService", () => {
             expect(store.upload).not.toHaveBeenCalled();
             expect(repo.update).toHaveBeenCalledWith(
                 "post-1",
-                expect.objectContaining({thumbnail: "", thumbnailId: ""}),
+                expect.objectContaining({thumbnail: null, thumbnailId: null}),
                 ["jazz", "music"]
             );
             expect(store.delete).toHaveBeenCalledWith("old-id");
@@ -182,8 +222,22 @@ describe("PostService", () => {
 
             const result = await service.update("post-1", {...input, thumbnail: {kind: "replace", file}});
 
-            expect(result).toEqual(failure(PostError.UPLOAD_ERROR));
+            expect(result).toEqual(failure(AppError.UPLOAD_ERROR));
             expect(repo.update).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("public reads", () => {
+        it("lists published posts newest-published first", async () => {
+            await service.listPublished({page: 2, pageSize: 6}, "jazz");
+
+            expect(repo.list).toHaveBeenCalledWith({skip: 6, take: 6}, {published: true, tag: "jazz"}, "publishedAt");
+        });
+
+        it("hides drafts from the slug lookup", async () => {
+            repo.getBySlug.mockResolvedValue(success(makePost({published: false})));
+
+            expect(await service.getPublishedBySlug("hello-world")).toEqual(failure(AppError.NOT_FOUND));
         });
     });
 
@@ -206,9 +260,9 @@ describe("PostService", () => {
         });
 
         it("reports db errors", async () => {
-            repo.delete.mockResolvedValue(failure("db"));
+            repo.delete.mockResolvedValue(failure(AppError.DB_ERROR));
 
-            expect(await service.delete("post-1")).toEqual(failure(PostError.DB_ERROR));
+            expect(await service.delete("post-1")).toEqual(failure(AppError.DB_ERROR));
             expect(store.delete).not.toHaveBeenCalled();
         });
     });

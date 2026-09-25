@@ -1,34 +1,33 @@
-import pino, {type LogFn, type Logger} from "pino";
+import pino, {type LevelWithSilent, type LogFn, type Logger} from "pino";
 import {pinoHttp} from "pino-http";
 import type {Request} from "express";
 import type {NodeEnv} from "../lib/types.js";
 
-// TODO just get from environment
-function getLogLevel(nodeEnv: NodeEnv) {
-    switch (nodeEnv) {
-        case "test":
-            return "silent";
-        case "development":
-            return "debug";
-        default:
-            return "info";
-    }
-}
+const defaultLevels: Record<NodeEnv, LevelWithSilent> = {
+    test: "silent",
+    development: "debug",
+    production: "info",
+};
 
 class LoggerService {
     readonly #logger: Logger;
 
-    constructor(nodeEnv: NodeEnv) {
+    // level is LOG_LEVEL when set, otherwise derived from NODE_ENV
+    constructor(nodeEnv: NodeEnv, level?: LevelWithSilent) {
         this.#logger = pino({
-            level: getLogLevel(nodeEnv),
-            transport: {
-                target: "pino-pretty",
-                options: {
-                    colorize: true,
-                    translateTime: "HH:MM:ss",
-                    ignore: "pid,hostname,req,res,reqId,responseTime,userId",
-                },
-            },
+            level: level ?? defaultLevels[nodeEnv],
+            // production writes json lines to stdout for the container runtime to collect
+            transport:
+                nodeEnv === "production"
+                    ? undefined
+                    : {
+                          target: "pino-pretty",
+                          options: {
+                              colorize: true,
+                              translateTime: "HH:MM:ss",
+                              ignore: "pid,hostname,req,res,reqId,responseTime,userId",
+                          },
+                      },
         });
     }
 

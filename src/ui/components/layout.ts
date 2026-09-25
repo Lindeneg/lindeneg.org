@@ -7,11 +7,14 @@ import {Footer} from "./footer.js";
 import {Sidebar, type SidebarItem} from "./sidebar.js";
 import {Topbar} from "./topbar.js";
 
+// third-party scripts are pinned to a version and checked against their hash
+type Script = {src: string; integrity: string};
+
 type HeadProps = {
     title: string;
     description?: MaybeNull<string>;
     styles: string[];
-    scripts?: string[];
+    scripts?: Script[];
 };
 
 function head({title, description, styles, scripts = []}: HeadProps): string {
@@ -21,12 +24,10 @@ function head({title, description, styles, scripts = []}: HeadProps): string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     ${desc}
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" />
     ${styles.map((href) => `<link rel="stylesheet" href="${href}" />`).join("\n    ")}
-    ${scripts.map((src) => `<script src="${src}"></script>`).join("\n    ")}
+    ${scripts.map((s) => `<script src="${s.src}" integrity="${s.integrity}" crossorigin="anonymous"></script>`).join("\n    ")}
     <script src="/theme-boot.js"></script>
+    <script src="/local-dates.js" defer></script>
     <title>${esc(title)}</title>`;
 }
 
@@ -112,8 +113,14 @@ export function EditorLayout({title, headerBar, children}: EditorLayoutProps): s
             title,
             styles: [...ADMIN_STYLES, "/highlight-github-dark.css"],
             scripts: [
-                "https://cdn.jsdelivr.net/npm/marked@18.0.14/lib/marked.umd.js",
-                "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.12.0/highlight.min.js",
+                {
+                    src: "https://cdn.jsdelivr.net/npm/marked@18.0.14/lib/marked.umd.js",
+                    integrity: "sha384-2vpGtuKqJvFlwJqYnf/wUMuzUfhUnYBt9oay0e2yaFcq0Dh6/aEbQ8YAOeKGzlYo",
+                },
+                {
+                    src: "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.12.0/highlight.min.js",
+                    integrity: "sha384-wjfDDhOPPdjtva8vWBhWeVprSpmxisEu5aYT3q1JyACqXpdKpo3PWZTMVq24MBix",
+                },
             ],
         }),
         `

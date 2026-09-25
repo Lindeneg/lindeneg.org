@@ -1,7 +1,7 @@
 import type {PageSection} from "../../../generated/prisma/client.js";
 import type {User} from "../../../repositories/user-repository.js";
 import type {PageWithSections} from "../../../repositories/page-repository.js";
-import {esc, formatDate} from "../../lib.js";
+import {esc, localDate} from "../../lib.js";
 import {AdminLayout} from "../../components/layout.js";
 import {ConfirmForm} from "../../components/confirm-form.js";
 import {Checkbox, Field, TextArea, TopError} from "../../components/form.js";
@@ -35,7 +35,7 @@ function sectionRow(s: PageSection): string {
             </div>
             <div class="section-row-meta">
                 <span class="badge ${s.published ? "badge-on" : "badge-off"}">${s.published ? "Published" : "Draft"}</span>
-                <span class="row-sub">${esc(formatDate(s.updatedAt))}</span>
+                <span class="row-sub">${localDate(s.updatedAt)}</span>
             </div>
             <div class="row-actions">
                 <a href="/admin/sections/${esc(s.id)}/edit" class="btn btn-ghost btn-sm">Edit</a>
@@ -99,7 +99,7 @@ export function PageFormView({user, currentPath, mode, page, values, errors, top
             <form method="post" action="${action}" class="admin-form">
                 ${TopError(topError)}
                 ${Field({name: "name", label: "Name", value: v.name, error: e.name, required: true})}
-                ${Field({name: "slug", label: "Slug", value: v.slug, error: e.slug, required: true, placeholder: "auto-derived from name if blank"})}
+                ${Field({name: "slug", label: "Slug", value: v.slug, error: e.slug, placeholder: "auto-derived from name if blank"})}
                 ${Field({name: "title", label: "Title (shown in browser tab)", value: v.title, error: e.title, required: true})}
                 ${TextArea({name: "description", label: "Description (meta)", value: v.description, error: e.description, rows: 2})}
                 ${Checkbox({name: "published", label: "Published", checked: !!v.published})}

@@ -1,27 +1,22 @@
 import {success, emptySuccess, failure, type EmptyResult, type AsyncResult} from "../lib/result.js";
+import {AppError} from "../lib/errors.js";
 import {paginate, toSkipTake, type Paginated, type PaginationParams} from "../lib/pagination.js";
 import {CacheTag} from "../lib/page-cache.js";
 import type PageCache from "../lib/page-cache.js";
 import {slugify} from "../lib/slugify.js";
-import type {ValueOf, RawModelUpdate} from "../lib/types.js";
+import type {MaybeUndefined, RawModelUpdate} from "../lib/types.js";
 import type {Post} from "../generated/prisma/client.js";
 import type PostRepository from "../repositories/post-repository.js";
-import type {PostWithRelations} from "../repositories/post-repository.js";
+import type {PostWithRelations, TagWithCount} from "../repositories/post-repository.js";
 import type {ImageFile, ImageStore} from "./image-store.js";
 import type LoggerService from "./logger-service.js";
-
-export const PostError = {
-    NOT_FOUND: "not_found",
-    DB_ERROR: "db_error",
-    UPLOAD_ERROR: "upload_error",
-} as const;
-
-export type PostError = ValueOf<typeof PostError>;
 
 export type ThumbnailChange = {kind: "keep"} | {kind: "remove"} | {kind: "replace"; file: ImageFile};
 
 export interface CreatePostInput {
     title: string;
+    // derived from the title when blank
+    slug?: string;
     content: string;
     published: boolean;
     tags: string[];
@@ -30,6 +25,8 @@ export interface CreatePostInput {
 
 export interface UpdatePostInput {
     title: string;
+    // derived from the title when blank
+    slug?: string;
     content: string;
     published: boolean;
     tags: string[];
@@ -41,6 +38,10 @@ function normalizeTags(tags: string[]): string[] {
     return [...new Set(tags.map(slugify).filter((tag) => tag !== ""))];
 }
 
+export function postSlug(input: {title: string; slug?: string}): string {
+    return slugify(input.slug?.trim() || input.title);
+}
+
 class PostService {
     constructor(
         private readonly postRepo: PostRepository,
@@ -49,66 +50,89 @@ class PostService {
         private readonly log: LoggerService
     ) {}
 
-    async list(pagination: PaginationParams): AsyncResult<Paginated<PostWithRelations>, PostError> {
+    async list(pagination: PaginationParams): AsyncResult<Paginated<PostWithRelations>, AppError> {
         const result = await this.postRepo.list(toSkipTake(pagination));
-        if (!result.ok) return failure(PostError.DB_ERROR);
+        if (!result.ok) return result;
         return success(paginate(result.data.data, result.data.total, pagination));
     }
 
-    async get(id: string): AsyncResult<PostWithRelations, PostError> {
+    async listPublished(
+        pagination: PaginationParams,
+        tag: MaybeUndefined<string>
+    ): AsyncResult<Paginated<PostWithRelations>, AppError> {
+        const result = await this.postRepo.list(toSkipTake(pagination), {published: true, tag}, "publishedAt");
+        if (!result.ok) return result;
+        return success(paginate(result.data.data, result.data.total, pagination));
+    }
+
+    async listPublishedTags(): AsyncResult<TagWithCount[], AppError> {
+        return this.postRepo.listPublishedTags();
+    }
+
+    async get(id: string): AsyncResult<PostWithRelations, AppError> {
         const result = await this.postRepo.getById(id);
-        if (!result.ok) return failure(PostError.DB_ERROR);
-        if (!result.data) return failure(PostError.NOT_FOUND);
+        if (!result.ok) return result;
+        if (!result.data) return failure(AppError.NOT_FOUND);
         return success(result.data);
     }
 
-    async create(authorId: string, input: CreatePostInput): AsyncResult<PostWithRelations, PostError> {
-        let thumbnail = {url: "", publicId: ""};
+    async getPublishedBySlug(slug: string): AsyncResult<PostWithRelations, AppError> {
+        const result = await this.postRepo.getBySlug(slug);
+        if (!result.ok) return result;
+        if (!result.data || !result.data.published) return failure(AppError.NOT_FOUND);
+        return success(result.data);
+    }
+
+    async create(authorId: string, input: CreatePostInput): AsyncResult<PostWithRelations, AppError> {
+        let thumbnail = null;
         if (input.thumbnail) {
             const upload = await this.imageStore.upload(input.thumbnail);
-            if (!upload.ok) return failure(PostError.UPLOAD_ERROR);
+            if (!upload.ok) return failure(AppError.UPLOAD_ERROR);
             thumbnail = upload.data;
         }
 
         const result = await this.postRepo.create(
             {
                 title: input.title,
-                slug: slugify(input.title),
+                slug: postSlug(input),
                 content: input.content,
                 published: input.published,
-                thumbnail: thumbnail.url,
-                thumbnailId: thumbnail.publicId,
+                publishedAt: input.published ? new Date() : undefined,
+                thumbnail: thumbnail?.url,
+                thumbnailId: thumbnail?.publicId,
                 authorId,
             },
             normalizeTags(input.tags)
         );
         if (!result.ok) {
-            if (thumbnail.publicId) await this.#deleteImage(thumbnail.publicId);
-            return failure(PostError.DB_ERROR);
+            if (thumbnail) await this.#deleteImage(thumbnail.publicId);
+            return result;
         }
 
         this.cache.invalidate([CacheTag.blogList]);
         return success(result.data);
     }
 
-    async update(id: string, input: UpdatePostInput): AsyncResult<PostWithRelations, PostError> {
+    async update(id: string, input: UpdatePostInput): AsyncResult<PostWithRelations, AppError> {
         const existing = await this.get(id);
         if (!existing.ok) return existing;
 
         const payload: RawModelUpdate<Post> = {
             title: input.title,
-            slug: slugify(input.title),
+            slug: postSlug(input),
             content: input.content,
             published: input.published,
         };
+        // the first publish dates the post; unpublishing and publishing again keeps that date
+        if (input.published && !existing.data.publishedAt) payload.publishedAt = new Date();
 
-        let uploadedId = "";
+        let uploadedId: string | null = null;
         if (input.thumbnail.kind === "remove") {
-            payload.thumbnail = "";
-            payload.thumbnailId = "";
+            payload.thumbnail = null;
+            payload.thumbnailId = null;
         } else if (input.thumbnail.kind === "replace") {
             const upload = await this.imageStore.upload(input.thumbnail.file);
-            if (!upload.ok) return failure(PostError.UPLOAD_ERROR);
+            if (!upload.ok) return failure(AppError.UPLOAD_ERROR);
             uploadedId = upload.data.publicId;
             payload.thumbnail = upload.data.url;
             payload.thumbnailId = upload.data.publicId;
@@ -117,7 +141,7 @@ class PostService {
         const result = await this.postRepo.update(id, payload, normalizeTags(input.tags));
         if (!result.ok) {
             if (uploadedId) await this.#deleteImage(uploadedId);
-            return failure(PostError.DB_ERROR);
+            return result;
         }
 
         const oldId = existing.data.thumbnailId;
@@ -127,9 +151,9 @@ class PostService {
         return success(result.data);
     }
 
-    async delete(id: string): Promise<EmptyResult<PostError>> {
+    async delete(id: string): Promise<EmptyResult<AppError>> {
         const result = await this.postRepo.delete(id);
-        if (!result.ok) return failure(PostError.DB_ERROR);
+        if (!result.ok) return result;
 
         if (result.data.thumbnailId) await this.#deleteImage(result.data.thumbnailId);
 

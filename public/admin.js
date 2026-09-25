@@ -9,6 +9,19 @@
         });
     }
 
+    // an oversized file is rejected mid-upload, dropping every field after it, so it's blocked before submitting
+    function initFileLimits() {
+        document.querySelectorAll("input[type=file][data-max-bytes]").forEach(function (input) {
+            input.addEventListener("change", function () {
+                var max = Number(input.dataset.maxBytes);
+                var file = input.files && input.files[0];
+                var tooLarge = file && file.size > max;
+                input.setCustomValidity(tooLarge ? "Image must be " + max / 1024 / 1024 + "MB or smaller" : "");
+                if (tooLarge) input.reportValidity();
+            });
+        });
+    }
+
     function initMobileSidebar() {
         var btn = document.querySelector("[data-admin-mobile-toggle]");
         var sidebar = document.querySelector(".admin-sidebar");
@@ -96,6 +109,7 @@
 
     function init() {
         initConfirms();
+        initFileLimits();
         initMobileSidebar();
         initMarkdownEditor();
     }

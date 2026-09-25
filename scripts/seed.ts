@@ -1,52 +1,26 @@
-import {unwrap, success, failure, loadEnv, withRequired, refine, toString, nonEmpty} from "@lindeneg/cl-env";
 import {PrismaBetterSqlite3} from "@prisma/adapter-better-sqlite3";
 import {PrismaClient} from "../src/generated/prisma/client.js";
+import {loadDatabaseEnv} from "../src/lib/env.js";
+import {slugify} from "../src/lib/slugify.js";
 import {randomUUID} from "crypto";
 import {hash} from "bcrypt";
 
 (async () => {
-    const env = unwrap(
-        loadEnv(
-            {
-                files: [],
-                optionalFiles:
-                    process.env.NODE_ENV === "test"
-                        ? [".env.test"]
-                        : [".env", ".env.default", ".env.local", ".env.prod"],
-                includeProcessEnv: false,
-                transformKeys: false,
-            },
-            {
-                DATABASE_URL: withRequired(refine(toString(), nonEmpty())),
-
-                SUPER_USER: function (_, value) {
-                    if (value === undefined) return failure("must have SUPER_USER in environment");
-                    const splitted = value.split(",");
-                    if (splitted.length !== 4) return failure("must have exactly 4 values");
-                    return success({
-                        email: splitted[0],
-                        name: splitted[1] + " " + splitted[2],
-                        password: splitted[3],
-                    });
-                },
-            }
-        )
-    );
+    const env = loadDatabaseEnv();
+    if (!env.SUPER_USER) throw new Error("must have SUPER_USER in environment");
 
     const adapter = new PrismaBetterSqlite3({url: env.DATABASE_URL});
     const prisma = new PrismaClient({adapter});
 
     const {name, email, password} = env.SUPER_USER;
 
-    // Create a seed user
-    const userId = randomUUID();
+    // Create a seed user; when it already exists the upsert returns that user, so posts get its id
     const hashedPassword = await hash(password, 6);
 
-    await prisma.user.upsert({
+    const {id: userId} = await prisma.user.upsert({
         where: {email},
         update: {},
         create: {
-            id: userId,
             email,
             name,
             password: hashedPassword,
@@ -90,12 +64,6 @@ import {hash} from "bcrypt";
             desc: "Our commitment to accessibility.",
         },
     ];
-
-    const slugify = (s: string) =>
-        s
-            .toLowerCase()
-            .replace(/[^\w\s-]/g, "")
-            .replace(/\s+/g, "-");
 
     for (let i = 0; i < pageTopics.length; i++) {
         const topic = pageTopics[i];
@@ -218,8 +186,8 @@ import {hash} from "bcrypt";
                 slug: slugify(title),
                 content: postContent(title, i),
                 published,
+                publishedAt: published ? daysAgo(postTitles.length - i) : null,
                 thumbnail: `https://picsum.photos/seed/${slugify(title)}/800/400`,
-                thumbnailId: "",
                 authorId: userId,
                 createdAt: daysAgo(postTitles.length - i),
                 updatedAt: daysAgo(Math.max(0, postTitles.length - i - 2)),

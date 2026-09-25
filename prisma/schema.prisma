@@ -10,16 +10,27 @@ datasource db {
   provider = "sqlite"
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Alignment {
+  LEFT
+  RIGHT
+}
+
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String
-  password  String                         // bcrypt hash
-  photo     String?                        // Cloudinary URL
-  photoId   String?                        // Cloudinary public_id
-  role      String   @default("USER")
-  posts     Post[]
-  createdAt DateTime @default(now())
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String
+  password     String                      // bcrypt hash
+  photo        String?                     // Cloudinary URL
+  photoId      String?                     // Cloudinary public_id
+  role         Role     @default(USER)
+  tokenVersion Int      @default(0)        // bumped on password change, invalidates issued tokens
+  posts        Post[]
+  createdAt    DateTime @default(now())
 }
 
 model Navigation {
@@ -35,7 +46,7 @@ model NavigationItem {
   name         String
   href         String
   position     Int         @default(0)
-  alignment    String      @default("RIGHT")  // LEFT | RIGHT
+  alignment    Alignment   @default(RIGHT)
   newTab       Boolean     @default(false)
 }
 
@@ -68,8 +79,9 @@ model Post {
   slug        String   @unique
   content     String                        // Markdown
   published   Boolean  @default(false)
-  thumbnail   String                        // Cloudinary URL
-  thumbnailId String   @default("")
+  publishedAt DateTime?                     // set the first time the post is published
+  thumbnail   String?                       // Cloudinary URL
+  thumbnailId String?                       // Cloudinary public_id
   authorId    String
   author      User     @relation(fields: [authorId], references: [id])
   tags        Tag[]
@@ -88,6 +100,6 @@ model ContactMessage {
   name      String
   email     String
   message   String
-  read      Boolean  @default(false)        // NEW: track read status in admin
+  read      Boolean  @default(false)
   createdAt DateTime @default(now())
 }

@@ -23,6 +23,7 @@ type Seed = {
     messageId: string;
     userId: string;
     userName: string;
+    tokenVersion: number;
 };
 
 type Route = {route: string; send: (s: Seed, cookie?: string) => Promise<TestResponse>};
@@ -141,11 +142,24 @@ const routes: Route[] = [
     },
     {route: "POST /admin/settings/photo/delete", send: (_, c) => postForm("/admin/settings/photo/delete", {}, c)},
     {route: "POST /admin/settings/cache/clear", send: (_, c) => postForm("/admin/settings/cache/clear", {}, c)},
+    {
+        route: "POST /admin/settings/password",
+        send: (_, c) =>
+            postForm(
+                "/admin/settings/password",
+                {
+                    currentPassword: env.SUPER_USER!.password,
+                    newPassword: "hacked-password-123",
+                    confirmPassword: "hacked-password-123",
+                },
+                c
+            ),
+    },
 
     {route: "GET /admin/does-not-exist", send: (_, c) => get("/admin/does-not-exist", c)},
 ];
 
-const payload = (s: Seed) => ({userId: s.userId, name: s.userName, role: "ADMIN"});
+const payload = (s: Seed) => ({userId: s.userId, tokenVersion: s.tokenVersion});
 const named = (token: string) => `${env.JWT_COOKIE_NAME}=${token}`;
 const base64url = (value: object) => Buffer.from(JSON.stringify(value)).toString("base64url");
 
@@ -166,8 +180,12 @@ const variants: Variant[] = [
         cookie: (s) => named(jwt.sign({...payload(s), userId: randomUUID()}, env.JWT_SECRET)),
     },
     {
-        variant: "a token with a stale name",
-        cookie: (s) => named(jwt.sign({...payload(s), name: "Someone Else"}, env.JWT_SECRET)),
+        variant: "a token from before a password change",
+        cookie: (s) => named(jwt.sign({...payload(s), tokenVersion: s.tokenVersion - 1}, env.JWT_SECRET)),
+    },
+    {
+        variant: "a token without a token version",
+        cookie: (s) => named(jwt.sign({userId: s.userId, name: s.userName, role: "ADMIN"}, env.JWT_SECRET)),
     },
     {
         variant: "a valid token under the wrong cookie name",
@@ -183,7 +201,10 @@ async function snapshot(s: Seed) {
         db.p.post.findUnique({where: {id: s.postId}}),
         db.p.navigation.findUnique({where: {id: s.navigationId}, include: {items: true}}),
         db.p.contactMessage.findUnique({where: {id: s.messageId}}),
-        db.p.user.findUnique({where: {id: s.userId}, select: {photo: true, photoId: true, name: true}}),
+        db.p.user.findUnique({
+            where: {id: s.userId},
+            select: {photo: true, photoId: true, name: true, password: true, tokenVersion: true},
+        }),
         Promise.all([
             db.p.page.count(),
             db.p.pageSection.count(),
@@ -243,6 +264,7 @@ describe("unauthenticated access", () => {
             messageId: message.id,
             userId: user.id,
             userName: user.name,
+            tokenVersion: user.tokenVersion,
         };
         before = await snapshot(seed);
 

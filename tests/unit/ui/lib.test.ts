@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {esc, formatDate, initials, isActive, md, normalizePath, readingTime} from "../../../src/ui/lib.js";
+import {esc, formatDate, initials, isActive, localDate, md, normalizePath, readingTime} from "../../../src/ui/lib.js";
 
 describe("esc", () => {
     it("escapes html special characters", () => {
@@ -78,6 +78,16 @@ describe("formatting", () => {
         expect(formatDate(date)).toBe("Jan 5, 2024");
         expect(formatDate(date, "long")).toBe("January 5, 2024");
         expect(formatDate(date.toISOString())).toBe("Jan 5, 2024");
+    });
+
+    it("formats in utc regardless of the server timezone", () => {
+        expect(formatDate(new Date("2024-01-05T23:30:00Z"))).toBe("Jan 5, 2024");
+    });
+
+    it("wraps a date in a time element the browser can localize", () => {
+        expect(localDate(date, "long")).toBe(
+            `<time datetime="2024-01-05T12:00:00.000Z" data-local-date="long">January 5, 2024</time>`
+        );
     });
 
     it("estimates reading time at 200 words per minute, minimum 1", () => {

@@ -15,8 +15,8 @@ function navLink(item: NavItem, currentPath: string, mobile = false): string {
 
 export function Nav(nav: NavigationWithItems, currentPath: string): string {
     const sorted = [...nav.items].sort((a, b) => a.position - b.position);
-    const left = sorted.filter((i) => i.alignment?.toUpperCase() === "LEFT");
-    const right = sorted.filter((i) => i.alignment?.toUpperCase() !== "LEFT");
+    const left = sorted.filter((i) => i.alignment === "LEFT");
+    const right = sorted.filter((i) => i.alignment === "RIGHT");
 
     const leftDesktop = left.map((i) => navLink(i, currentPath)).join("");
     const rightDesktop = right.map((i) => navLink(i, currentPath)).join("");

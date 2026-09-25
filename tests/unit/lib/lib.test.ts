@@ -5,7 +5,7 @@ import {slugify} from "../../../src/lib/slugify.js";
 import {DEFAULT_PAGE_SIZE, paginate, parsePagination, toSkipTake} from "../../../src/lib/pagination.js";
 import {checkbox, fieldErrors, optStr, toBool} from "../../../src/lib/validation.js";
 import {emptySuccess, failure, success} from "../../../src/lib/result.js";
-import {envFiles, isInTestMode} from "../../../src/lib/env.js";
+import {envFiles, isInTestMode, parseSuperUser} from "../../../src/lib/env.js";
 import PageCache, {CacheTag} from "../../../src/lib/page-cache.js";
 import {fake} from "../helpers.js";
 
@@ -20,6 +20,11 @@ describe("slugify", () => {
 
     it("returns an empty string for input without alphanumerics", () => {
         expect(slugify("/")).toBe("");
+    });
+
+    it("transliterates danish letters and strips accents", () => {
+        expect(slugify("Blåbær & Crème Brûlée")).toBe("blaabaer-creme-brulee");
+        expect(slugify("ØL")).toBe("oel");
     });
 });
 
@@ -186,5 +191,16 @@ describe("env", () => {
         expect(isInTestMode()).toBe(false);
         expect(envFiles()).not.toContain(".env.test");
         expect(envFiles()).toContain(".env.local");
+    });
+
+    it("parses SUPER_USER, keeping commas in the password", () => {
+        expect(parseSuperUser("a@example.com,Ada,Lovelace,p,ss,word")).toEqual(
+            success({email: "a@example.com", name: "Ada Lovelace", password: "p,ss,word"})
+        );
+    });
+
+    it("rejects an incomplete SUPER_USER", () => {
+        expect(parseSuperUser("a@example.com,Ada,Lovelace").ok).toBe(false);
+        expect(parseSuperUser("a@example.com,Ada,Lovelace,").ok).toBe(false);
     });
 });

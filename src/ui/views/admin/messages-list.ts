@@ -1,7 +1,7 @@
 import type {ContactMessage} from "../../../generated/prisma/client.js";
 import type {User} from "../../../repositories/user-repository.js";
 import type {Paginated} from "../../../lib/pagination.js";
-import {esc, formatDate} from "../../lib.js";
+import {esc, localDate} from "../../lib.js";
 import {AdminLayout} from "../../components/layout.js";
 import {ConfirmForm} from "../../components/confirm-form.js";
 import {PageHeader} from "../../components/page-header.js";
@@ -19,7 +19,7 @@ function row(m: ContactMessage): string {
             <summary class="message-summary">
                 <div class="message-head">
                     <span class="message-name">${esc(m.name)}</span>
-                    <span class="row-sub">${esc(m.email)} · ${esc(formatDate(m.createdAt, "long"))}</span>
+                    <span class="row-sub">${esc(m.email)} · ${localDate(m.createdAt, "long")}</span>
                 </div>
                 <span class="badge ${m.read ? "badge-off" : "badge-on"}">${m.read ? "Read" : "Unread"}</span>
             </summary>

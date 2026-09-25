@@ -4,7 +4,7 @@ import {makeGlobalErrorHandler} from "./lib/error-handler.js";
 import type LoggerService from "./services/logger-service.js";
 import type {ImageStore} from "./services/image-store.js";
 import DataService from "./services/data-service.js";
-import AuthService from "./services/auth-service.js";
+import AuthService, {AuthError} from "./services/auth-service.js";
 import ExpressService from "./services/express-service.js";
 import UserService from "./services/user-service.js";
 import PostService from "./services/post-service.js";
@@ -22,6 +22,8 @@ import PostRepository from "./repositories/post-repository.js";
 import ContactRepository from "./repositories/contact-repository.js";
 import {createAdminAuth} from "./middleware/admin-auth.js";
 import {makeAdminRouter} from "./routers/admin-router.js";
+import {makeApiRouter} from "./routers/api-router.js";
+import {makeHealthRouter} from "./routers/health-router.js";
 import {makeSitePublicRouter} from "./routers/public-router.js";
 import {loginRouter, logoutRouter} from "./routers/admin/auth.js";
 import {dashboardRouter} from "./routers/admin/dashboard.js";
@@ -49,7 +51,7 @@ export async function startApp(env: AppEnv, log: LoggerService, imageStore: Imag
         {
             cookieName: env.JWT_COOKIE_NAME,
             secret: env.JWT_SECRET,
-            saltRounds: env.JWT_SALT_ROUNDS,
+            bcryptRounds: env.BCRYPT_ROUNDS,
             expiryMs: env.JWT_EXPIRE_MS,
             mode: env.NODE_ENV,
         },
@@ -61,21 +63,26 @@ export async function startApp(env: AppEnv, log: LoggerService, imageStore: Imag
     const navigationService = new NavigationService(navigationRepo, navigationItemRepo, cache);
     const messageService = new MessageService(contactRepo);
     const dashboardService = new DashboardService(pageRepo, postRepo, contactRepo);
-    const templateService = new TemplateService(pageRepo, navigationRepo, postRepo, cache);
+    const templateService = new TemplateService(pageService, postService, navigationService, cache);
 
-    const adminRouter = makeAdminRouter(loginRouter(authService, templateService), createAdminAuth(authService), [
+    const adminRouter = makeAdminRouter(loginRouter(authService), createAdminAuth(authService), [
         logoutRouter(authService),
-        dashboardRouter(dashboardService, templateService),
-        pagesRouter(pageService, templateService),
-        blogRouter(postService, templateService),
-        navigationRouter(navigationService, templateService),
-        messagesRouter(messageService, templateService),
-        settingsRouter(userService, templateService),
+        dashboardRouter(dashboardService),
+        pagesRouter(pageService),
+        blogRouter(postService),
+        navigationRouter(navigationService),
+        messagesRouter(messageService),
+        settingsRouter(userService, authService, templateService),
     ]);
 
     const publicRouter = makeSitePublicRouter(templateService);
 
-    await navigationService.ensureExists();
+    // a database that can't be read at boot is fatal; the container restarts and the healthcheck reports it
+    const nav = await navigationService.ensureExists();
+    if (!nav.ok) {
+        log.fatal("failed to prepare the navigation, is the database reachable and migrated?");
+        process.exit(1);
+    }
     if (env.SUPER_USER) {
         const superUser = await authService.createSuperUserOnce(
             env.SUPER_USER.email,
@@ -83,28 +90,42 @@ export async function startApp(env: AppEnv, log: LoggerService, imageStore: Imag
             env.SUPER_USER.password
         );
         if (superUser.ok) {
-            log.debug("seeded super user");
+            log.info("seeded super user");
+        } else if (superUser.ctx !== AuthError.ADMIN_ALREADY_CREATED) {
+            log.fatal({reason: superUser.ctx}, "failed to create the super user");
+            process.exit(1);
         }
     }
 
     const expressService = new ExpressService(
-        env.PORT,
-        env.ORIGINS,
+        {
+            port: env.PORT,
+            production: env.NODE_ENV === "production",
+            staticPublicRoot: env.PUBLIC_STATIC_ROOT,
+            trustProxy: env.TRUST_PROXY,
+        },
         log,
         makeGlobalErrorHandler(log),
-        adminRouter,
-        publicRouter,
-        env.PUBLIC_STATIC_ROOT
+        {
+            health: makeHealthRouter(dataService),
+            api: makeApiRouter(messageService, env.ORIGINS),
+            admin: adminRouter,
+            public: publicRouter,
+        }
     );
 
-    const startResult = expressService.start();
+    const startResult = await expressService.start();
     if (!startResult.ok) {
-        log.error(startResult.ctx);
+        await dataService.teardown();
         process.exit(1);
     }
 
+    let shuttingDown = false;
     const shutdown = async (signal: string) => {
+        if (shuttingDown) return;
+        shuttingDown = true;
         log.info(`received ${signal}, shutting down...`);
+        await expressService.teardown();
         await dataService.teardown();
         process.exit(0);
     };

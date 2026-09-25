@@ -1,5 +1,5 @@
 import {success, failure, type AsyncResult} from "../lib/result.js";
-import type {ValueOf} from "../lib/types.js";
+import {AppError} from "../lib/errors.js";
 import {paginate, toSkipTake, type Paginated, type PaginationParams} from "../lib/pagination.js";
 import {CacheTag} from "../lib/page-cache.js";
 import type PageCache from "../lib/page-cache.js";
@@ -10,15 +10,9 @@ import type {PageWithSections} from "../repositories/page-repository.js";
 import type SectionRepository from "../repositories/section-repository.js";
 import type {SectionWithPage} from "../repositories/section-repository.js";
 
-export const PageError = {
-    NOT_FOUND: "not_found",
-    DB_ERROR: "db_error",
-} as const;
-
-export type PageError = ValueOf<typeof PageError>;
-
 export interface PageInput {
     name: string;
+    // derived from the name when blank
     slug?: string;
     title: string;
     description: string;
@@ -31,6 +25,10 @@ export interface SectionInput {
     published: boolean;
 }
 
+export function pageSlug(input: {name: string; slug?: string}): string {
+    return slugify(input.slug?.trim() || input.name);
+}
+
 class PageService {
     constructor(
         private readonly pageRepo: PageRepository,
@@ -38,72 +36,76 @@ class PageService {
         private readonly cache: PageCache
     ) {}
 
-    async list(pagination: PaginationParams): AsyncResult<Paginated<PageWithSections>, PageError> {
+    async list(pagination: PaginationParams): AsyncResult<Paginated<PageWithSections>, AppError> {
         const result = await this.pageRepo.list(toSkipTake(pagination));
-        if (!result.ok) return failure(PageError.DB_ERROR);
+        if (!result.ok) return result;
         return success(paginate(result.data.data, result.data.total, pagination));
     }
 
-    async get(id: string): AsyncResult<PageWithSections, PageError> {
+    async get(id: string): AsyncResult<PageWithSections, AppError> {
         const result = await this.pageRepo.getById(id);
-        if (!result.ok) return failure(PageError.DB_ERROR);
-        if (!result.data) return failure(PageError.NOT_FOUND);
+        if (!result.ok) return result;
+        if (!result.data) return failure(AppError.NOT_FOUND);
         return success(result.data);
     }
 
-    async create(input: PageInput): AsyncResult<PageWithSections, PageError> {
-        const result = await this.pageRepo.create(this.#toPageData(input));
-        if (!result.ok) return failure(PageError.DB_ERROR);
+    async getPublishedBySlug(slug: string): AsyncResult<PageWithSections, AppError> {
+        const result = await this.pageRepo.getBySlug(slug);
+        if (!result.ok) return result;
+        if (!result.data || !result.data.published) return failure(AppError.NOT_FOUND);
         return success(result.data);
     }
 
-    async update(id: string, input: PageInput): AsyncResult<PageWithSections, PageError> {
+    async create(input: PageInput): AsyncResult<PageWithSections, AppError> {
+        return this.pageRepo.create(this.#toPageData(input));
+    }
+
+    async update(id: string, input: PageInput): AsyncResult<PageWithSections, AppError> {
         const result = await this.pageRepo.update(id, this.#toPageData(input));
-        if (!result.ok) return failure(PageError.DB_ERROR);
+        if (!result.ok) return result;
         this.cache.invalidate([CacheTag.page(id)]);
         return success(result.data);
     }
 
-    async delete(id: string): AsyncResult<Page, PageError> {
+    async delete(id: string): AsyncResult<Page, AppError> {
         const result = await this.pageRepo.delete(id);
-        if (!result.ok) return failure(PageError.DB_ERROR);
+        if (!result.ok) return result;
         this.cache.invalidate([CacheTag.page(id)]);
         return success(result.data);
     }
 
-    async getSection(id: string): AsyncResult<SectionWithPage, PageError> {
+    async getSection(id: string): AsyncResult<SectionWithPage, AppError> {
         const result = await this.sectionRepo.getById(id);
-        if (!result.ok) return failure(PageError.DB_ERROR);
-        if (!result.data) return failure(PageError.NOT_FOUND);
+        if (!result.ok) return result;
+        if (!result.data) return failure(AppError.NOT_FOUND);
         return success(result.data);
     }
 
-    async createSection(pageId: string, input: SectionInput): AsyncResult<PageSection, PageError> {
+    async createSection(pageId: string, input: SectionInput): AsyncResult<PageSection, AppError> {
         const result = await this.sectionRepo.create({pageId, ...input});
-        if (!result.ok) return failure(PageError.DB_ERROR);
+        if (!result.ok) return result;
         this.cache.invalidate([CacheTag.page(pageId)]);
         return success(result.data);
     }
 
-    async updateSection(id: string, input: SectionInput): AsyncResult<PageSection, PageError> {
+    async updateSection(id: string, input: SectionInput): AsyncResult<PageSection, AppError> {
         const result = await this.sectionRepo.update(id, input);
-        if (!result.ok) return failure(PageError.DB_ERROR);
+        if (!result.ok) return result;
         this.cache.invalidate([CacheTag.page(result.data.pageId)]);
         return success(result.data);
     }
 
-    async deleteSection(id: string): AsyncResult<PageSection, PageError> {
+    async deleteSection(id: string): AsyncResult<PageSection, AppError> {
         const result = await this.sectionRepo.delete(id);
-        if (!result.ok) return failure(PageError.DB_ERROR);
+        if (!result.ok) return result;
         this.cache.invalidate([CacheTag.page(result.data.pageId)]);
         return success(result.data);
     }
 
     #toPageData(input: PageInput) {
-        const slug = input.slug && input.slug.trim() !== "" ? input.slug : input.name;
         return {
             name: input.name,
-            slug: slugify(slug),
+            slug: pageSlug(input),
             title: input.title,
             description: input.description,
             published: input.published,

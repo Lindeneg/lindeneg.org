@@ -9,7 +9,7 @@ const env = unwrap(
         {
             files: [],
             optionalFiles: envFiles,
-            includeProcessEnv: false,
+            includeProcessEnv: "override",
             transformKeys: false,
         },
         {

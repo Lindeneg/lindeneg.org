@@ -1,11 +1,18 @@
 import {beforeEach, describe, expect, it, vi, type Mock} from "vitest";
 import {failure, success} from "../../../src/lib/result.js";
+import {AppError} from "../../../src/lib/errors.js";
 import PageCache, {CacheTag} from "../../../src/lib/page-cache.js";
-import TemplateService, {TEMPLATE_ERR} from "../../../src/services/template-service.js";
+import TemplateService from "../../../src/services/template-service.js";
+import PageService from "../../../src/services/page-service.js";
+import PostService from "../../../src/services/post-service.js";
+import NavigationService from "../../../src/services/navigation-service.js";
+import type {ImageStore} from "../../../src/services/image-store.js";
 import type PageRepository from "../../../src/repositories/page-repository.js";
+import type SectionRepository from "../../../src/repositories/section-repository.js";
 import type NavigationRepository from "../../../src/repositories/navigation-repository.js";
+import type NavigationItemRepository from "../../../src/repositories/navigation-item-repository.js";
 import type PostRepository from "../../../src/repositories/post-repository.js";
-import {fake, makeNav, makePage, makePost} from "../helpers.js";
+import {fake, fakeLog, makeNav, makePage, makePost} from "../helpers.js";
 
 describe("TemplateService", () => {
     let getBySlug: Mock;
@@ -23,10 +30,16 @@ describe("TemplateService", () => {
         listTags = vi.fn().mockResolvedValue(success([{name: "jazz", count: 1}]));
         getPost = vi.fn().mockImplementation(async (slug: string) => success(makePost({id: slug, slug})));
         cache = new PageCache(100);
+        // the real services on fake repositories, so the published-only rules are covered too
         service = new TemplateService(
-            fake<PageRepository>({getBySlug}),
-            fake<NavigationRepository>({get: getNav}),
-            fake<PostRepository>({list: listPosts, getBySlug: getPost, listPublishedTags: listTags}),
+            new PageService(fake<PageRepository>({getBySlug}), fake<SectionRepository>({}), cache),
+            new PostService(
+                fake<PostRepository>({list: listPosts, getBySlug: getPost, listPublishedTags: listTags}),
+                fake<ImageStore>({}),
+                cache,
+                fakeLog()
+            ),
+            new NavigationService(fake<NavigationRepository>({get: getNav}), fake<NavigationItemRepository>({}), cache),
             cache
         );
     });
@@ -36,7 +49,7 @@ describe("TemplateService", () => {
             const result = await service.getBlogList(1, "jazz");
 
             if (!result.ok) throw new Error("expected success");
-            expect(listPosts).toHaveBeenCalledWith(expect.anything(), {published: true, tag: "jazz"});
+            expect(listPosts).toHaveBeenCalledWith(expect.anything(), {published: true, tag: "jazz"}, "publishedAt");
             expect(result.data).toContain(
                 `href="/blog" class="tag" aria-current="page"><span class="tag-hash">#</span>jazz`
             );
@@ -54,7 +67,7 @@ describe("TemplateService", () => {
         it("treats a tag without published posts as not found and does not cache it", async () => {
             listPosts.mockResolvedValue(success({data: [], total: 0}));
 
-            expect(await service.getBlogList(1, "nope")).toEqual(failure(TEMPLATE_ERR.PAGE_NOT_FOUND));
+            expect(await service.getBlogList(1, "nope")).toEqual(failure(AppError.NOT_FOUND));
             await service.getBlogList(1, "nope");
             expect(listPosts).toHaveBeenCalledTimes(2);
         });
@@ -67,10 +80,10 @@ describe("TemplateService", () => {
             expect(listPosts).toHaveBeenCalledTimes(2);
         });
 
-        it("fails when the tags can't be loaded", async () => {
-            listTags.mockResolvedValue(failure("db"));
+        it("fails with a db error when the tags can't be loaded", async () => {
+            listTags.mockResolvedValue(failure(AppError.DB_ERROR));
 
-            expect(await service.getBlogList(1, undefined)).toEqual(failure(TEMPLATE_ERR.BLOG_LIST_ERROR));
+            expect(await service.getBlogList(1, undefined)).toEqual(failure(AppError.DB_ERROR));
         });
     });
 
@@ -108,16 +121,16 @@ describe("TemplateService", () => {
         });
 
         it("drops a page by id", async () => {
-            await service.getPage("about", "/about");
+            await service.getPage("about");
 
             cache.invalidate([CacheTag.page("page-1")]);
-            await service.getPage("about", "/about");
+            await service.getPage("about");
 
             expect(getBySlug).toHaveBeenCalledTimes(2);
         });
 
         it("drops everything on a nav change", async () => {
-            await service.getPage("about", "/about");
+            await service.getPage("about");
             await service.getBlogList(1, undefined);
             await service.getBlogPost("a");
 
@@ -129,52 +142,54 @@ describe("TemplateService", () => {
 
     describe("getPage", () => {
         it("renders a published page", async () => {
-            const result = await service.getPage("about", "/about");
+            const result = await service.getPage("about");
 
             if (!result.ok) throw new Error("expected success");
             expect(result.data).toContain("<title>About</title>");
             expect(result.data).toContain("<h1>About</h1>");
         });
 
-        it("caches the canonical path, including case and trailing slash variants", async () => {
-            await service.getPage("about", "/about");
-            await service.getPage("about", "/About/");
+        it("caches per slug", async () => {
+            await service.getPage("about");
+            await service.getPage("about");
 
             expect(getBySlug).toHaveBeenCalledOnce();
         });
 
-        it("caches the home page at /", async () => {
-            await service.getPage("home", "/");
-            await service.getPage("home", "/");
+        it("renders the home page as the current path /", async () => {
+            const result = await service.getPage("home");
 
-            expect(getBySlug).toHaveBeenCalledOnce();
-        });
-
-        it("does not cache non-canonical paths that slugify to the same page", async () => {
-            await service.getPage("foo-bar", "/foo_bar");
-            await service.getPage("foo-bar", "/foo_bar");
-
-            expect(getBySlug).toHaveBeenCalledTimes(2);
+            if (!result.ok) throw new Error("expected success");
+            expect(getBySlug).toHaveBeenCalledWith("home");
         });
 
         it("hides unpublished pages and does not cache the miss", async () => {
             getBySlug.mockResolvedValue(success(makePage({published: false})));
 
-            expect(await service.getPage("about", "/about")).toEqual(failure(TEMPLATE_ERR.PAGE_NOT_FOUND));
-            await service.getPage("about", "/about");
+            expect(await service.getPage("about")).toEqual(failure(AppError.NOT_FOUND));
+            await service.getPage("about");
             expect(getBySlug).toHaveBeenCalledTimes(2);
         });
 
-        it("fails when the navigation is missing", async () => {
+        it("renders with the fallback navigation when none exists", async () => {
             getNav.mockResolvedValue(success(null));
 
-            expect(await service.getPage("about", "/about")).toEqual(failure(TEMPLATE_ERR.NAV_NOT_FOUND));
+            const result = await service.getPage("about");
+
+            if (!result.ok) throw new Error("expected success");
+            expect(result.data).toContain("Lindeneg");
+        });
+
+        it("fails with a db error, not a 404, when the database fails", async () => {
+            getNav.mockResolvedValue(failure(AppError.DB_ERROR));
+
+            expect(await service.getPage("about")).toEqual(failure(AppError.DB_ERROR));
         });
 
         it("re-renders after the cache is cleared", async () => {
-            await service.getPage("about", "/about");
+            await service.getPage("about");
             service.clearCache();
-            await service.getPage("about", "/about");
+            await service.getPage("about");
 
             expect(getBySlug).toHaveBeenCalledTimes(2);
         });
@@ -185,7 +200,11 @@ describe("TemplateService", () => {
             const result = await service.getBlogList(1, undefined);
 
             expect(result.ok).toBe(true);
-            expect(listPosts).toHaveBeenCalledWith(expect.objectContaining({skip: 0}), {published: true});
+            expect(listPosts).toHaveBeenCalledWith(
+                expect.objectContaining({skip: 0}),
+                {published: true, tag: undefined},
+                "publishedAt"
+            );
         });
 
         it("renders an empty first page", async () => {
@@ -198,7 +217,7 @@ describe("TemplateService", () => {
         });
 
         it("rejects pages past the end so they are never cached", async () => {
-            expect(await service.getBlogList(999, undefined)).toEqual(failure(TEMPLATE_ERR.PAGE_NOT_FOUND));
+            expect(await service.getBlogList(999, undefined)).toEqual(failure(AppError.NOT_FOUND));
             await service.getBlogList(999, undefined);
             expect(listPosts).toHaveBeenCalledTimes(2);
         });
@@ -215,7 +234,16 @@ describe("TemplateService", () => {
         it("hides drafts", async () => {
             getPost.mockResolvedValue(success(makePost({published: false})));
 
-            expect(await service.getBlogPost("hello-world")).toEqual(failure(TEMPLATE_ERR.POST_NOT_FOUND));
+            expect(await service.getBlogPost("hello-world")).toEqual(failure(AppError.NOT_FOUND));
+        });
+
+        it("renders the publish date as a localizable utc date", async () => {
+            const result = await service.getBlogPost("hello-world");
+
+            if (!result.ok) throw new Error("expected success");
+            expect(result.data).toContain(
+                `<time datetime="2024-01-05T12:00:00.000Z" data-local-date="long">January 5, 2024</time>`
+            );
         });
 
         it("never renders the author's password hash", async () => {
@@ -229,11 +257,17 @@ describe("TemplateService", () => {
         });
     });
 
-    describe("getNotFound", () => {
-        it("falls back to a default navigation", async () => {
-            getNav.mockResolvedValue(failure("db"));
+    describe("error pages", () => {
+        it("renders the 404 page with a default navigation when the database fails", async () => {
+            getNav.mockResolvedValue(failure(AppError.DB_ERROR));
 
             expect(await service.getNotFound("/missing")).toContain("404");
+        });
+
+        it("renders the 500 page with a default navigation when the database fails", async () => {
+            getNav.mockResolvedValue(failure(AppError.DB_ERROR));
+
+            expect(await service.getServerError("/about")).toContain("500");
         });
     });
 });

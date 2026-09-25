@@ -1,5 +1,5 @@
 import type {PostWithRelations} from "../../repositories/post-repository.js";
-import {esc, formatDate} from "../lib.js";
+import {esc, localDate} from "../lib.js";
 import {TopicLabel} from "./tags.js";
 
 export function PostCard(post: PostWithRelations): string {
@@ -13,7 +13,7 @@ export function PostCard(post: PostWithRelations): string {
                 ${TopicLabel(post.tags)}
                 <h2 class="post-card-title">${esc(post.title)}</h2>
                 <p class="post-card-author">${esc(post.author.name)}</p>
-                <p class="post-card-date">${esc(formatDate(post.createdAt))}</p>
+                <p class="post-card-date">${localDate(post.publishedAt ?? post.createdAt)}</p>
             </div>
         </a>
     `;
