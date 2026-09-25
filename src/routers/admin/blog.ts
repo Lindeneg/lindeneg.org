@@ -3,13 +3,14 @@ import z from "zod";
 import {AppError} from "../../lib/errors.js";
 import {MAX_FORM_BYTES, send} from "../../lib/http.js";
 import {parsePagination} from "../../lib/pagination.js";
-import {checkbox, fieldErrors, requiredText} from "../../lib/validation.js";
+import {checkbox, fieldErrors, requiredText, toBool} from "../../lib/validation.js";
 import {getAuth} from "../../middleware/admin-auth.js";
 import {singleImage} from "../../middleware/upload.js";
+import type {PostWithRelations} from "../../repositories/post-repository.js";
 import {postSlug, type ThumbnailChange} from "../../services/post-service.js";
 import type PostService from "../../services/post-service.js";
 import {BlogListView} from "../../ui/views/admin/blog-list.js";
-import {PostFormView} from "../../ui/views/admin/post-form.js";
+import {PostFormView, type PostFormValues} from "../../ui/views/admin/post-form.js";
 import {errorStatus, sendActionError, sendLoadError} from "./respond.js";
 
 const PostSchema = z
@@ -33,6 +34,19 @@ const currentPath = "/admin/blog";
 
 // multer stops at the field, so the form comes back without the text that was too large
 const POST_TOO_LARGE = `The post is too large to save (max ${MAX_FORM_BYTES / 1024 / 1024}MB)`;
+
+// after a rejected upload, whether the fields behind it (content, tags) still arrive depends on timing, so missing ones
+// fall back to the saved post; title and published sit in the editor header, which the browser sends first
+function withSavedValues(post: PostWithRelations, body: Record<string, unknown> = {}): PostFormValues {
+    return {
+        title: post.title,
+        slug: post.slug,
+        content: post.content,
+        tags: post.tags.map((tag) => tag.name).join(", "),
+        ...body,
+        published: toBool(body.published),
+    };
+}
 
 function saveErrors(ctx: AppError): {errors?: Record<string, string>; topError?: string} {
     if (ctx === AppError.CONFLICT) return {errors: {slug: "Another post already uses this slug"}};
@@ -104,7 +118,12 @@ export function blogRouter(postService: PostService): Router {
         if (req.fieldTooLarge) {
             return send(
                 res,
-                PostFormView({mode: "edit", post: existing.data, values: req.body, topError: POST_TOO_LARGE}),
+                PostFormView({
+                    mode: "edit",
+                    post: existing.data,
+                    values: withSavedValues(existing.data, req.body),
+                    topError: POST_TOO_LARGE,
+                }),
                 400
             );
         }
@@ -114,7 +133,7 @@ export function blogRouter(postService: PostService): Router {
                 PostFormView({
                     mode: "edit",
                     post: existing.data,
-                    values: req.body,
+                    values: withSavedValues(existing.data, req.body),
                     errors: {thumbnail: req.uploadError},
                 }),
                 400

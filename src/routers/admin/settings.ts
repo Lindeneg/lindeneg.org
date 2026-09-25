@@ -1,9 +1,9 @@
 import {Router, type Request} from "express";
-import {rateLimit} from "express-rate-limit";
 import z from "zod";
 import {send} from "../../lib/http.js";
 import {fieldErrors} from "../../lib/validation.js";
 import {getAuth} from "../../middleware/admin-auth.js";
+import {failedAttemptLimiter, TOO_MANY_FAILED_ATTEMPTS} from "../../middleware/failed-attempt-limiter.js";
 import {singleImage} from "../../middleware/upload.js";
 import {AuthError} from "../../services/auth-service.js";
 import type AuthService from "../../services/auth-service.js";
@@ -12,18 +12,22 @@ import type UserService from "../../services/user-service.js";
 import {SettingsView, type SettingsViewProps} from "../../ui/views/admin/settings.js";
 import {errorStatus} from "./respond.js";
 
-// bcrypt only uses the first 72 bytes of a password
+// bcrypt only uses the first 72 bytes of a password, and a letter like æ is 2 of them
 const PasswordSchema = z
     .object({
         currentPassword: z.string().min(1, "Required"),
-        newPassword: z.string().min(12, "Use at least 12 characters").max(72, "Use at most 72 characters"),
+        newPassword: z
+            .string()
+            .min(12, "Use at least 12 characters")
+            .refine(
+                (password) => Buffer.byteLength(password, "utf8") <= 72,
+                "Use at most 72 bytes (letters like æøå count as 2)"
+            ),
         confirmPassword: z.string(),
     })
     .refine((p) => p.newPassword === p.confirmPassword, {path: ["confirmPassword"], message: "Passwords don't match"});
 
 const currentPath = "/admin/settings";
-
-const PASSWORD_WINDOW_MINUTES = 15;
 
 export function settingsRouter(userService: UserService, authService: AuthService, templates: TemplateService): Router {
     const router = Router();
@@ -31,22 +35,9 @@ export function settingsRouter(userService: UserService, authService: AuthServic
     const view = (req: Request, props: Partial<SettingsViewProps> = {}) =>
         SettingsView({user: getAuth(req), currentPath, cacheStats: templates.cacheStats(), ...props});
 
-    // like login: only failed attempts count, per client ip, so a stolen session can't guess the current password
-    const passwordLimiter = rateLimit({
-        windowMs: PASSWORD_WINDOW_MINUTES * 60 * 1000,
-        limit: 10,
-        skipSuccessfulRequests: true,
-        standardHeaders: "draft-7",
-        legacyHeaders: false,
-        handler: (req, res) => {
-            send(
-                res,
-                view(req, {
-                    passwordTopError: `Too many failed attempts, try again in ${PASSWORD_WINDOW_MINUTES} minutes`,
-                }),
-                429
-            );
-        },
+    // like login, so a stolen session can't guess the current password
+    const passwordLimiter = failedAttemptLimiter((req, res) => {
+        send(res, view(req, {passwordTopError: TOO_MANY_FAILED_ATTEMPTS}), 429);
     });
 
     router.get("/settings", (req, res) => {

@@ -34,6 +34,12 @@ export function parseSuperUser(value: string) {
     return success({email, name: `${firstName} ${lastName}`, password});
 }
 
+// SUPER_USER may be left out; when it's set it has to parse
+function optionalSuperUser(_: string, value: string | undefined) {
+    if (value === undefined) return success(undefined);
+    return parseSuperUser(value);
+}
+
 // process.env wins over the files, so the server's environment can override an env file
 const options = {
     files: [] as string[],
@@ -70,10 +76,7 @@ export function loadAppEnv() {
                     return success(/^\d+$/.test(value) ? Number(value) : value);
                 },
 
-                SUPER_USER: function (_, value) {
-                    if (value === undefined) return success(undefined);
-                    return parseSuperUser(value);
-                },
+                SUPER_USER: optionalSuperUser,
             }
         )
     );
@@ -86,10 +89,7 @@ export function loadDatabaseEnv() {
     return unwrap(
         loadEnv(options, {
             DATABASE_URL: withRequired(refine(toString(), nonEmpty())),
-            SUPER_USER: function (_, value) {
-                if (value === undefined) return success(undefined);
-                return parseSuperUser(value);
-            },
+            SUPER_USER: optionalSuperUser,
         })
     );
 }

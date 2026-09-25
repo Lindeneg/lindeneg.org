@@ -26,12 +26,12 @@ class NavigationService {
         return success(result.data);
     }
 
-    async getItem(id: string): AsyncResult<{nav: NavigationWithItems; item: NavigationItem}, AppError> {
+    async getItem(id: string): AsyncResult<NavigationItem, AppError> {
         const nav = await this.get();
         if (!nav.ok) return nav;
         const item = nav.data.items.find((i) => i.id === id);
         if (!item) return failure(AppError.NOT_FOUND);
-        return success({nav: nav.data, item});
+        return success(item);
     }
 
     async updateBrand(id: string, brandName: string): Promise<EmptyResult<AppError>> {

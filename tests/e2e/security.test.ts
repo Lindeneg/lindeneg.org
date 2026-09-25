@@ -33,6 +33,8 @@ describe("security, through the real server", () => {
             expect(res.headers.get("x-powered-by")).toBeNull();
             expect(res.headers.get("x-content-type-options")).toBe("nosniff");
             expect(res.headers.get("x-frame-options")).toBe("SAMEORIGIN");
+            // youtube refuses embeds without a referrer, so it must not be no-referrer
+            expect(res.headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
             expect(csp).toContain("default-src 'self'");
             expect(csp).toContain("script-src 'self' https://cdn.jsdelivr.net");
             expect(csp).toContain("object-src 'none'");

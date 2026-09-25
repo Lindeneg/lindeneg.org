@@ -106,6 +106,31 @@ describe("blog", () => {
         expect(res.html).toContain("Image must be 10MB or smaller");
     });
 
+    it("keeps the saved content and tags on the edit form when an oversized thumbnail stops the upload", async () => {
+        const title = `Post ${uid()}`;
+        const tag = `kept${uid()}`;
+        const {id} = await createPost(title, {published: true, tags: tag});
+
+        // the browser sends the editor header (title, published) first, then slug, thumbnail, tags and content; when
+        // multer rejects the file, whether the fields after it still arrive depends on timing, so this sends them
+        // missing, the case the fallback is for
+        const form = new FormData();
+        form.set("title", `Renamed ${title}`);
+        form.set("slug", "");
+        form.set("thumbnail", new Blob([Buffer.alloc(MAX_UPLOAD_BYTES + 1)], {type: "image/png"}), "big.png");
+
+        const res = await postMultipart(`/admin/blog/${id}/edit`, form, cookie);
+
+        expect(res.status).toBe(400);
+        expect(res.html).toContain("Image must be 10MB or smaller");
+        expect(res.html).toMatch(new RegExp(`name="title"\\s+value="Renamed ${title}"`));
+        expect(res.html.match(/<textarea[^>]*name="content"[\s\S]*?<\/textarea>/)?.[0]).toContain(
+            `>Content of ${title}</textarea>`
+        );
+        expect(res.html).toContain(`name="tags" value="${tag}"`);
+        expect(res.html).not.toMatch(/name="published" form="md-form" value="1" checked/);
+    });
+
     it("says a post over the form limit is too large, at the top and not as an image error", async () => {
         const form = postFields(`Post ${uid()}`);
         form.set("content", "x".repeat(MAX_FORM_BYTES + 1));

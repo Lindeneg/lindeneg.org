@@ -89,7 +89,7 @@ export function navigationRouter(navigationService: NavigationService): Router {
         const page = {user: getAuth(req), currentPath};
         const found = await navigationService.getItem(req.params.id);
         if (!found.ok) return sendLoadError(res, page, found.ctx, "Item");
-        send(res, NavItemFormView({...page, mode: "edit", item: found.data.item}));
+        send(res, NavItemFormView({...page, mode: "edit", item: found.data}));
     });
 
     router.post("/nav-items/:id/edit", async (req, res) => {
@@ -104,7 +104,7 @@ export function navigationRouter(navigationService: NavigationService): Router {
                 NavItemFormView({
                     ...page,
                     mode: "edit",
-                    item: found.data.item,
+                    item: found.data,
                     values: req.body,
                     errors: fieldErrors(parsed.error),
                 }),
@@ -119,7 +119,7 @@ export function navigationRouter(navigationService: NavigationService): Router {
                 NavItemFormView({
                     ...page,
                     mode: "edit",
-                    item: found.data.item,
+                    item: found.data,
                     values: req.body,
                     topError: "Failed to update",
                 }),

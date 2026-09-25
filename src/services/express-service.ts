@@ -61,6 +61,8 @@ class ExpressService {
                 },
                 // other lindeneg.org subdomains are not ours to force onto https
                 hsts: opts.production ? {includeSubDomains: false} : false,
+                // the browser default; helmet's no-referrer makes youtube refuse the embeds in posts
+                referrerPolicy: {policy: "strict-origin-when-cross-origin"},
             })
         );
         this.app.use(compression());
@@ -98,6 +100,13 @@ class ExpressService {
                     return resolve(failure(err.message));
                 }
                 this.#server = server;
+                // express only listens for errors while starting; later a server error means it's broken, so it
+                // exits and pm2 restarts it, instead of the error being swallowed by the finished startup listener
+                server.removeAllListeners("error");
+                server.on("error", (serverError) => {
+                    this.log.fatal(serverError, "server error");
+                    process.exit(1);
+                });
                 this.log.info(`server listening on http://localhost:${this.opts.port}`);
                 resolve(emptySuccess());
             });

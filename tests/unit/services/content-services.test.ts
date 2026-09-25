@@ -118,8 +118,7 @@ describe("NavigationService", () => {
         const result = await service.getItem("item-1");
 
         if (!result.ok) throw new Error("expected success");
-        expect(result.data.item.id).toBe("item-1");
-        expect(result.data.nav.id).toBe("nav-1");
+        expect(result.data.id).toBe("item-1");
     });
 
     it("returns NOT_FOUND for an unknown item or missing navigation", async () => {

@@ -1,8 +1,8 @@
 import {Router} from "express";
-import {rateLimit} from "express-rate-limit";
 import z from "zod";
 import {send} from "../../lib/http.js";
 import {optStr} from "../../lib/validation.js";
+import {failedAttemptLimiter, TOO_MANY_FAILED_ATTEMPTS} from "../../middleware/failed-attempt-limiter.js";
 import {AuthError} from "../../services/auth-service.js";
 import type AuthService from "../../services/auth-service.js";
 import {LoginView} from "../../ui/views/admin/login.js";
@@ -12,28 +12,11 @@ const LoginSchema = z.object({
     password: z.string().min(1, "Required"),
 });
 
-const LOGIN_WINDOW_MINUTES = 15;
-
 export function loginRouter(authService: AuthService): Router {
     const router = Router();
 
-    // only failed attempts count, per client ip
-    const loginLimiter = rateLimit({
-        windowMs: LOGIN_WINDOW_MINUTES * 60 * 1000,
-        limit: 10,
-        skipSuccessfulRequests: true,
-        standardHeaders: "draft-7",
-        legacyHeaders: false,
-        handler: (req, res) => {
-            send(
-                res,
-                LoginView({
-                    error: `Too many failed attempts, try again in ${LOGIN_WINDOW_MINUTES} minutes`,
-                    email: optStr(req.body?.email),
-                }),
-                429
-            );
-        },
+    const loginLimiter = failedAttemptLimiter((req, res) => {
+        send(res, LoginView({error: TOO_MANY_FAILED_ATTEMPTS, email: optStr(req.body?.email)}), 429);
     });
 
     router.get("/login", (_req, res) => {

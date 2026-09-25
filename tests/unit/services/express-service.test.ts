@@ -62,6 +62,7 @@ describe("ExpressService", () => {
         expect(res.headers.get("x-powered-by")).toBeNull();
         expect(res.headers.get("x-content-type-options")).toBe("nosniff");
         expect(res.headers.get("x-frame-options")).toBe("SAMEORIGIN");
+        expect(res.headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
         expect(csp).toContain("default-src 'self'");
         expect(csp).toContain("script-src 'self' https://cdn.jsdelivr.net");
         expect(csp).toContain("style-src 'self'");
@@ -180,6 +181,21 @@ describe("ExpressService", () => {
 
             await service.teardown();
             await expect(fetch(`http://127.0.0.1:${port}/`)).rejects.toThrow();
+        });
+
+        it("exits on a server error after startup, so pm2 restarts it, instead of swallowing it", async () => {
+            const service = build();
+            const listen = vi.spyOn(service.app, "listen");
+            const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never);
+            expect((await service.start()).ok).toBe(true);
+            const server = listen.mock.results[0].value as import("node:http").Server;
+
+            expect(server.listenerCount("error")).toBe(1);
+            server.emit("error", new Error("accept failed"));
+
+            expect(exit).toHaveBeenCalledWith(1);
+            exit.mockRestore();
+            await service.teardown();
         });
 
         it("tears down without having started", async () => {

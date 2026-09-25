@@ -50,6 +50,28 @@ describe("settings router password change", () => {
         expect(await res.text()).toContain("Wrong password");
     });
 
+    const setNew = (newPassword: string) =>
+        fetch(`${server.url}/settings/password`, {
+            method: "POST",
+            body: new URLSearchParams({currentPassword: "right-password", newPassword, confirmPassword: newPassword}),
+            redirect: "manual",
+        });
+
+    it("rejects a new password over bcrypt's 72 bytes even when it is under 72 characters", async () => {
+        const res = await setNew("æ".repeat(37));
+
+        expect(res.status).toBe(400);
+        expect(await res.text()).toContain("Use at most 72 bytes (letters like æøå count as 2)");
+        expect(changePassword).not.toHaveBeenCalled();
+    });
+
+    it("accepts a new password of exactly 72 bytes", async () => {
+        changePassword.mockResolvedValue(success("token"));
+
+        expect((await setNew("æ".repeat(36))).status).toBe(302);
+        expect((await setNew("a".repeat(72))).status).toBe(302);
+    });
+
     it("locks password changes for the client after 10 failed attempts, even with the right password", async () => {
         for (let i = 0; i < 10; i++) expect((await change()).status).toBe(400);
 
