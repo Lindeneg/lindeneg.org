@@ -25,7 +25,9 @@ export function BlogListView({posts, tags, activeTag, nav, currentPath}: BlogLis
                 <div class="post-grid">${posts.data.map(PostCard).join("")}</div>
                 ${Pagination({page: posts.page, totalPages: posts.totalPages, basePath: "/blog", params})}
             `;
-    const heading = activeTag ? `Blog <span class="blog-title-tag">#${esc(activeTag)}</span>` : "Blog";
+    const heading = activeTag
+        ? `Blog <span class="blog-title-tag">#${esc(activeTag)}</span> <a href="/blog" class="blog-title-clear">clear</a>`
+        : "Blog";
     return SiteLayout({
         title: activeTag ? `Blog #${activeTag} — ${nav.brandName}` : `Blog — ${nav.brandName}`,
         nav,

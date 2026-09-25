@@ -27,14 +27,14 @@ import {PrismaClient} from "../src/generated/prisma/client.js";
 
     // tag names must already be normalized (lowercase, dash-separated), as PostService stores them
     const fixes = [
-        {slug: "the-maestro", tags: ["music"]},
-        {slug: "the-genius", tags: ["music"]},
-        {slug: "the-harmonious", tags: ["music"]},
-        {slug: "the-current", tags: ["music"]},
+        {slug: "the-maestro", tags: ["music", "jazz"]},
+        {slug: "the-genius", tags: ["music", "jazz"]},
+        {slug: "the-harmonious", tags: ["music", "jazz"]},
+        {slug: "the-current", tags: ["music", "jazz"]},
         {slug: "dynamic-steering", tags: ["management"]},
-        {slug: "part-1-explicit-failure", tags: ["programming"]},
-        {slug: "part-2-happy-cats", tags: ["programming"]},
-        {slug: "the-beautiful-game", tags: ["football"]},
+        {slug: "part-1-explicit-failure", tags: ["programming", "typescript"]},
+        {slug: "part-2-happy-cats", tags: ["programming", "typescript"]},
+        {slug: "the-beautiful-game", tags: ["sports", "football"]},
     ];
 
     for (const fix of fixes) {

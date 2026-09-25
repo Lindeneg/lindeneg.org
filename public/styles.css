@@ -721,11 +721,41 @@ img {
     font-weight: 500;
 }
 
+/* only needed where the tag bar (and its "All") is hidden */
+.blog-title-clear {
+    display: none;
+    margin-left: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    vertical-align: middle;
+    color: var(--muted-foreground);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.blog-title-clear:hover {
+    color: var(--foreground);
+}
+
+@media (max-width: 639px) {
+    .blog-title-clear {
+        display: inline;
+    }
+}
+
 .tag-bar {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem 1.25rem;
     margin: -1rem 0 2rem;
+}
+
+/* too many rows on narrow screens; tags on the post page still link to the filtered list */
+@media (max-width: 639px) {
+    .tag-bar {
+        display: none;
+    }
 }
 
 .tag-list {
