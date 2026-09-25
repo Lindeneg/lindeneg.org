@@ -8,7 +8,7 @@ export function slugify(text: string): string {
         .toLowerCase()
         .replace(/[æøåßđłœþ]/g, (c) => TRANSLITERATE[c])
         .normalize("NFKD")
-        .replace(/[̀-ͯ]/g, "")
+        .replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-|-$/g, "");
 }

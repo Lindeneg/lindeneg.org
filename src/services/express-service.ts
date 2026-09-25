@@ -66,7 +66,7 @@ class ExpressService {
         this.app.use(express.urlencoded({extended: true, limit: "2mb"}));
         this.app.use(cookieParser());
 
-        // before the request logger, the container polls it
+        // before the request logger, so health checks don't flood the logs
         this.app.use(routers.health);
         this.app.use(this.log.makeRequestLogger());
 

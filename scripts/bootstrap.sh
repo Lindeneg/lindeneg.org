@@ -32,7 +32,7 @@ echo "migrating database"
 npx prisma migrate deploy
 
 echo "successfully bootstrapped project"
-echo "fill in SUPER_USER and the CLOUDINARY_* values in .env.local, then run"
+echo "fill in SUPER_USER, JWT_SECRET (32+ characters) and the CLOUDINARY_* values in .env.local, then run"
 echo "npm run dev"
 echo "to start the server"
 

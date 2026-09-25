@@ -72,6 +72,19 @@ describe("public router", () => {
             expect(templates.getPage).toHaveBeenCalledWith(slug);
         });
 
+        it.each([
+            ["//evil.com/", "/evil.com"],
+            ["//Evil", "/evil"],
+            ["///evil.com/x/", "/evil.com/x"],
+            ["//About", "/about"],
+        ])("never redirects %s off the site, only to %s", async (path, location) => {
+            const res = await get(path);
+
+            expect(res.status).toBe(301);
+            expect(res.headers.get("location")).toBe(location);
+            expect(res.headers.get("location")).not.toMatch(/^\/\//);
+        });
+
         it("keeps the query string when redirecting", async () => {
             const res = await get("/About?ref=nav&x=1");
 

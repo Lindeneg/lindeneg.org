@@ -36,7 +36,7 @@ export function SectionFormView({mode, page, section, values, errors, topError}:
             <div class="md-editor-controls">
                 <label class="md-editor-position">
                     Position
-                    <input type="number" name="position" form="md-form" value="${v.position ?? 0}" min="0" step="1" />
+                    <input type="number" name="position" form="md-form" value="${esc(String(v.position ?? 0))}" min="0" step="1" />
                     ${positionError}
                 </label>
                 <label class="md-editor-publish">

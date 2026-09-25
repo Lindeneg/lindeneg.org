@@ -455,6 +455,18 @@ describe("SectionFormView", () => {
         expect(html).toContain(`<a href="/admin/pages/p1/edit" class="back-link">← About</a>`);
     });
 
+    it("escapes a typed position when re-rendering after an error", () => {
+        const html = SectionFormView({
+            mode: "create",
+            page,
+            values: {position: `1"><script>alert(1)</script>` as unknown as number, content: "x"},
+            errors: {position: "Must be ≥ 0"},
+        });
+
+        expect(html).not.toContain("<script>alert(1)</script>");
+        expect(html).toContain(`value="1&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;"`);
+    });
+
     it("edits an existing section with its content", () => {
         const section = makeSection({id: "s1", position: 2, content: "Hello", published: true});
         const html = SectionFormView({mode: "edit", page, section});

@@ -79,7 +79,7 @@ export async function startApp(env: AppEnv, log: LoggerService, imageStore: Imag
 
     const publicRouter = makeSitePublicRouter(templateService);
 
-    // a database that can't be read at boot is fatal; the container restarts and the healthcheck reports it
+    // a database that can't be read at boot is fatal, so the process exits instead of serving errors
     const nav = await navigationService.ensureExists();
     if (!nav.ok) {
         log.fatal("failed to prepare the navigation, is the database reachable and migrated?");

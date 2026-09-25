@@ -34,7 +34,7 @@ export function parseSuperUser(value: string) {
     return success({email, name: `${firstName} ${lastName}`, password});
 }
 
-// process.env wins over the files, so docker and the like can configure the app without an env file
+// process.env wins over the files, so the server's environment can override an env file
 const options = {
     files: [] as string[],
     optionalFiles: envFiles(),

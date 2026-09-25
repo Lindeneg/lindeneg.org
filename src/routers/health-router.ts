@@ -1,7 +1,7 @@
 import {Router} from "express";
 import type DataService from "../services/data-service.js";
 
-// for the container healthcheck: up means the process answers and the database responds
+// for uptime checks: up means the process answers and the database responds
 export function makeHealthRouter(dataService: DataService): Router {
     const router = Router();
 

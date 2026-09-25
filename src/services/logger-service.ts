@@ -1,4 +1,4 @@
-import pino, {type LevelWithSilent, type LogFn, type Logger} from "pino";
+import pino, {type DestinationStream, type LevelWithSilent, type LogFn, type Logger, type LoggerOptions} from "pino";
 import {pinoHttp} from "pino-http";
 import type {Request} from "express";
 import type {NodeEnv} from "../lib/types.js";
@@ -12,13 +12,18 @@ const defaultLevels: Record<NodeEnv, LevelWithSilent> = {
 class LoggerService {
     readonly #logger: Logger;
 
-    // level is LOG_LEVEL when set, otherwise derived from NODE_ENV
-    constructor(nodeEnv: NodeEnv, level?: LevelWithSilent) {
-        this.#logger = pino({
+    // level is LOG_LEVEL when set, otherwise derived from NODE_ENV; destination is only passed by tests
+    constructor(nodeEnv: NodeEnv, level?: LevelWithSilent, destination?: DestinationStream) {
+        const options: LoggerOptions = {
             level: level ?? defaultLevels[nodeEnv],
-            // production writes json lines to stdout for the container runtime to collect
+            // the auth cookie is a login token, so request and response headers carrying it never reach the logs
+            redact: {
+                paths: ["req.headers.cookie", "req.headers.authorization", 'res.headers["set-cookie"]'],
+                censor: "[redacted]",
+            },
+            // production writes json lines to stdout, which pm2 collects
             transport:
-                nodeEnv === "production"
+                nodeEnv === "production" || destination
                     ? undefined
                     : {
                           target: "pino-pretty",
@@ -28,7 +33,8 @@ class LoggerService {
                               ignore: "pid,hostname,req,res,reqId,responseTime,userId",
                           },
                       },
-        });
+        };
+        this.#logger = destination ? pino(options, destination) : pino(options);
     }
 
     // just so i can do logService.trace instead of logService.logger.trace

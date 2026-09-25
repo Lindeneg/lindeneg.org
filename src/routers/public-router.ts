@@ -44,7 +44,7 @@ export function makeSitePublicRouter(templateService: TemplateService): Router {
         }
 
         // the path is the slug; only case, a trailing slash and /home redirect to the page's one url
-        const slug = req.path.slice(1).replace(/\/$/, "").toLowerCase() || "home";
+        const slug = req.path.replace(/^\/+|\/+$/g, "").toLowerCase() || "home";
         const canonical = pagePath(slug);
         if (req.path !== canonical) {
             res.redirect(301, canonical + req.url.slice(req.path.length));

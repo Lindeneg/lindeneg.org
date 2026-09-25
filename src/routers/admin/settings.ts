@@ -1,4 +1,5 @@
 import {Router, type Request} from "express";
+import {rateLimit} from "express-rate-limit";
 import z from "zod";
 import {send} from "../../lib/http.js";
 import {fieldErrors} from "../../lib/validation.js";
@@ -22,11 +23,31 @@ const PasswordSchema = z
 
 const currentPath = "/admin/settings";
 
+const PASSWORD_WINDOW_MINUTES = 15;
+
 export function settingsRouter(userService: UserService, authService: AuthService, templates: TemplateService): Router {
     const router = Router();
 
     const view = (req: Request, props: Partial<SettingsViewProps> = {}) =>
         SettingsView({user: getAuth(req), currentPath, cacheStats: templates.cacheStats(), ...props});
+
+    // like login: only failed attempts count, per client ip, so a stolen session can't guess the current password
+    const passwordLimiter = rateLimit({
+        windowMs: PASSWORD_WINDOW_MINUTES * 60 * 1000,
+        limit: 10,
+        skipSuccessfulRequests: true,
+        standardHeaders: "draft-7",
+        legacyHeaders: false,
+        handler: (req, res) => {
+            send(
+                res,
+                view(req, {
+                    passwordTopError: `Too many failed attempts, try again in ${PASSWORD_WINDOW_MINUTES} minutes`,
+                }),
+                429
+            );
+        },
+    });
 
     router.get("/settings", (req, res) => {
         send(res, view(req, {passwordChanged: req.query.password === "changed"}));
@@ -47,7 +68,7 @@ export function settingsRouter(userService: UserService, authService: AuthServic
         res.redirect(302, currentPath);
     });
 
-    router.post("/settings/password", async (req, res) => {
+    router.post("/settings/password", passwordLimiter, async (req, res) => {
         const parsed = PasswordSchema.safeParse(req.body);
         if (!parsed.success) return send(res, view(req, {passwordErrors: fieldErrors(parsed.error)}), 400);
 
