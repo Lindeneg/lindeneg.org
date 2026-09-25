@@ -1,0 +1,105 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  // tsc compiles to dist and node runs the .js output, so generated imports must end in .js
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Alignment {
+  LEFT
+  RIGHT
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String
+  password     String                      // bcrypt hash
+  photo        String?                     // Cloudinary URL
+  photoId      String?                     // Cloudinary public_id
+  role         Role     @default(USER)
+  tokenVersion Int      @default(0)        // bumped on password change, invalidates issued tokens
+  posts        Post[]
+  createdAt    DateTime @default(now())
+}
+
+model Navigation {
+  id        String           @id @default(uuid())
+  brandName String
+  items     NavigationItem[]
+}
+
+model NavigationItem {
+  id           String      @id @default(uuid())
+  navigationId String
+  navigation   Navigation  @relation(fields: [navigationId], references: [id])
+  name         String
+  href         String
+  position     Int         @default(0)
+  alignment    Alignment   @default(RIGHT)
+  newTab       Boolean     @default(false)
+}
+
+model Page {
+  id          String        @id @default(uuid())
+  name        String        @unique
+  slug        String        @unique
+  title       String
+  description String
+  published   Boolean       @default(false)
+  sections    PageSection[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @default(now()) @updatedAt
+}
+
+model PageSection {
+  id        String   @id @default(uuid())
+  pageId    String
+  page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  content   String                          // Markdown
+  position  Int      @default(0)
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Post {
+  id          String   @id @default(uuid())
+  title       String
+  slug        String   @unique
+  content     String                        // Markdown
+  published   Boolean  @default(false)
+  publishedAt DateTime?                     // set the first time the post is published
+  thumbnail   String?                       // Cloudinary URL
+  thumbnailId String?                       // Cloudinary public_id
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  tags        Tag[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+}
+
+model Tag {
+  id    String @id @default(uuid())
+  name  String @unique                      // normalized: lowercase, dash-separated
+  posts Post[]
+}
+
+model ContactMessage {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}

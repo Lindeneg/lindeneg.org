@@ -1,0 +1,67 @@
+name: Tests
+
+on:
+    pull_request:
+        branches: [master]
+    push:
+        branches: [master]
+
+permissions:
+    contents: read
+
+concurrency:
+    group: tests-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    unit:
+        name: Build and unit tests
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+
+            - uses: actions/setup-node@v7
+              with:
+                  node-version: 24
+                  cache: npm
+
+            - run: npm ci
+
+            # prisma.config.ts reads DATABASE_URL from .env.test when NODE_ENV=test
+            - name: Generate Prisma client
+              run: |
+                  cp .env.test.example .env.test
+                  npm run db:generate
+              env:
+                  NODE_ENV: test
+
+            # typechecks src and proves the production build works
+            - name: Build
+              run: npm run build
+
+            - name: Unit tests
+              run: npm run test:unit
+
+    e2e:
+        name: End-to-end tests
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+
+            - uses: actions/setup-node@v7
+              with:
+                  node-version: 24
+                  cache: npm
+
+            - run: npm ci
+
+            - name: Generate Prisma client
+              run: |
+                  cp .env.test.example .env.test
+                  npm run db:generate
+              env:
+                  NODE_ENV: test
+
+            # resets the test database, runs migrations, starts the test server and runs the e2e suite
+            - name: End-to-end tests
+              run: npm run test:e2e
