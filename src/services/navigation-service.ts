@@ -1,7 +1,5 @@
 import {success, emptySuccess, failure, type EmptyResult, type AsyncResult} from "../lib/result.js";
 import {AppError, type DbError} from "../lib/errors.js";
-import {CacheTag} from "../lib/page-cache.js";
-import type PageCache from "../lib/page-cache.js";
 import type {RawModel} from "../lib/types.js";
 import type {NavigationItem} from "../generated/prisma/client.js";
 import type NavigationRepository from "../repositories/navigation-repository.js";
@@ -14,8 +12,7 @@ export type NavigationItemInput = Omit<RawModel<NavigationItem>, "navigationId">
 class NavigationService {
     constructor(
         private readonly navigationRepo: NavigationRepository,
-        private readonly navigationItemRepo: NavigationItemRepository,
-        private readonly cache: PageCache
+        private readonly navigationItemRepo: NavigationItemRepository
     ) {}
 
     async ensureExists(): Promise<EmptyResult<DbError>> {
@@ -40,28 +37,24 @@ class NavigationService {
     async updateBrand(id: string, brandName: string): Promise<EmptyResult<AppError>> {
         const result = await this.navigationRepo.update(id, {brandName});
         if (!result.ok) return result;
-        this.cache.invalidate([CacheTag.nav]);
         return emptySuccess();
     }
 
     async createItem(navigationId: string, input: NavigationItemInput): Promise<EmptyResult<AppError>> {
         const result = await this.navigationItemRepo.create({...input, navigationId});
         if (!result.ok) return result;
-        this.cache.invalidate([CacheTag.nav]);
         return emptySuccess();
     }
 
     async updateItem(id: string, input: NavigationItemInput): Promise<EmptyResult<AppError>> {
         const result = await this.navigationItemRepo.update(id, input);
         if (!result.ok) return result;
-        this.cache.invalidate([CacheTag.nav]);
         return emptySuccess();
     }
 
     async deleteItem(id: string): Promise<EmptyResult<AppError>> {
         const result = await this.navigationItemRepo.delete(id);
         if (!result.ok) return result;
-        this.cache.invalidate([CacheTag.nav]);
         return emptySuccess();
     }
 }

@@ -1,7 +1,7 @@
 import {beforeAll, describe, expect, it} from "vitest";
 import {DEFAULT_PAGE_SIZE} from "../../src/lib/pagination.js";
 import {MAX_UPLOAD_BYTES} from "../../src/lib/http.js";
-import {db, get, idFromLocation, imageBlob, login, postForm, postMultipart, uid} from "./helpers.js";
+import {clearCache, db, get, idFromLocation, imageBlob, login, postForm, postMultipart, uid} from "./helpers.js";
 
 const POST_EDIT = /^\/admin\/blog\/([^/]+)\/edit$/;
 const FAKE_IMAGE = /https:\/\/images\.test\/fake-\d+/;
@@ -12,6 +12,12 @@ describe("blog", () => {
     beforeAll(async () => {
         cookie = await login();
     });
+
+    // a public page as it looks once the cache is cleared; caching itself is covered in cache.test.ts
+    const site = async (path: string) => {
+        await clearCache(cookie);
+        return get(path);
+    };
 
     type PostOpts = {published?: boolean; thumbnail?: boolean; remove?: boolean; tags?: string};
 
@@ -52,11 +58,11 @@ describe("blog", () => {
 
         expect((await get(`/admin/blog/${id}/edit`, cookie)).html).toMatch(FAKE_IMAGE);
 
-        const list = await get("/blog");
+        const list = await site("/blog");
         expect(list.status).toBe(200);
         expect(list.html).toContain(title);
 
-        const post = await get(`/blog/${slug}`);
+        const post = await site(`/blog/${slug}`);
         expect(post.status).toBe(200);
         expect(post.html).toContain(`Content of ${title}`);
     });
@@ -64,7 +70,7 @@ describe("blog", () => {
     it("hides drafts from the public site", async () => {
         const {slug} = await createPost(`Draft ${uid()}`);
 
-        expect((await get(`/blog/${slug}`)).status).toBe(404);
+        expect((await site(`/blog/${slug}`)).status).toBe(404);
     });
 
     it("rejects a title that collides with an existing slug", async () => {
@@ -88,7 +94,7 @@ describe("blog", () => {
         expect((await postMultipart(`/admin/blog/${id}/edit`, edit, cookie)).status).toBe(302);
 
         expect((await db.p.post.findUniqueOrThrow({where: {id}})).slug).toBe(slug);
-        expect((await get(`/blog/${slug}`)).status).toBe(200);
+        expect((await site(`/blog/${slug}`)).status).toBe(200);
     });
 
     it("rejects an oversized thumbnail with a form error instead of the error page", async () => {
@@ -107,7 +113,7 @@ describe("blog", () => {
         await createPost(direct, {published: true});
         await postMultipart(`/admin/blog/${draftedId}/edit`, postFields(drafted, {published: true}), cookie);
 
-        const html = (await get("/blog")).html;
+        const html = (await site("/blog")).html;
         expect(html.indexOf(drafted)).toBeGreaterThan(-1);
         expect(html.indexOf(drafted)).toBeLessThan(html.indexOf(direct));
     });
@@ -129,7 +135,7 @@ describe("blog", () => {
         const {id, slug} = await createPost(title, {published: true, tags: tag});
         const post = await db.p.post.findUniqueOrThrow({where: {id}, include: {author: true}});
 
-        const html = (await get(`/blog/${slug}`)).html;
+        const html = (await site(`/blog/${slug}`)).html;
         expect(html).toContain(`<h1 class="blog-post-title">${title}</h1>`);
         expect(html).toContain(`<p class="blog-post-author">${post.author.name}</p>`);
         expect(html).toContain(`<time datetime="${post.publishedAt!.toISOString()}" data-local-date="long">`);
@@ -141,7 +147,7 @@ describe("blog", () => {
         const title = `Post ${uid()}`;
         await createPost(title, {published: true, thumbnail: true});
 
-        const card = (await get("/blog")).html.match(
+        const card = (await site("/blog")).html.match(
             new RegExp(`<a href="/blog/[^"]+" class="post-card">(?:(?!</a>).)*${title}`, "s")
         );
         expect(card?.[0]).toMatch(/<img src="https:\/\/images\.test\/fake-\d+"/);
@@ -226,8 +232,8 @@ describe("blog", () => {
 
         const newSlug = (await db.p.post.findUnique({where: {id}}))!.slug;
         expect(newSlug).not.toBe(slug);
-        expect((await get(`/blog/${slug}`)).status).toBe(404);
-        expect((await get(`/blog/${newSlug}`)).html).toContain(title);
+        expect((await site(`/blog/${slug}`)).status).toBe(404);
+        expect((await site(`/blog/${newSlug}`)).html).toContain(title);
     });
 
     it("deletes a post", async () => {
@@ -236,12 +242,12 @@ describe("blog", () => {
         const res = await postForm(`/admin/blog/${id}/delete`, {}, cookie);
         expect(res.status).toBe(302);
         expect(res.location).toBe("/admin/blog");
-        expect((await get(`/blog/${slug}`)).status).toBe(404);
+        expect((await site(`/blog/${slug}`)).status).toBe(404);
         expect((await get(`/admin/blog/${id}/edit`, cookie)).status).toBe(404);
     });
 
     it("returns 404 for blog pages past the end", async () => {
-        expect((await get("/blog?page=9999")).status).toBe(404);
+        expect((await site("/blog?page=9999")).status).toBe(404);
     });
 
     describe("tags", () => {
@@ -267,14 +273,14 @@ describe("blog", () => {
             const taggedTitle = (await db.p.post.findUniqueOrThrow({where: {id: tagged.id}})).title;
             const otherTitle = (await db.p.post.findUniqueOrThrow({where: {id: other.id}})).title;
 
-            const res = await get(`/blog?tag=${tag}`);
+            const res = await site(`/blog?tag=${tag}`);
             expect(res.status).toBe(200);
             expect(res.html).toContain(taggedTitle);
             expect(res.html).not.toContain(otherTitle);
             expect(res.html).toContain(`aria-current="page"><span class="tag-hash">#</span>${tag}`);
 
-            expect((await get("/blog")).html).toContain(`href="/blog?tag=${tag}"`);
-            expect((await get(`/blog/${tagged.slug}`)).html).toContain(
+            expect((await site("/blog")).html).toContain(`href="/blog?tag=${tag}"`);
+            expect((await site(`/blog/${tagged.slug}`)).html).toContain(
                 `<a href="/blog?tag=${tag}" class="tag"><span class="tag-hash">#</span>${tag}</a>`
             );
             expect(res.html).toContain(`<p class="post-card-topic">${tag}</p>`);
@@ -284,8 +290,8 @@ describe("blog", () => {
             const draftOnly = `draft${uid()}`;
             await createPost(`Draft ${uid()}`, {tags: draftOnly});
 
-            expect((await get(`/blog?tag=unknown${uid()}`)).status).toBe(404);
-            expect((await get(`/blog?tag=${draftOnly}`)).status).toBe(404);
+            expect((await site(`/blog?tag=unknown${uid()}`)).status).toBe(404);
+            expect((await site(`/blog?tag=${draftOnly}`)).status).toBe(404);
         });
 
         it("replaces tags on edit", async () => {
@@ -293,7 +299,7 @@ describe("blog", () => {
             const after = `after${uid()}`;
             const title = `Retagged ${uid()}`;
             const {id} = await createPost(title, {published: true, tags: before});
-            expect((await get(`/blog?tag=${before}`)).status).toBe(200);
+            expect((await site(`/blog?tag=${before}`)).status).toBe(200);
 
             const res = await postMultipart(
                 `/admin/blog/${id}/edit`,
@@ -303,8 +309,8 @@ describe("blog", () => {
             expect(res.status).toBe(302);
 
             expect(await tagsOf(id)).toEqual([after]);
-            expect((await get(`/blog?tag=${before}`)).status).toBe(404);
-            expect((await get(`/blog?tag=${after}`)).status).toBe(200);
+            expect((await site(`/blog?tag=${before}`)).status).toBe(404);
+            expect((await site(`/blog?tag=${after}`)).status).toBe(200);
         });
 
         it("keeps the tag in pagination links", async () => {
@@ -313,10 +319,10 @@ describe("blog", () => {
                 await createPost(`Paged ${uid()}`, {published: true, tags: tag});
             }
 
-            const first = await get(`/blog?tag=${tag}`);
+            const first = await site(`/blog?tag=${tag}`);
             expect(first.html).toContain(`href="/blog?tag=${tag}&amp;page=2"`);
 
-            const second = await get(`/blog?tag=${tag}&page=2`);
+            const second = await site(`/blog?tag=${tag}&page=2`);
             expect(second.status).toBe(200);
             expect(second.html).toContain("Page 2 of 2");
         });

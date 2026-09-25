@@ -1,8 +1,6 @@
 import {success, failure, type AsyncResult} from "../lib/result.js";
 import {AppError} from "../lib/errors.js";
 import {paginate, toSkipTake, type Paginated, type PaginationParams} from "../lib/pagination.js";
-import {CacheTag} from "../lib/page-cache.js";
-import type PageCache from "../lib/page-cache.js";
 import {slugify} from "../lib/slugify.js";
 import type {Page, PageSection} from "../generated/prisma/client.js";
 import type PageRepository from "../repositories/page-repository.js";
@@ -32,8 +30,7 @@ export function pageSlug(input: {name: string; slug?: string}): string {
 class PageService {
     constructor(
         private readonly pageRepo: PageRepository,
-        private readonly sectionRepo: SectionRepository,
-        private readonly cache: PageCache
+        private readonly sectionRepo: SectionRepository
     ) {}
 
     async list(pagination: PaginationParams): AsyncResult<Paginated<PageWithSections>, AppError> {
@@ -61,17 +58,11 @@ class PageService {
     }
 
     async update(id: string, input: PageInput): AsyncResult<PageWithSections, AppError> {
-        const result = await this.pageRepo.update(id, this.#toPageData(input));
-        if (!result.ok) return result;
-        this.cache.invalidate([CacheTag.page(id)]);
-        return success(result.data);
+        return this.pageRepo.update(id, this.#toPageData(input));
     }
 
     async delete(id: string): AsyncResult<Page, AppError> {
-        const result = await this.pageRepo.delete(id);
-        if (!result.ok) return result;
-        this.cache.invalidate([CacheTag.page(id)]);
-        return success(result.data);
+        return this.pageRepo.delete(id);
     }
 
     async getSection(id: string): AsyncResult<SectionWithPage, AppError> {
@@ -82,24 +73,15 @@ class PageService {
     }
 
     async createSection(pageId: string, input: SectionInput): AsyncResult<PageSection, AppError> {
-        const result = await this.sectionRepo.create({pageId, ...input});
-        if (!result.ok) return result;
-        this.cache.invalidate([CacheTag.page(pageId)]);
-        return success(result.data);
+        return this.sectionRepo.create({pageId, ...input});
     }
 
     async updateSection(id: string, input: SectionInput): AsyncResult<PageSection, AppError> {
-        const result = await this.sectionRepo.update(id, input);
-        if (!result.ok) return result;
-        this.cache.invalidate([CacheTag.page(result.data.pageId)]);
-        return success(result.data);
+        return this.sectionRepo.update(id, input);
     }
 
     async deleteSection(id: string): AsyncResult<PageSection, AppError> {
-        const result = await this.sectionRepo.delete(id);
-        if (!result.ok) return result;
-        this.cache.invalidate([CacheTag.page(result.data.pageId)]);
-        return success(result.data);
+        return this.sectionRepo.delete(id);
     }
 
     #toPageData(input: PageInput) {

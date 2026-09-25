@@ -65,6 +65,12 @@ export async function cacheStats(cookie: string): Promise<{entries: number; hits
     return {entries: read("Entries"), hits: read("Hits"), misses: read("Misses")};
 }
 
+// public pages stay cached until the admin clears the cache, so tests do that before checking the site
+export async function clearCache(cookie: string): Promise<void> {
+    const res = await postForm("/admin/settings/cache/clear", {}, cookie);
+    if (res.status !== 302) throw new Error(`clearing the cache failed with status ${res.status}`);
+}
+
 export async function login(): Promise<string> {
     if (!env.SUPER_USER) throw new Error("SUPER_USER must be set in .env.test");
     const res = await postForm("/admin/login", {email: env.SUPER_USER.email, password: env.SUPER_USER.password});

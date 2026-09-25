@@ -11,12 +11,11 @@ import type ContactRepository from "../../../src/repositories/contact-repository
 import type PostRepository from "../../../src/repositories/post-repository.js";
 import type NavigationRepository from "../../../src/repositories/navigation-repository.js";
 import type NavigationItemRepository from "../../../src/repositories/navigation-item-repository.js";
-import {fake, fakeCache, makeMessage, makeNav, makePage, makeSection} from "../helpers.js";
+import {fake, makeMessage, makeNav, makePage, makeSection} from "../helpers.js";
 
 describe("PageService", () => {
     let pages: Record<"getById" | "create" | "update" | "delete", Mock>;
     let sections: Record<"getById" | "create" | "update" | "delete", Mock>;
-    let invalidate: Mock;
     let service: PageService;
 
     const input = {name: "About Me", title: "About", description: "", published: true};
@@ -34,9 +33,7 @@ describe("PageService", () => {
             update: vi.fn().mockResolvedValue(success(makeSection())),
             delete: vi.fn().mockResolvedValue(success(makeSection())),
         };
-        const c = fakeCache();
-        invalidate = c.invalidate;
-        service = new PageService(fake<PageRepository>(pages), fake<SectionRepository>(sections), c.cache);
+        service = new PageService(fake<PageRepository>(pages), fake<SectionRepository>(sections));
     });
 
     it("derives the slug from the name when none is given", async () => {
@@ -51,22 +48,16 @@ describe("PageService", () => {
         expect(pages.update).toHaveBeenCalledWith("page-1", expect.objectContaining({slug: "my-custom-slug"}));
     });
 
-    it("invalidates nothing on create since missing pages are never cached", async () => {
-        await service.create(input);
-
-        expect(invalidate).not.toHaveBeenCalled();
-    });
-
-    it("invalidates only the affected page on page and section changes", async () => {
+    it("saves sections to their page", async () => {
         const section = {content: "x", position: 0, published: true};
-        await service.update("page-1", input);
-        await service.delete("page-1");
-        await service.createSection("page-1", section);
-        await service.updateSection("section-1", section);
-        await service.deleteSection("section-1");
 
-        expect(invalidate).toHaveBeenCalledTimes(5);
-        for (const call of invalidate.mock.calls) expect(call).toEqual([["page:page-1"]]);
+        expect((await service.createSection("page-1", section)).ok).toBe(true);
+        expect((await service.updateSection("section-1", section)).ok).toBe(true);
+        expect((await service.deleteSection("section-1")).ok).toBe(true);
+
+        expect(sections.create).toHaveBeenCalledWith({pageId: "page-1", ...section});
+        expect(sections.update).toHaveBeenCalledWith("section-1", section);
+        expect(sections.delete).toHaveBeenCalledWith("section-1");
     });
 
     it("transliterates danish letters in a derived slug", async () => {
@@ -75,11 +66,10 @@ describe("PageService", () => {
         expect(pages.create).toHaveBeenCalledWith(expect.objectContaining({slug: "blaabaer-groed"}));
     });
 
-    it("leaves the cache alone when a mutation fails, passing the conflict through", async () => {
+    it("passes a conflict through", async () => {
         pages.update.mockResolvedValue(failure(AppError.CONFLICT));
 
         expect(await service.update("page-1", input)).toEqual(failure(AppError.CONFLICT));
-        expect(invalidate).not.toHaveBeenCalled();
     });
 
     it("distinguishes missing pages and sections from db errors", async () => {
@@ -92,31 +82,27 @@ describe("PageService", () => {
 
     it("hides unpublished pages from the public lookup", async () => {
         const getBySlug = vi.fn().mockResolvedValue(success(makePage({published: false})));
-        const publicService = new PageService(
-            fake<PageRepository>({getBySlug}),
-            fake<SectionRepository>(sections),
-            fakeCache().cache
-        );
+        const publicService = new PageService(fake<PageRepository>({getBySlug}), fake<SectionRepository>(sections));
 
         expect(await publicService.getPublishedBySlug("about")).toEqual(failure(AppError.NOT_FOUND));
     });
 });
 
 describe("NavigationService", () => {
-    let invalidate: Mock;
     let service: NavigationService;
     let get: Mock;
+    let update: Mock;
     let createItem: Mock;
+    let deleteItem: Mock;
 
     beforeEach(() => {
         get = vi.fn().mockResolvedValue(success(makeNav()));
+        update = vi.fn().mockResolvedValue(success(makeNav()));
         createItem = vi.fn().mockResolvedValue(success(makeNav().items[0]));
-        const c = fakeCache();
-        invalidate = c.invalidate;
+        deleteItem = vi.fn().mockResolvedValue(emptySuccess());
         service = new NavigationService(
-            fake<NavigationRepository>({get, update: vi.fn().mockResolvedValue(success(makeNav()))}),
-            fake<NavigationItemRepository>({create: createItem, delete: vi.fn().mockResolvedValue(emptySuccess())}),
-            c.cache
+            fake<NavigationRepository>({get, update}),
+            fake<NavigationItemRepository>({create: createItem, delete: deleteItem})
         );
     });
 
@@ -142,12 +128,12 @@ describe("NavigationService", () => {
         expect(await service.get()).toEqual(failure(AppError.NOT_FOUND));
     });
 
-    it("invalidates everything tagged with the nav on changes", async () => {
-        await service.updateBrand("nav-1", "New");
-        await service.deleteItem("item-1");
+    it("updates the brand and deletes items", async () => {
+        expect((await service.updateBrand("nav-1", "New")).ok).toBe(true);
+        expect((await service.deleteItem("item-1")).ok).toBe(true);
 
-        expect(invalidate).toHaveBeenCalledTimes(2);
-        for (const call of invalidate.mock.calls) expect(call).toEqual([["nav"]]);
+        expect(update).toHaveBeenCalledWith("nav-1", {brandName: "New"});
+        expect(deleteItem).toHaveBeenCalledWith("item-1");
     });
 });
 

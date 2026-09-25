@@ -1,5 +1,4 @@
 import type {AppEnv} from "./lib/env.js";
-import PageCache from "./lib/page-cache.js";
 import {makeGlobalErrorHandler} from "./lib/error-handler.js";
 import type LoggerService from "./services/logger-service.js";
 import type {ImageStore} from "./services/image-store.js";
@@ -13,6 +12,7 @@ import NavigationService from "./services/navigation-service.js";
 import MessageService from "./services/message-service.js";
 import DashboardService from "./services/dashboard-service.js";
 import TemplateService from "./services/template-service.js";
+import PageCacheService from "./services/page-cache-service.js";
 import UserRepository from "./repositories/user-repository.js";
 import NavigationRepository from "./repositories/navigation-repository.js";
 import NavigationItemRepository from "./repositories/navigation-item-repository.js";
@@ -45,7 +45,7 @@ export async function startApp(env: AppEnv, log: LoggerService, imageStore: Imag
     const postRepo = new PostRepository(dataService);
     const contactRepo = new ContactRepository(dataService);
 
-    const cache = new PageCache(500);
+    const pageCacheService = new PageCacheService(500);
 
     const authService = new AuthService(
         userRepo,
@@ -58,13 +58,13 @@ export async function startApp(env: AppEnv, log: LoggerService, imageStore: Imag
         },
         log
     );
-    const userService = new UserService(userRepo, imageStore, cache, log);
-    const postService = new PostService(postRepo, imageStore, cache, log);
-    const pageService = new PageService(pageRepo, sectionRepo, cache);
-    const navigationService = new NavigationService(navigationRepo, navigationItemRepo, cache);
+    const userService = new UserService(userRepo, imageStore, log);
+    const postService = new PostService(postRepo, imageStore, log);
+    const pageService = new PageService(pageRepo, sectionRepo);
+    const navigationService = new NavigationService(navigationRepo, navigationItemRepo);
     const messageService = new MessageService(contactRepo);
     const dashboardService = new DashboardService(pageRepo, postRepo, contactRepo);
-    const templateService = new TemplateService(pageService, postService, navigationService, cache);
+    const templateService = new TemplateService(pageService, postService, navigationService, pageCacheService);
 
     const adminRouter = makeAdminRouter(loginRouter(authService), createAdminAuth(authService), [
         logoutRouter(authService),

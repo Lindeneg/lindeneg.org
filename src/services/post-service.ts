@@ -1,8 +1,6 @@
 import {success, emptySuccess, failure, type EmptyResult, type AsyncResult} from "../lib/result.js";
 import {AppError} from "../lib/errors.js";
 import {paginate, toSkipTake, type Paginated, type PaginationParams} from "../lib/pagination.js";
-import {CacheTag} from "../lib/page-cache.js";
-import type PageCache from "../lib/page-cache.js";
 import {slugify} from "../lib/slugify.js";
 import type {MaybeUndefined, RawModelUpdate} from "../lib/types.js";
 import type {Post} from "../generated/prisma/client.js";
@@ -46,7 +44,6 @@ class PostService {
     constructor(
         private readonly postRepo: PostRepository,
         private readonly imageStore: ImageStore,
-        private readonly cache: PageCache,
         private readonly log: LoggerService
     ) {}
 
@@ -109,7 +106,6 @@ class PostService {
             return result;
         }
 
-        this.cache.invalidate([CacheTag.blogList]);
         return success(result.data);
     }
 
@@ -147,7 +143,6 @@ class PostService {
         const oldId = existing.data.thumbnailId;
         if (input.thumbnail.kind !== "keep" && oldId) await this.#deleteImage(oldId);
 
-        this.cache.invalidate([CacheTag.post(id), CacheTag.blogList]);
         return success(result.data);
     }
 
@@ -157,7 +152,6 @@ class PostService {
 
         if (result.data.thumbnailId) await this.#deleteImage(result.data.thumbnailId);
 
-        this.cache.invalidate([CacheTag.post(id), CacheTag.blogList]);
         return emptySuccess();
     }
 

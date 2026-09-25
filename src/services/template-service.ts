@@ -2,8 +2,8 @@ import {success, failure, type AsyncResult} from "../lib/result.js";
 import {AppError} from "../lib/errors.js";
 import type {MaybeUndefined} from "../lib/types.js";
 import {DEFAULT_PAGE_SIZE} from "../lib/pagination.js";
-import {CacheTag, type CacheStats} from "../lib/page-cache.js";
-import type PageCache from "../lib/page-cache.js";
+import type {CacheStats} from "./page-cache-service.js";
+import type PageCacheService from "./page-cache-service.js";
 import type {NavigationWithItems} from "../repositories/navigation-repository.js";
 import {BlogListView} from "../ui/views/site/blog-list.js";
 import {BlogPostView} from "../ui/views/site/blog-post.js";
@@ -24,20 +24,19 @@ export function pagePath(slug: string): string {
     return slug === "home" ? "/" : `/${slug}`;
 }
 
-// renders the public site from published content, caching the html per canonical url
+// renders the public site from published content, caching the html per canonical url until the admin clears it
 class TemplateService {
     constructor(
         private readonly pageService: PageService,
         private readonly postService: PostService,
         private readonly navigationService: NavigationService,
-        private readonly cache: PageCache
+        private readonly cache: PageCacheService
     ) {}
 
     async getPage(slug: string): AsyncResult<string, AppError> {
         return this.#render(
             `page:${slug}`,
             () => this.pageService.getPublishedBySlug(slug),
-            (page) => [CacheTag.page(page.id)],
             (page, nav) => PageView({page, nav, currentPath: pagePath(slug)})
         );
     }
@@ -60,7 +59,6 @@ class TemplateService {
                 }
                 return success({posts: posts.data, tags: tags.data});
             },
-            () => [CacheTag.blogList],
             ({posts, tags}, nav) => BlogListView({posts, tags, activeTag: tag, nav, currentPath: "/blog"})
         );
     }
@@ -69,7 +67,6 @@ class TemplateService {
         return this.#render(
             `blog:post:${slug}`,
             () => this.postService.getPublishedBySlug(slug),
-            (post) => [CacheTag.post(post.id), CacheTag.user(post.authorId)],
             (post, nav) => BlogPostView({post, nav, currentPath: `/blog/${slug}`})
         );
     }
@@ -103,7 +100,6 @@ class TemplateService {
     async #render<T>(
         cacheKey: string,
         load: () => AsyncResult<T, AppError>,
-        tags: (data: T) => string[],
         render: (data: T, nav: NavigationWithItems) => string
     ): AsyncResult<string, AppError> {
         const cached = this.cache.get(cacheKey);
@@ -114,7 +110,7 @@ class TemplateService {
         if (!navResult.ok) return navResult;
 
         const html = render(dataResult.data, navResult.data);
-        this.cache.set(cacheKey, html, [CacheTag.nav, ...tags(dataResult.data)]);
+        this.cache.set(cacheKey, html);
         return success(html);
     }
 }

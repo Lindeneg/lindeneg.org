@@ -4,7 +4,7 @@ import {AppError} from "../../../src/lib/errors.js";
 import PostService from "../../../src/services/post-service.js";
 import type PostRepository from "../../../src/repositories/post-repository.js";
 import type {ImageStore} from "../../../src/services/image-store.js";
-import {fake, fakeCache, fakeLog, makePost} from "../helpers.js";
+import {fake, fakeLog, makePost} from "../helpers.js";
 
 const file = {buffer: Buffer.from("img"), mimetype: "image/png"};
 const uploaded = {url: "https://img/new.png", publicId: "new-id"};
@@ -12,7 +12,6 @@ const uploaded = {url: "https://img/new.png", publicId: "new-id"};
 describe("PostService", () => {
     let repo: Record<"getById" | "getBySlug" | "list" | "create" | "update" | "delete", Mock>;
     let store: Record<"upload" | "delete", Mock>;
-    let invalidate: Mock;
     let log: ReturnType<typeof fakeLog>;
     let service: PostService;
 
@@ -31,10 +30,8 @@ describe("PostService", () => {
             upload: vi.fn().mockResolvedValue(success(uploaded)),
             delete: vi.fn().mockResolvedValue(emptySuccess()),
         };
-        const c = fakeCache();
-        invalidate = c.invalidate;
         log = fakeLog();
-        service = new PostService(fake<PostRepository>(repo), fake<ImageStore>(store), c.cache, log);
+        service = new PostService(fake<PostRepository>(repo), fake<ImageStore>(store), log);
     });
 
     describe("create", () => {
@@ -62,7 +59,6 @@ describe("PostService", () => {
                 },
                 []
             );
-            expect(invalidate).toHaveBeenCalledExactlyOnceWith(["blog-list"]);
         });
 
         it("uses a custom slug over the title", async () => {
@@ -101,7 +97,6 @@ describe("PostService", () => {
 
             expect(result).toEqual(failure(AppError.UPLOAD_ERROR));
             expect(repo.create).not.toHaveBeenCalled();
-            expect(invalidate).not.toHaveBeenCalled();
         });
 
         it("deletes the uploaded image when the post can't be created", async () => {
@@ -117,7 +112,6 @@ describe("PostService", () => {
 
             expect(result).toEqual(failure(AppError.CONFLICT));
             expect(store.delete).toHaveBeenCalledWith(uploaded.publicId);
-            expect(invalidate).not.toHaveBeenCalled();
         });
 
         it("creates without a thumbnail", async () => {
@@ -158,7 +152,6 @@ describe("PostService", () => {
                 },
                 ["jazz", "music"]
             );
-            expect(invalidate).toHaveBeenCalledExactlyOnceWith(["post:post-1", "blog-list"]);
         });
 
         it("keeps the slug the form sends even when the title changes", async () => {
@@ -202,7 +195,6 @@ describe("PostService", () => {
             expect(result).toEqual(failure(AppError.DB_ERROR));
             expect(store.delete).toHaveBeenCalledOnce();
             expect(store.delete).toHaveBeenCalledWith(uploaded.publicId);
-            expect(invalidate).not.toHaveBeenCalled();
         });
 
         it("removes: clears the fields, then deletes the old image", async () => {
@@ -247,7 +239,6 @@ describe("PostService", () => {
 
             expect(result.ok).toBe(true);
             expect(store.delete).toHaveBeenCalledWith("old-id");
-            expect(invalidate).toHaveBeenCalledExactlyOnceWith(["post:post-1", "blog-list"]);
         });
 
         it("logs but still succeeds when the thumbnail can't be deleted", async () => {

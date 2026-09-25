@@ -330,6 +330,12 @@ describe("SettingsView", () => {
         }
     });
 
+    it("says changes appear after clearing the cache", () => {
+        expect(SettingsView({user, currentPath: "/admin/settings", cacheStats: stats})).toContain(
+            "The public site caches rendered pages. Changes appear after clearing the cache."
+        );
+    });
+
     it("shows the cache stats with a hit rate", () => {
         expect(SettingsView({user, currentPath: "/admin/settings", cacheStats: stats})).toMatch(
             /Entries: 3 \/ 500 ·\s+Hits: 3 ·\s+Misses: 1 ·\s+Hit rate: 75%/

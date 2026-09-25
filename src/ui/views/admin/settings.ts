@@ -1,5 +1,5 @@
 import type {User} from "../../../repositories/user-repository.js";
-import type {CacheStats} from "../../../lib/page-cache.js";
+import type {CacheStats} from "../../../services/page-cache-service.js";
 import {MAX_UPLOAD_BYTES} from "../../../lib/http.js";
 import {AdminLayout} from "../../components/layout.js";
 import {Avatar} from "../../components/avatar.js";
@@ -79,7 +79,7 @@ export function SettingsView({
             </section>
             <section class="admin-card">
                 <h2 class="admin-h2">Cache</h2>
-                <p class="row-sub">The public site caches rendered pages. Clear it to pick up changes immediately.</p>
+                <p class="row-sub">The public site caches rendered pages. Changes appear after clearing the cache.</p>
                 <p class="row-sub" data-cache-stats>
                     Entries: ${cacheStats.entries} / ${cacheStats.maxEntries} ·
                     Hits: ${cacheStats.hits} ·

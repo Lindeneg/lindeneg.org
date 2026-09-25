@@ -1,7 +1,6 @@
-import {vi, type Mock} from "vitest";
+import {vi} from "vitest";
 import type {ContactMessage, NavigationItem, PageSection} from "../../src/generated/prisma/client.js";
 import type LoggerService from "../../src/services/logger-service.js";
-import type PageCache from "../../src/lib/page-cache.js";
 import type {User, UserWithPassword} from "../../src/repositories/user-repository.js";
 import type {PostWithRelations} from "../../src/repositories/post-repository.js";
 import type {PageWithSections} from "../../src/repositories/page-repository.js";
@@ -21,11 +20,6 @@ export function fakeLog() {
         error: vi.fn(),
         fatal: vi.fn(),
     });
-}
-
-export function fakeCache(): {invalidate: Mock; cache: PageCache} {
-    const invalidate = vi.fn();
-    return {invalidate, cache: fake<PageCache>({invalidate, clear: vi.fn(), get: vi.fn(), set: vi.fn()})};
 }
 
 const date = new Date("2024-01-05T12:00:00Z");

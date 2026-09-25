@@ -1,8 +1,9 @@
 import {beforeAll, describe, expect, it} from "vitest";
-import {cacheStats, db, get, idFromLocation, login, postForm, postMultipart, uid} from "./helpers.js";
+import {cacheStats, clearCache, db, get, idFromLocation, login, postForm, postMultipart, uid} from "./helpers.js";
 
 const POST_EDIT = /^\/admin\/blog\/([^/]+)\/edit$/;
 
+// only the clear button in the admin settings empties the cache; saving content never does
 describe("page cache", () => {
     let cookie: string;
 
@@ -25,30 +26,37 @@ describe("page cache", () => {
         return {id, slug: post.slug, title};
     }
 
-    it("editing one post keeps other cached pages", async () => {
-        const a = await createPost(`Cached ${uid()}`);
-        const b = await createPost(`Cached ${uid()}`);
-        await get(`/blog/${a.slug}`);
-        await get(`/blog/${b.slug}`);
+    it("serves a cached page from the cache on the next visit", async () => {
+        const post = await createPost(`Cached ${uid()}`);
+        await get(`/blog/${post.slug}`);
 
         const before = await cacheStats(cookie);
-        await postMultipart(`/admin/blog/${a.id}/edit`, postFields(a.title, "edited"), cookie);
-
-        expect((await get(`/blog/${b.slug}`)).status).toBe(200);
-        expect((await get(`/blog/${a.slug}`)).html).toContain("edited");
-
+        await get(`/blog/${post.slug}`);
         const after = await cacheStats(cookie);
+
         expect(after.hits - before.hits).toBe(1);
-        expect(after.misses - before.misses).toBe(1);
+        expect(after.misses - before.misses).toBe(0);
     });
 
-    it("a navigation change drops every cached page", async () => {
+    it("keeps showing a page as it was until the cache is cleared", async () => {
+        const post = await createPost(`Cached ${uid()}`);
+        expect((await get(`/blog/${post.slug}`)).html).toContain("original");
+
+        await postMultipart(`/admin/blog/${post.id}/edit`, postFields(post.title, "edited"), cookie);
+        expect((await get(`/blog/${post.slug}`)).html).toContain("original");
+
+        await clearCache(cookie);
+        expect((await get(`/blog/${post.slug}`)).html).toContain("edited");
+    });
+
+    it("keeps every cached page through a navigation change", async () => {
         await get("/blog");
-        expect((await cacheStats(cookie)).entries).toBeGreaterThan(0);
+        const before = (await cacheStats(cookie)).entries;
+        expect(before).toBeGreaterThan(0);
 
         await postForm("/admin/navigation", {brandName: `Brand ${uid()}`}, cookie);
 
-        expect((await cacheStats(cookie)).entries).toBe(0);
+        expect((await cacheStats(cookie)).entries).toBe(before);
     });
 
     it("clearing the cache from settings empties it", async () => {
@@ -57,6 +65,7 @@ describe("page cache", () => {
         const res = await postForm("/admin/settings/cache/clear", {}, cookie);
 
         expect(res.status).toBe(302);
+        expect(res.location).toBe("/admin/settings");
         expect((await cacheStats(cookie)).entries).toBe(0);
     });
 });

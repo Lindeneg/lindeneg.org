@@ -1,5 +1,5 @@
 import {beforeAll, describe, expect, it} from "vitest";
-import {db, get, idFromLocation, login, postForm, uid} from "./helpers.js";
+import {clearCache, db, get, idFromLocation, login, postForm, uid} from "./helpers.js";
 
 const PAGE_EDIT = /^\/admin\/pages\/([^/]+)\/edit$/;
 
@@ -9,6 +9,12 @@ describe("pages", () => {
     beforeAll(async () => {
         cookie = await login();
     });
+
+    // a public page as it looks once the cache is cleared; caching itself is covered in cache.test.ts
+    const site = async (path: string) => {
+        await clearCache(cookie);
+        return get(path);
+    };
 
     const pageFields = (name: string, overrides: Record<string, string> = {}) => ({
         name,
@@ -44,7 +50,7 @@ describe("pages", () => {
         const page = await db.p.page.findUnique({where: {id}});
         expect(page?.slug).toBe(name.toLowerCase().replace(" ", "-"));
 
-        const res = await get(`/${page!.slug}`);
+        const res = await site(`/${page!.slug}`);
         expect(res.status).toBe(200);
         expect(res.html).toContain(`<title>${name} title</title>`);
     });
@@ -102,7 +108,7 @@ describe("pages", () => {
             cookie
         );
 
-        const html = (await get(`/${slug}`)).html;
+        const html = (await site(`/${slug}`)).html;
         expect(html.indexOf(first)).toBeGreaterThan(-1);
         expect(html.indexOf(first)).toBeLessThan(html.indexOf(second));
         expect(html).not.toContain(draft);
@@ -142,22 +148,22 @@ describe("pages", () => {
         expect(res.html).toBe("Not found");
     });
 
-    it("hides unpublished pages and reflects edits immediately", async () => {
+    it("hides unpublished pages once the cache is cleared", async () => {
         const name = `Page ${uid()}`;
         const id = await createPage(name);
         const slug = (await db.p.page.findUnique({where: {id}}))!.slug;
 
-        expect((await get(`/${slug}`)).status).toBe(200);
+        expect((await site(`/${slug}`)).status).toBe(200);
 
         const {published: _, ...unpublished} = pageFields(name);
         const edit = await postForm(`/admin/pages/${id}/edit`, unpublished, cookie);
         expect(edit.status).toBe(302);
         expect(edit.location).toBe(`/admin/pages/${id}/edit`);
 
-        expect((await get(`/${slug}`)).status).toBe(404);
+        expect((await site(`/${slug}`)).status).toBe(404);
     });
 
-    it("manages sections and invalidates the public cache", async () => {
+    it("manages sections, shown on the site once the cache is cleared", async () => {
         const id = await createPage(`Page ${uid()}`);
         const slug = (await db.p.page.findUnique({where: {id}}))!.slug;
         const marker = `section-${uid()}`;
@@ -174,7 +180,7 @@ describe("pages", () => {
         );
         expect(created.status).toBe(302);
         expect(created.location).toBe(`/admin/pages/${id}/edit`);
-        expect((await get(`/${slug}`)).html).toContain(marker);
+        expect((await site(`/${slug}`)).html).toContain(marker);
 
         const section = await db.p.pageSection.findFirst({where: {pageId: id}});
         expect((await get(`/admin/sections/${section!.id}/edit`, cookie)).status).toBe(200);
@@ -185,12 +191,12 @@ describe("pages", () => {
             cookie
         );
         expect(edited.status).toBe(302);
-        expect((await get(`/${slug}`)).html).toContain(`${marker}-edited`);
+        expect((await site(`/${slug}`)).html).toContain(`${marker}-edited`);
 
         const deleted = await postForm(`/admin/sections/${section!.id}/delete`, {}, cookie);
         expect(deleted.status).toBe(302);
         expect(deleted.location).toBe(`/admin/pages/${id}/edit`);
-        expect((await get(`/${slug}`)).html).not.toContain(marker);
+        expect((await site(`/${slug}`)).html).not.toContain(marker);
     });
 
     it("deletes a page", async () => {

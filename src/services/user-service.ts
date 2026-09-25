@@ -1,7 +1,5 @@
 import {emptySuccess, failure, type EmptyResult} from "../lib/result.js";
 import {AppError} from "../lib/errors.js";
-import {CacheTag} from "../lib/page-cache.js";
-import type PageCache from "../lib/page-cache.js";
 import type UserRepository from "../repositories/user-repository.js";
 import type {User} from "../repositories/user-repository.js";
 import type {ImageFile, ImageStore} from "./image-store.js";
@@ -11,7 +9,6 @@ class UserService {
     constructor(
         private readonly userRepo: UserRepository,
         private readonly imageStore: ImageStore,
-        private readonly cache: PageCache,
         private readonly log: LoggerService
     ) {}
 
@@ -30,7 +27,6 @@ class UserService {
         }
 
         if (user.photoId) await this.#deleteImage(user.photoId);
-        this.cache.invalidate([CacheTag.user(user.id)]);
         return emptySuccess();
     }
 
@@ -39,7 +35,6 @@ class UserService {
         if (!updateResult.ok) return updateResult;
 
         if (user.photoId) await this.#deleteImage(user.photoId);
-        this.cache.invalidate([CacheTag.user(user.id)]);
         return emptySuccess();
     }
 

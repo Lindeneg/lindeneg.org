@@ -1,7 +1,7 @@
 import {beforeEach, describe, expect, it, vi, type Mock} from "vitest";
 import {failure, success} from "../../../src/lib/result.js";
 import {AppError} from "../../../src/lib/errors.js";
-import PageCache, {CacheTag} from "../../../src/lib/page-cache.js";
+import PageCacheService from "../../../src/services/page-cache-service.js";
 import TemplateService from "../../../src/services/template-service.js";
 import PageService from "../../../src/services/page-service.js";
 import PostService from "../../../src/services/post-service.js";
@@ -20,7 +20,7 @@ describe("TemplateService", () => {
     let listPosts: Mock;
     let listTags: Mock;
     let getPost: Mock;
-    let cache: PageCache;
+    let cache: PageCacheService;
     let service: TemplateService;
 
     beforeEach(() => {
@@ -29,17 +29,16 @@ describe("TemplateService", () => {
         listPosts = vi.fn().mockResolvedValue(success({data: [makePost()], total: 1}));
         listTags = vi.fn().mockResolvedValue(success([{name: "jazz", count: 1}]));
         getPost = vi.fn().mockImplementation(async (slug: string) => success(makePost({id: slug, slug})));
-        cache = new PageCache(100);
+        cache = new PageCacheService(100);
         // the real services on fake repositories, so the published-only rules are covered too
         service = new TemplateService(
-            new PageService(fake<PageRepository>({getBySlug}), fake<SectionRepository>({}), cache),
+            new PageService(fake<PageRepository>({getBySlug}), fake<SectionRepository>({})),
             new PostService(
                 fake<PostRepository>({list: listPosts, getBySlug: getPost, listPublishedTags: listTags}),
                 fake<ImageStore>({}),
-                cache,
                 fakeLog()
             ),
-            new NavigationService(fake<NavigationRepository>({get: getNav}), fake<NavigationItemRepository>({}), cache),
+            new NavigationService(fake<NavigationRepository>({get: getNav}), fake<NavigationItemRepository>({})),
             cache
         );
     });
@@ -87,54 +86,31 @@ describe("TemplateService", () => {
         });
     });
 
-    describe("cache tags", () => {
-        it("drops only the invalidated post", async () => {
+    describe("cache", () => {
+        it("keeps serving the cached html after the data changes, until the cache is cleared", async () => {
             await service.getBlogPost("a");
-            await service.getBlogPost("b");
+            getPost.mockResolvedValue(success(makePost({id: "a", slug: "a", title: "Changed title"})));
 
-            cache.invalidate([CacheTag.post("a")]);
-            await service.getBlogPost("a");
-            await service.getBlogPost("b");
-
-            expect(getPost.mock.calls.map(([slug]) => slug)).toEqual(["a", "b", "a"]);
-        });
-
-        it("drops a post when its author changes", async () => {
-            await service.getBlogPost("a");
-
-            cache.invalidate([CacheTag.user("user-1")]);
-            await service.getBlogPost("a");
-
-            expect(getPost).toHaveBeenCalledTimes(2);
-        });
-
-        it("drops the blog list but not posts on blog-list invalidation", async () => {
-            await service.getBlogList(1, undefined);
-            await service.getBlogPost("a");
-
-            cache.invalidate([CacheTag.blogList]);
-            await service.getBlogList(1, undefined);
-            await service.getBlogPost("a");
-
-            expect(listPosts).toHaveBeenCalledTimes(2);
+            const stale = await service.getBlogPost("a");
+            if (!stale.ok) throw new Error("expected success");
+            expect(stale.data).not.toContain("Changed title");
             expect(getPost).toHaveBeenCalledOnce();
+
+            service.clearCache();
+
+            const fresh = await service.getBlogPost("a");
+            if (!fresh.ok) throw new Error("expected success");
+            expect(fresh.data).toContain("Changed title");
         });
 
-        it("drops a page by id", async () => {
-            await service.getPage("about");
-
-            cache.invalidate([CacheTag.page("page-1")]);
-            await service.getPage("about");
-
-            expect(getBySlug).toHaveBeenCalledTimes(2);
-        });
-
-        it("drops everything on a nav change", async () => {
+        it("caches every page, post and list separately and clears them all at once", async () => {
             await service.getPage("about");
             await service.getBlogList(1, undefined);
             await service.getBlogPost("a");
+            await service.getBlogPost("b");
+            expect(service.cacheStats().entries).toBe(4);
 
-            cache.invalidate([CacheTag.nav]);
+            service.clearCache();
 
             expect(service.cacheStats().entries).toBe(0);
         });

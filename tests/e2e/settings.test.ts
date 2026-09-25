@@ -1,6 +1,17 @@
 import {beforeAll, describe, expect, it} from "vitest";
 import {MAX_UPLOAD_BYTES} from "../../src/lib/http.js";
-import {db, env, get, imageBlob, login, postForm, postMultipart, uid, type TestResponse} from "./helpers.js";
+import {
+    clearCache,
+    db,
+    env,
+    get,
+    imageBlob,
+    login,
+    postForm,
+    postMultipart,
+    uid,
+    type TestResponse,
+} from "./helpers.js";
 
 const FAKE_IMAGE = /https:\/\/images\.test\/fake-\d+/;
 
@@ -72,7 +83,7 @@ describe("settings", () => {
         expect(res.html).toContain("Image must be 10MB or smaller");
     });
 
-    it("shows a new author photo on their already cached posts", async () => {
+    it("shows a new author photo on their cached posts once the cache is cleared", async () => {
         const post = await db.p.post.create({
             data: {
                 title: `Cached ${uid()}`,
@@ -90,6 +101,8 @@ describe("settings", () => {
         await postMultipart("/admin/settings/photo", form, cookie);
         const photo = (await db.p.user.findFirstOrThrow({where: {email: env.SUPER_USER!.email}})).photo!;
 
+        expect((await get(`/blog/${post.slug}`)).html).not.toContain(photo);
+        await clearCache(cookie);
         expect((await get(`/blog/${post.slug}`)).html).toContain(photo);
         await postForm("/admin/settings/photo/delete", {}, cookie);
     });

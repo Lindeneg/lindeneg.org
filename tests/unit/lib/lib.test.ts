@@ -6,7 +6,6 @@ import {DEFAULT_PAGE_SIZE, paginate, parsePagination, toSkipTake} from "../../..
 import {checkbox, fieldErrors, optStr, toBool} from "../../../src/lib/validation.js";
 import {emptySuccess, failure, success} from "../../../src/lib/result.js";
 import {envFiles, isInTestMode, loadAppEnv, parseSuperUser} from "../../../src/lib/env.js";
-import PageCache, {CacheTag} from "../../../src/lib/page-cache.js";
 import {fake} from "../helpers.js";
 
 describe("slugify", () => {
@@ -105,73 +104,6 @@ describe("result", () => {
         expect(success(1)).toEqual({ok: true, data: 1});
         expect(emptySuccess()).toEqual({ok: true, data: undefined});
         expect(failure("nope")).toEqual({ok: false, ctx: "nope"});
-    });
-});
-
-describe("PageCache", () => {
-    it("stores, returns and clears entries", () => {
-        const cache = new PageCache(10);
-        expect(cache.get("a")).toBeUndefined();
-        cache.set("a", "<p>a</p>", []);
-        expect(cache.get("a")).toBe("<p>a</p>");
-        cache.clear();
-        expect(cache.get("a")).toBeUndefined();
-    });
-
-    it("evicts the least recently used entry when full", () => {
-        const cache = new PageCache(2);
-        cache.set("a", "a", []);
-        cache.set("b", "b", []);
-        cache.set("c", "c", []);
-
-        expect(cache.get("a")).toBeUndefined();
-        expect(cache.get("b")).toBe("b");
-        expect(cache.get("c")).toBe("c");
-    });
-
-    it("refreshes recency on a hit", () => {
-        const cache = new PageCache(2);
-        cache.set("a", "a", []);
-        cache.set("b", "b", []);
-        cache.get("a");
-        cache.set("c", "c", []);
-
-        expect(cache.get("a")).toBe("a");
-        expect(cache.get("b")).toBeUndefined();
-    });
-
-    it("overwrites an existing key without growing", () => {
-        const cache = new PageCache(2);
-        cache.set("a", "old", []);
-        cache.set("a", "new", []);
-
-        expect(cache.get("a")).toBe("new");
-        expect(cache.stats().entries).toBe(1);
-    });
-
-    it("invalidates every entry sharing a tag and nothing else", () => {
-        const cache = new PageCache(10);
-        cache.set("post-a", "a", [CacheTag.nav, CacheTag.post("a")]);
-        cache.set("post-b", "b", [CacheTag.nav, CacheTag.post("b")]);
-        cache.set("list", "l", [CacheTag.nav, CacheTag.blogList]);
-
-        cache.invalidate([CacheTag.post("a"), CacheTag.blogList]);
-        expect(cache.get("post-a")).toBeUndefined();
-        expect(cache.get("list")).toBeUndefined();
-        expect(cache.get("post-b")).toBe("b");
-
-        cache.invalidate([CacheTag.nav]);
-        expect(cache.get("post-b")).toBeUndefined();
-    });
-
-    it("counts hits and misses", () => {
-        const cache = new PageCache(5);
-        cache.set("a", "a", []);
-        cache.get("a");
-        cache.get("a");
-        cache.get("missing");
-
-        expect(cache.stats()).toEqual({entries: 1, maxEntries: 5, hits: 2, misses: 1});
     });
 });
 

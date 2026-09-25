@@ -4,7 +4,7 @@ import {AppError} from "../../../src/lib/errors.js";
 import UserService from "../../../src/services/user-service.js";
 import type UserRepository from "../../../src/repositories/user-repository.js";
 import type {ImageStore} from "../../../src/services/image-store.js";
-import {fake, fakeCache, fakeLog, makeUser} from "../helpers.js";
+import {fake, fakeLog, makeUser} from "../helpers.js";
 
 const file = {buffer: Buffer.from("img"), mimetype: "image/png"};
 const uploaded = {url: "https://img/new.png", publicId: "new-id"};
@@ -12,7 +12,6 @@ const uploaded = {url: "https://img/new.png", publicId: "new-id"};
 describe("UserService", () => {
     let update: Mock;
     let store: Record<"upload" | "delete", Mock>;
-    let invalidate: Mock;
     let log: ReturnType<typeof fakeLog>;
     let service: UserService;
 
@@ -22,10 +21,8 @@ describe("UserService", () => {
             upload: vi.fn().mockResolvedValue(success(uploaded)),
             delete: vi.fn().mockResolvedValue(emptySuccess()),
         };
-        const c = fakeCache();
-        invalidate = c.invalidate;
         log = fakeLog();
-        service = new UserService(fake<UserRepository>({update}), fake<ImageStore>(store), c.cache, log);
+        service = new UserService(fake<UserRepository>({update}), fake<ImageStore>(store), log);
     });
 
     describe("uploadPhoto", () => {
@@ -39,7 +36,6 @@ describe("UserService", () => {
             expect(store.upload.mock.invocationCallOrder[0]).toBeLessThan(update.mock.invocationCallOrder[0]);
             expect(update.mock.invocationCallOrder[0]).toBeLessThan(store.delete.mock.invocationCallOrder[0]);
             expect(store.delete).toHaveBeenCalledWith("old-id");
-            expect(invalidate).toHaveBeenCalledExactlyOnceWith(["user:user-1"]);
         });
 
         it("keeps the old photo when the upload fails", async () => {
@@ -56,7 +52,6 @@ describe("UserService", () => {
             expect(await service.uploadPhoto(user, file)).toEqual(failure(AppError.DB_ERROR));
             expect(store.delete).toHaveBeenCalledOnce();
             expect(store.delete).toHaveBeenCalledWith(uploaded.publicId);
-            expect(invalidate).not.toHaveBeenCalled();
         });
 
         it("deletes nothing when there was no previous photo", async () => {
@@ -80,7 +75,6 @@ describe("UserService", () => {
             expect((await service.deletePhoto(user)).ok).toBe(true);
             expect(update).toHaveBeenCalledWith(user.id, {photo: null, photoId: null});
             expect(store.delete).toHaveBeenCalledWith("old-id");
-            expect(invalidate).toHaveBeenCalledExactlyOnceWith(["user:user-1"]);
         });
 
         it("keeps the image when the update fails", async () => {

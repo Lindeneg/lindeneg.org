@@ -1,5 +1,5 @@
 import {beforeAll, describe, expect, it} from "vitest";
-import {db, get, login, postForm, uid} from "./helpers.js";
+import {clearCache, db, get, login, postForm, uid} from "./helpers.js";
 
 describe("navigation", () => {
     let cookie: string;
@@ -9,6 +9,12 @@ describe("navigation", () => {
         cookie = await login();
         navigationId = (await db.p.navigation.findFirstOrThrow()).id;
     });
+
+    // the public site as it looks once the cache is cleared
+    const site = async () => {
+        await clearCache(cookie);
+        return (await get("/blog")).html;
+    };
 
     const itemFields = (name: string, overrides: Record<string, string> = {}) => ({
         navigationId,
@@ -32,7 +38,7 @@ describe("navigation", () => {
         expect(res.status).toBe(302);
         expect(res.location).toBe("/admin/navigation");
 
-        expect((await get("/blog")).html).toContain(brand);
+        expect(await site()).toContain(brand);
     });
 
     it("rejects an invalid item", async () => {
@@ -45,7 +51,7 @@ describe("navigation", () => {
         const name = `Item${uid()}`;
         const created = await postForm("/admin/nav-items/new", itemFields(name), cookie);
         expect(created.status).toBe(302);
-        expect((await get("/blog")).html).toContain(name);
+        expect(await site()).toContain(name);
 
         const item = await db.p.navigationItem.findFirstOrThrow({where: {name}});
         expect((await get(`/admin/nav-items/${item.id}/edit`, cookie)).status).toBe(200);
@@ -53,18 +59,18 @@ describe("navigation", () => {
         const renamed = `Item${uid()}`;
         const edited = await postForm(`/admin/nav-items/${item.id}/edit`, itemFields(renamed, {newTab: "1"}), cookie);
         expect(edited.status).toBe(302);
-        const html = (await get("/blog")).html;
+        const html = await site();
         expect(html).toContain(renamed);
         expect(html).not.toContain(name);
 
         const deleted = await postForm(`/admin/nav-items/${item.id}/delete`, {}, cookie);
         expect(deleted.status).toBe(302);
-        expect((await get("/blog")).html).not.toContain(renamed);
+        expect(await site()).not.toContain(renamed);
     });
 
     // the public link for an item, from the desktop nav
     const publicLink = async (name: string) => {
-        const html = (await get("/blog")).html;
+        const html = await site();
         return html.match(new RegExp(`<a [^>]*class="nav-link"[^>]*>${name}.*?</a>`))?.[0] ?? "";
     };
 
@@ -121,7 +127,7 @@ describe("navigation", () => {
         await postForm("/admin/nav-items/new", itemFields(late, {position: "91"}), cookie);
         await postForm("/admin/nav-items/new", itemFields(early, {position: "90"}), cookie);
 
-        const html = (await get("/blog")).html;
+        const html = await site();
         expect(html.indexOf(`>${early}<`)).toBeGreaterThan(-1);
         expect(html.indexOf(`>${early}<`)).toBeLessThan(html.indexOf(`>${late}<`));
 
