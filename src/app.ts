@@ -64,7 +64,13 @@ export async function startApp(env: AppEnv, log: LoggerService, imageStore: Imag
     const navigationService = new NavigationService(navigationRepo, navigationItemRepo);
     const messageService = new MessageService(contactRepo);
     const dashboardService = new DashboardService(pageRepo, postRepo, contactRepo);
-    const templateService = new TemplateService(pageService, postService, navigationService, pageCacheService);
+    const templateService = new TemplateService(
+        pageService,
+        postService,
+        navigationService,
+        pageCacheService,
+        env.SITE_URL
+    );
 
     const adminRouter = makeAdminRouter(loginRouter(authService), createAdminAuth(authService), [
         logoutRouter(authService),

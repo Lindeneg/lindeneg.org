@@ -18,11 +18,24 @@ export function makeSitePublicRouter(templateService: TemplateService): Router {
     };
 
     // a missing page is a 404, a failing database a 500
-    const sendResult = async (req: Request, res: Response, result: Result<string, AppError>) => {
-        if (result.ok) return res.type("html").send(result.data);
+    const sendResult = async (req: Request, res: Response, result: Result<string, AppError>, type = "html") => {
+        if (result.ok) return res.type(type).send(result.data);
         if (result.ctx === AppError.NOT_FOUND) return sendNotFound(res, req.path);
         await sendServerError(res, req.path);
     };
+
+    router.get("/robots.txt", (_req, res) => {
+        res.type("text").send(templateService.getRobots());
+    });
+
+    router.get("/sitemap.xml", async (req, res) => {
+        await sendResult(req, res, await templateService.getSitemap(), "application/xml");
+    });
+
+    // before /blog/:slug, so it isn't looked up as a post
+    router.get("/blog/feed.xml", async (req, res) => {
+        await sendResult(req, res, await templateService.getFeed(), "application/rss+xml");
+    });
 
     router.get("/blog", async (req, res) => {
         const page = Number(req.query.page) || 1;

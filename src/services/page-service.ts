@@ -46,6 +46,10 @@ class PageService {
         return success(result.data);
     }
 
+    async listPublished(): AsyncResult<PageWithSections[], AppError> {
+        return this.pageRepo.listPublished();
+    }
+
     async getPublishedBySlug(slug: string): AsyncResult<PageWithSections, AppError> {
         const result = await this.pageRepo.getBySlug(slug);
         if (!result.ok) return result;

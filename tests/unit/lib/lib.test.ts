@@ -5,7 +5,7 @@ import {slugify} from "../../../src/lib/slugify.js";
 import {DEFAULT_PAGE_SIZE, paginate, parsePagination, toSkipTake} from "../../../src/lib/pagination.js";
 import {checkbox, fieldErrors, optStr, toBool} from "../../../src/lib/validation.js";
 import {emptySuccess, failure, success} from "../../../src/lib/result.js";
-import {envFiles, isInTestMode, loadAppEnv, parseSuperUser} from "../../../src/lib/env.js";
+import {envFiles, isInTestMode, loadAppEnv, parseSiteUrl, parseSuperUser} from "../../../src/lib/env.js";
 import {fake} from "../helpers.js";
 
 describe("slugify", () => {
@@ -135,6 +135,20 @@ describe("env", () => {
         expect(parseSuperUser("a@example.com,Ada,Lovelace").ok).toBe(false);
         expect(parseSuperUser("a@example.com,Ada,Lovelace,").ok).toBe(false);
     });
+
+    it("takes SITE_URL as an origin without a trailing slash", () => {
+        expect(parseSiteUrl("SITE_URL", "https://lindeneg.org/")).toEqual(success("https://lindeneg.org"));
+        expect(parseSiteUrl("SITE_URL", "http://localhost:3000")).toEqual(success("http://localhost:3000"));
+    });
+
+    it.each([undefined, "", "lindeneg.org", "ftp://lindeneg.org", "https://lindeneg.org/blog", "https://x.org/?a=1"])(
+        "rejects %s as SITE_URL",
+        (value) => {
+            expect(parseSiteUrl("SITE_URL", value)).toEqual(
+                failure("must be an absolute url like https://lindeneg.org")
+            );
+        }
+    );
 
     it("rejects a SUPER_USER password over bcrypt's 72 bytes", () => {
         expect(parseSuperUser(`a@example.com,Ada,Lovelace,${"æ".repeat(37)}`)).toEqual(

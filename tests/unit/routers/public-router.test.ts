@@ -8,7 +8,17 @@ import {fake} from "../helpers.js";
 import {serve, type Served} from "../serve.js";
 
 describe("public router", () => {
-    let templates: Record<"getPage" | "getBlogList" | "getBlogPost" | "getNotFound" | "getServerError", Mock>;
+    let templates: Record<
+        | "getPage"
+        | "getBlogList"
+        | "getBlogPost"
+        | "getNotFound"
+        | "getServerError"
+        | "getRobots"
+        | "getSitemap"
+        | "getFeed",
+        Mock
+    >;
     let server: Served;
 
     const get = (path: string, init: RequestInit = {}) => fetch(server.url + path, {redirect: "manual", ...init});
@@ -20,6 +30,9 @@ describe("public router", () => {
             getBlogPost: vi.fn().mockResolvedValue(success("<p>post</p>")),
             getNotFound: vi.fn().mockResolvedValue("<p>404</p>"),
             getServerError: vi.fn().mockResolvedValue("<p>500</p>"),
+            getRobots: vi.fn().mockReturnValue("User-agent: *\n"),
+            getSitemap: vi.fn().mockResolvedValue(success("<urlset></urlset>")),
+            getFeed: vi.fn().mockResolvedValue(success("<rss></rss>")),
         };
         const app = express();
         app.use(makeSitePublicRouter(fake<TemplateService>(templates)));
@@ -27,6 +40,37 @@ describe("public router", () => {
     });
 
     afterEach(() => server.close());
+
+    describe("robots, sitemap and feed", () => {
+        it.each([
+            ["/robots.txt", /^text\/plain/, "User-agent: *\n"],
+            ["/sitemap.xml", /^application\/xml/, "<urlset></urlset>"],
+            ["/blog/feed.xml", /^application\/rss\+xml/, "<rss></rss>"],
+        ])("serves %s despite its file extension", async (path, type, body) => {
+            const res = await get(path);
+
+            expect(res.status).toBe(200);
+            expect(res.headers.get("content-type")).toMatch(type);
+            expect(await res.text()).toBe(body);
+        });
+
+        it("doesn't look the feed up as a post", async () => {
+            await get("/blog/feed.xml");
+
+            expect(templates.getBlogPost).not.toHaveBeenCalled();
+        });
+
+        it("answers a failing database with the error page", async () => {
+            templates.getSitemap.mockResolvedValue(failure(AppError.DB_ERROR));
+            templates.getFeed.mockResolvedValue(failure(AppError.DB_ERROR));
+
+            for (const path of ["/sitemap.xml", "/blog/feed.xml"]) {
+                const res = await get(path);
+                expect(res.status).toBe(500);
+                expect(await res.text()).toBe("<p>500</p>");
+            }
+        });
+    });
 
     describe("pages", () => {
         it("serves / as the home page", async () => {

@@ -38,6 +38,15 @@ export function parseSuperUser(value: string) {
     return success({email, name: `${firstName} ${lastName}`, password});
 }
 
+// the public origin of the site, e.g. https://lindeneg.org, without a trailing slash
+export function parseSiteUrl(_: string, value: string | undefined) {
+    const invalid = failure("must be an absolute url like https://lindeneg.org");
+    if (!URL.canParse(value ?? "")) return invalid;
+    const url = new URL(value!);
+    if (!/^https?:$/.test(url.protocol) || url.pathname !== "/" || url.search || url.hash) return invalid;
+    return success(url.origin);
+}
+
 // SUPER_USER may be left out; when it's set it has to parse
 function optionalSuperUser(_: string, value: string | undefined) {
     if (value === undefined) return success(undefined);
@@ -65,6 +74,7 @@ export function loadAppEnv() {
                 CLOUDINARY_SECRET: withRequired(refine(toString(), nonEmpty())),
                 PORT: withRequired(toInt()),
                 NODE_ENV: withRequired(toEnum("test", "development", "production")),
+                SITE_URL: withRequired(parseSiteUrl),
 
                 ORIGINS: withDefault(toStringArray(), []),
                 JWT_COOKIE_NAME: withDefault(toString(), "lindeneg-org-auth"),

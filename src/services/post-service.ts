@@ -62,6 +62,13 @@ class PostService {
         return success(paginate(result.data.data, result.data.total, pagination));
     }
 
+    // every published post, newest first, for the sitemap
+    async listAllPublished(): AsyncResult<PostWithRelations[], AppError> {
+        const result = await this.postRepo.list({}, {published: true}, "publishedAt");
+        if (!result.ok) return result;
+        return success(result.data.data);
+    }
+
     async listPublishedTags(): AsyncResult<TagWithCount[], AppError> {
         return this.postRepo.listPublishedTags();
     }

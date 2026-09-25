@@ -27,6 +27,13 @@ class PageRepository {
         );
     }
 
+    listPublished(): AsyncResult<PageWithSections[], DbError> {
+        return this.db.run(
+            "page-repo.listPublished",
+            this.db.p.page.findMany({where: {published: true}, include, orderBy: {createdAt: "asc"}})
+        );
+    }
+
     count(): AsyncResult<number, DbError> {
         return this.db.run("page-repo.count", this.db.p.page.count());
     }

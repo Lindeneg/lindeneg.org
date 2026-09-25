@@ -52,7 +52,8 @@ describe("pages", () => {
 
         const res = await site(`/${page!.slug}`);
         expect(res.status).toBe(200);
-        expect(res.html).toContain(`<title>${name} title</title>`);
+        // pages other than home get the brand after their title
+        expect(res.html).toMatch(new RegExp(`<title>${name} title — [^<]+</title>`));
     });
 
     it("slugifies a custom slug", async () => {

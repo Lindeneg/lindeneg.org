@@ -89,6 +89,32 @@ export function md(content: string): string {
     return sanitizeHtml(marked.parse(content, {async: false}), MD_SANITIZE);
 }
 
+const TEXT_ONLY: sanitizeHtml.IOptions = {allowedTags: [], allowedAttributes: {}};
+
+// sanitize-html escapes the text it keeps; a description is plain text and gets escaped where it's rendered
+function unescapeText(text: string): string {
+    return text
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&amp;/g, "&");
+}
+
+// the first paragraph with text as plain text, cut at a word boundary to at most max characters; posts can start
+// with raw html (links, an embedded video), so it reads the rendered html instead of the markdown source
+export function excerpt(content: string, max = 160): string {
+    for (const [, inner] of md(content).matchAll(/<p(?:\s[^>]*)?>([\s\S]*?)<\/p>/g)) {
+        const text = unescapeText(sanitizeHtml(inner, TEXT_ONLY)).replace(/\s+/g, " ").trim();
+        if (!text) continue;
+        if (text.length <= max) return text;
+        const cut = text.slice(0, max - 1);
+        const lastSpace = cut.lastIndexOf(" ");
+        return `${(lastSpace > 0 ? cut.slice(0, lastSpace) : cut).replace(/[\s,.;:!?-]+$/, "")}…`;
+    }
+    return "";
+}
+
 export function normalizePath(p: string): string {
     if (!p) return "/";
     const lower = p.toLowerCase();

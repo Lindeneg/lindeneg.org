@@ -12,10 +12,11 @@ import type SectionRepository from "../../../src/repositories/section-repository
 import type NavigationRepository from "../../../src/repositories/navigation-repository.js";
 import type NavigationItemRepository from "../../../src/repositories/navigation-item-repository.js";
 import type PostRepository from "../../../src/repositories/post-repository.js";
-import {fake, fakeLog, makeNav, makePage, makePost} from "../helpers.js";
+import {fake, fakeLog, makeNav, makePage, makePost, makeSection} from "../helpers.js";
 
 describe("TemplateService", () => {
     let getBySlug: Mock;
+    let listPages: Mock;
     let getNav: Mock;
     let listPosts: Mock;
     let listTags: Mock;
@@ -25,6 +26,7 @@ describe("TemplateService", () => {
 
     beforeEach(() => {
         getBySlug = vi.fn().mockResolvedValue(success(makePage()));
+        listPages = vi.fn().mockResolvedValue(success([makePage()]));
         getNav = vi.fn().mockResolvedValue(success(makeNav()));
         listPosts = vi.fn().mockResolvedValue(success({data: [makePost()], total: 1}));
         listTags = vi.fn().mockResolvedValue(success([{name: "jazz", count: 1}]));
@@ -32,15 +34,202 @@ describe("TemplateService", () => {
         cache = new PageCacheService(100);
         // the real services on fake repositories, so the published-only rules are covered too
         service = new TemplateService(
-            new PageService(fake<PageRepository>({getBySlug}), fake<SectionRepository>({})),
+            new PageService(fake<PageRepository>({getBySlug, listPublished: listPages}), fake<SectionRepository>({})),
             new PostService(
                 fake<PostRepository>({list: listPosts, getBySlug: getPost, listPublishedTags: listTags}),
                 fake<ImageStore>({}),
                 fakeLog()
             ),
             new NavigationService(fake<NavigationRepository>({get: getNav}), fake<NavigationItemRepository>({})),
-            cache
+            cache,
+            "https://example.com"
         );
+    });
+
+    const html = (result: Awaited<ReturnType<TemplateService["getPage"]>>) => {
+        if (!result.ok) throw new Error("expected success");
+        return result.data;
+    };
+
+    describe("seo", () => {
+        it("gives pages their canonical url, the home page at the root", async () => {
+            expect(html(await service.getPage("about"))).toContain(
+                `<link rel="canonical" href="https://example.com/about" />`
+            );
+            expect(html(await service.getPage("home"))).toContain(
+                `<link rel="canonical" href="https://example.com/" />`
+            );
+        });
+
+        it("uses the home page's title as written and adds the brand to other pages", async () => {
+            getBySlug.mockResolvedValue(success(makePage({slug: "home", title: "Ada — Engineer"})));
+            expect(html(await service.getPage("home"))).toContain("<title>Ada — Engineer</title>");
+
+            getBySlug.mockResolvedValue(success(makePage({slug: "about", title: "About"})));
+            expect(html(await service.getPage("about"))).toContain("<title>About — Brand</title>");
+        });
+
+        it("titles, describes and canonicalizes the blog list per tag and page", async () => {
+            listPosts.mockResolvedValue(success({data: [makePost()], total: 30}));
+
+            const first = html(await service.getBlogList(1, undefined));
+            expect(first).toContain("<title>Blog — Brand</title>");
+            expect(first).toContain(`<meta name="description" content="Posts by Brand on jazz." />`);
+            expect(first).toContain(`<link rel="canonical" href="https://example.com/blog" />`);
+
+            const second = html(await service.getBlogList(2, undefined));
+            expect(second).toContain("<title>Blog, page 2 — Brand</title>");
+            expect(second).toContain(`<link rel="canonical" href="https://example.com/blog?page=2" />`);
+
+            const tagged = html(await service.getBlogList(1, "jazz"));
+            expect(tagged).toContain("<title>Posts tagged #jazz — Brand</title>");
+            expect(tagged).toContain(`<meta name="description" content="Posts tagged #jazz by Brand." />`);
+            expect(tagged).toContain(`<link rel="canonical" href="https://example.com/blog?tag=jazz" />`);
+
+            const taggedSecond = html(await service.getBlogList(2, "jazz"));
+            expect(taggedSecond).toContain("<title>Posts tagged #jazz, page 2 — Brand</title>");
+            expect(taggedSecond).toContain(
+                `<link rel="canonical" href="https://example.com/blog?tag=jazz&amp;page=2" />`
+            );
+        });
+
+        it("names the five most used tags in the blog description, most used first", async () => {
+            listTags.mockResolvedValue(
+                success([
+                    {name: "a", count: 1},
+                    {name: "b", count: 5},
+                    {name: "c", count: 3},
+                    {name: "d", count: 3},
+                    {name: "e", count: 2},
+                    {name: "f", count: 4},
+                ])
+            );
+
+            expect(html(await service.getBlogList(1, undefined))).toContain(
+                `content="Posts by Brand on b, f, c, d, e."`
+            );
+        });
+
+        it("describes the blog without tags by the brand alone", async () => {
+            listTags.mockResolvedValue(success([]));
+
+            expect(html(await service.getBlogList(1, undefined))).toContain(`content="Posts by Brand."`);
+        });
+
+        it("gives a post its canonical url by its slug", async () => {
+            expect(html(await service.getBlogPost("hello-world"))).toContain(
+                `<link rel="canonical" href="https://example.com/blog/hello-world" />`
+            );
+        });
+
+        it("points robots.txt at the sitemap and keeps crawlers out of the admin and api", () => {
+            expect(service.getRobots()).toBe(
+                "User-agent: *\nDisallow: /admin\nDisallow: /api\nSitemap: https://example.com/sitemap.xml\n"
+            );
+        });
+
+        it("lists published pages, the blog and published posts in the sitemap", async () => {
+            listPages.mockResolvedValue(
+                success([
+                    makePage({
+                        slug: "home",
+                        updatedAt: new Date("2024-01-01T00:00:00Z"),
+                        sections: [
+                            makeSection({updatedAt: new Date("2024-03-01T00:00:00Z")}),
+                            makeSection({published: false, updatedAt: new Date("2024-09-01T00:00:00Z")}),
+                        ],
+                    }),
+                ])
+            );
+            listPosts.mockResolvedValue(
+                success({
+                    data: [
+                        makePost({slug: "new", updatedAt: new Date("2024-05-01T00:00:00Z")}),
+                        makePost({slug: "old", updatedAt: new Date("2024-02-01T00:00:00Z")}),
+                    ],
+                    total: 2,
+                })
+            );
+
+            const xml = html(await service.getSitemap());
+
+            expect(listPages).toHaveBeenCalledOnce();
+            expect(listPosts).toHaveBeenCalledWith({}, {published: true}, "publishedAt");
+            // a page's lastmod is its newest published section
+            expect(
+                [...xml.matchAll(/<url><loc>(.*?)<\/loc><lastmod>(.*?)<\/lastmod><\/url>/g)].map((m) => [m[1], m[2]])
+            ).toEqual([
+                ["https://example.com/", "2024-03-01T00:00:00.000Z"],
+                ["https://example.com/blog", "2024-05-01T00:00:00.000Z"],
+                ["https://example.com/blog/new", "2024-05-01T00:00:00.000Z"],
+                ["https://example.com/blog/old", "2024-02-01T00:00:00.000Z"],
+            ]);
+        });
+
+        it("leaves the blog out of the sitemap without posts", async () => {
+            listPosts.mockResolvedValue(success({data: [], total: 0}));
+
+            expect(html(await service.getSitemap())).not.toContain("/blog<");
+        });
+
+        it("builds the feed from the latest 20 published posts with the blog's description", async () => {
+            listPosts.mockResolvedValue(
+                success({
+                    data: [
+                        makePost({
+                            slug: "a",
+                            title: "A & B",
+                            content: "First paragraph.\n\nSecond.",
+                            publishedAt: new Date("2024-05-01T10:00:00Z"),
+                            tags: [
+                                {id: "1", name: "jazz"},
+                                {id: "2", name: "music"},
+                            ],
+                        }),
+                    ],
+                    total: 1,
+                })
+            );
+
+            const xml = html(await service.getFeed());
+
+            expect(listPosts).toHaveBeenCalledWith(
+                {skip: 0, take: 20},
+                {published: true, tag: undefined},
+                "publishedAt"
+            );
+            expect(xml).toContain("<title>Blog — Brand</title>");
+            expect(xml).toContain("<link>https://example.com/blog</link>");
+            expect(xml).toContain("<description>Posts by Brand on jazz.</description>");
+            expect(xml).toContain(
+                `<atom:link href="https://example.com/blog/feed.xml" rel="self" type="application/rss+xml" />`
+            );
+            expect(xml).toContain("<title>A &amp; B</title>");
+            expect(xml).toContain(`<guid isPermaLink="true">https://example.com/blog/a</guid>`);
+            expect(xml).toContain("<pubDate>Wed, 01 May 2024 10:00:00 GMT</pubDate>");
+            expect(xml).toContain("<description>First paragraph.</description>");
+            expect(xml).toContain("<category>jazz</category><category>music</category>");
+        });
+
+        it("caches the sitemap and the feed until the cache is cleared", async () => {
+            await service.getSitemap();
+            await service.getSitemap();
+            await service.getFeed();
+            await service.getFeed();
+            expect(listPages).toHaveBeenCalledOnce();
+            expect(listPosts).toHaveBeenCalledTimes(2);
+
+            service.clearCache();
+            await service.getSitemap();
+            expect(listPages).toHaveBeenCalledTimes(2);
+        });
+
+        it("fails the sitemap and the feed with a db error when the database fails", async () => {
+            listPosts.mockResolvedValue(failure(AppError.DB_ERROR));
+
+            expect(await service.getSitemap()).toEqual(failure(AppError.DB_ERROR));
+            expect(await service.getFeed()).toEqual(failure(AppError.DB_ERROR));
+        });
     });
 
     describe("getBlogList with tags", () => {
@@ -121,7 +310,7 @@ describe("TemplateService", () => {
             const result = await service.getPage("about");
 
             if (!result.ok) throw new Error("expected success");
-            expect(result.data).toContain("<title>About</title>");
+            expect(result.data).toContain("<title>About — Brand</title>");
             expect(result.data).toContain("<h1>About</h1>");
         });
 

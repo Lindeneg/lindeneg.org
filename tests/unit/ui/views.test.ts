@@ -97,6 +97,33 @@ describe("layouts", () => {
         expect(SiteLayout({title: "<x>", nav, currentPath: "/", children: ""})).toContain("<title>&lt;x&gt;</title>");
     });
 
+    it("site pages link the feed and name the site for link previews, and have no canonical without one", () => {
+        const html = SiteLayout({title: "T", nav: makeNav({brandName: "B&B"}), currentPath: "/", children: ""});
+
+        expect(html).toContain(
+            `<link rel="alternate" type="application/rss+xml" title="Blog — B&amp;B" href="/blog/feed.xml" />`
+        );
+        expect(html).toContain(`<meta property="og:site_name" content="B&amp;B" />`);
+        expect(html).toContain(`<meta property="og:title" content="T" />`);
+        expect(html).not.toContain(`rel="canonical"`);
+        expect(html).not.toContain("og:url");
+        expect(html).not.toContain("noindex");
+    });
+
+    it("escapes a < in the structured data so it can't close the script tag", () => {
+        const html = SiteLayout({title: "T", jsonLd: {headline: "</script><b>"}, nav, currentPath: "/", children: ""});
+
+        expect(html).toContain(`<script type="application/ld+json">{"headline":"\\u003c/script>\\u003cb>"}</script>`);
+    });
+
+    it("keeps admin, login and editor pages out of search engines", () => {
+        const noindex = `<meta name="robots" content="noindex" />`;
+
+        expect(AdminLayout({title: "T", user, currentPath: "/admin", children: ""})).toContain(noindex);
+        expect(EditorLayout({title: "T", headerBar: "", children: ""})).toContain(noindex);
+        expect(LoginView({})).toContain(noindex);
+    });
+
     it("the editor loads marked and highlight.js pinned and integrity-checked", () => {
         const html = EditorLayout({title: "T", headerBar: "", children: ""});
 
@@ -130,7 +157,7 @@ describe("PageView", () => {
             makeSection({id: "s1", content: "# First", position: 1}),
         ],
     });
-    const html = PageView({page, nav, currentPath: "/about"});
+    const html = PageView({page, nav, currentPath: "/about", canonical: "https://example.com/about"});
 
     it("renders the published sections in position order", () => {
         expect(html.indexOf("<h1>First</h1>")).toBeGreaterThan(-1);
@@ -141,9 +168,28 @@ describe("PageView", () => {
         expect(html).not.toContain("Draft");
     });
 
-    it("uses the page title and description", () => {
-        expect(html).toContain("<title>About me</title>");
+    it("uses the page title with the brand, and the description", () => {
+        expect(html).toContain("<title>About me — Brand</title>");
         expect(html).toContain(`<meta name="description" content="Who I am" />`);
+    });
+
+    it("uses the home page's title as written", () => {
+        const home = PageView({
+            page: {...page, slug: "home", title: "Ada — Engineer"},
+            nav,
+            currentPath: "/",
+            canonical: "https://example.com/",
+        });
+
+        expect(home).toContain("<title>Ada — Engineer</title>");
+    });
+
+    it("is a website for link previews, with the canonical url", () => {
+        expect(html).toContain(`<link rel="canonical" href="https://example.com/about" />`);
+        expect(html).toContain(`<meta property="og:type" content="website" />`);
+        expect(html).toContain(`<meta property="og:url" content="https://example.com/about" />`);
+        expect(html).toContain(`<meta property="og:description" content="Who I am" />`);
+        expect(html).not.toContain("application/ld+json");
     });
 });
 
@@ -158,7 +204,8 @@ describe("BlogPostView", () => {
             {id: "t2", name: "music"},
         ],
     });
-    const html = BlogPostView({post, nav: makeNav({brandName: "Brand"}), currentPath: "/blog/hello-world"});
+    const canonical = "https://example.com/blog/hello-world";
+    const html = BlogPostView({post, nav: makeNav({brandName: "Brand"}), currentPath: "/blog/hello-world", canonical});
 
     it("shows the escaped title, also in the document title with the brand", () => {
         expect(html).toContain(`<h1 class="blog-post-title">Hello &lt;World&gt;</h1>`);
@@ -172,9 +219,57 @@ describe("BlogPostView", () => {
     });
 
     it("falls back to the creation date for a post without a publish date", () => {
-        const draft = BlogPostView({post: {...post, publishedAt: null}, nav, currentPath: "/"});
+        const draft = BlogPostView({post: {...post, publishedAt: null}, nav, currentPath: "/", canonical});
 
         expect(draft).toContain(`datetime="2024-01-01T10:00:00.000Z"`);
+        expect(draft).toContain(`<meta property="article:published_time" content="2024-01-01T10:00:00.000Z" />`);
+    });
+
+    it("describes the post by its first paragraph", () => {
+        expect(html).toContain(`<meta name="description" content="some words here" />`);
+        expect(html).toContain(`<meta property="og:description" content="some words here" />`);
+    });
+
+    it("is an article for link previews, with its dates and tags", () => {
+        expect(html).toContain(`<link rel="canonical" href="${canonical}" />`);
+        expect(html).toContain(`<meta property="og:type" content="article" />`);
+        expect(html).toContain(`<meta property="og:title" content="Hello &lt;World&gt; — Brand" />`);
+        expect(html).toContain(`<meta property="article:published_time" content="2024-03-01T10:00:00.000Z" />`);
+        expect(html).toContain(`<meta property="article:modified_time" content="2024-01-05T12:00:00.000Z" />`);
+        expect(html).toContain(`<meta property="article:tag" content="jazz" />`);
+        expect(html).toContain(`<meta property="article:tag" content="music" />`);
+    });
+
+    it("uses the thumbnail as the preview image, with a large card", () => {
+        expect(html).toContain(`<meta name="twitter:card" content="summary" />`);
+        expect(html).not.toContain("og:image");
+
+        const withThumb = BlogPostView({
+            post: {...post, thumbnail: "https://img/t.png"},
+            nav,
+            currentPath: "/",
+            canonical,
+        });
+        expect(withThumb).toContain(`<meta property="og:image" content="https://img/t.png" />`);
+        expect(withThumb).toContain(`<meta name="twitter:card" content="summary_large_image" />`);
+    });
+
+    it("describes the post as a BlogPosting for search engines", () => {
+        const json = html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)![1];
+
+        expect(JSON.parse(json)).toEqual({
+            "@context": "https://schema.org",
+            "@type": "BlogPosting",
+            headline: "Hello <World>",
+            description: "some words here",
+            datePublished: "2024-03-01T10:00:00.000Z",
+            dateModified: "2024-01-05T12:00:00.000Z",
+            author: {"@type": "Person", name: "Ada Lovelace"},
+            mainEntityOfPage: canonical,
+            keywords: "jazz, music",
+        });
+        // a < in the json could otherwise close the script tag
+        expect(json).not.toContain("<");
     });
 
     it("links every tag and renders sanitized markdown", () => {
@@ -214,7 +309,14 @@ describe("PostCard", () => {
 
 describe("BlogListView", () => {
     it("shows an empty state without posts", () => {
-        const html = BlogListView({posts: paged([]), tags: [], activeTag: undefined, nav, currentPath: "/blog"});
+        const html = BlogListView({
+            posts: paged([]),
+            tags: [],
+            activeTag: undefined,
+            nav,
+            currentPath: "/blog",
+            canonical: "https://example.com/blog",
+        });
 
         expect(html).toContain("No posts yet");
         expect(html).not.toContain("pager");
@@ -227,9 +329,10 @@ describe("BlogListView", () => {
             activeTag: "jazz",
             nav: makeNav({brandName: "Brand"}),
             currentPath: "/blog",
+            canonical: "https://example.com/blog?tag=jazz",
         });
 
-        expect(html).toContain(`<title>Blog #jazz — Brand</title>`);
+        expect(html).toContain(`<title>Posts tagged #jazz — Brand</title>`);
         expect(html).toContain(`<a href="/blog" class="blog-title-clear">clear</a>`);
         expect(html).toContain(`href="/blog?tag=jazz&amp;page=2"`);
     });
@@ -241,6 +344,7 @@ describe("BlogListView", () => {
             activeTag: undefined,
             nav,
             currentPath: "/blog",
+            canonical: "https://example.com/blog",
         });
 
         expect(html.match(/class="post-card"/g)).toHaveLength(2);

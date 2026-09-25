@@ -14,9 +14,19 @@ export type BlogListViewProps = {
     activeTag: MaybeUndefined<string>;
     nav: NavigationWithItems;
     currentPath: string;
+    canonical: string;
 };
 
-export function BlogListView({posts, tags, activeTag, nav, currentPath}: BlogListViewProps): string {
+// the blog's description names its most used tags; the feed uses it too
+export function blogDescription(brand: string, tags: TagWithCount[]): string {
+    const top = [...tags]
+        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+        .slice(0, 5)
+        .map((tag) => tag.name);
+    return top.length > 0 ? `Posts by ${brand} on ${top.join(", ")}.` : `Posts by ${brand}.`;
+}
+
+export function BlogListView({posts, tags, activeTag, nav, currentPath, canonical}: BlogListViewProps): string {
     const params: Record<string, string> = activeTag ? {tag: activeTag} : {};
     const body =
         posts.data.length === 0
@@ -28,8 +38,14 @@ export function BlogListView({posts, tags, activeTag, nav, currentPath}: BlogLis
     const heading = activeTag
         ? `Blog <span class="blog-title-tag">#${esc(activeTag)}</span> <a href="/blog" class="blog-title-clear">clear</a>`
         : "Blog";
+    const name = activeTag ? `Posts tagged #${activeTag}` : "Blog";
+    const page = posts.page > 1 ? `, page ${posts.page}` : "";
     return SiteLayout({
-        title: activeTag ? `Blog #${activeTag} — ${nav.brandName}` : `Blog — ${nav.brandName}`,
+        title: `${name}${page} — ${nav.brandName}`,
+        description: activeTag
+            ? `Posts tagged #${activeTag} by ${nav.brandName}.`
+            : blogDescription(nav.brandName, tags),
+        canonical,
         nav,
         currentPath,
         children: `

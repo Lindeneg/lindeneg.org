@@ -1,5 +1,42 @@
 import {describe, expect, it} from "vitest";
-import {esc, formatDate, initials, isActive, localDate, md, normalizePath, readingTime} from "../../../src/ui/lib.js";
+import {
+    esc,
+    excerpt,
+    formatDate,
+    initials,
+    isActive,
+    localDate,
+    md,
+    normalizePath,
+    readingTime,
+} from "../../../src/ui/lib.js";
+
+describe("excerpt", () => {
+    it("is the first paragraph with text, skipping headings, embeds and images", () => {
+        const content = `# Title\n\n<div><iframe src="https://www.youtube.com/embed/x"></iframe></div>\n\n![alt](https://img/x.png)\n\nThe **first** [words](https://example.com).\n\nSecond.`;
+
+        expect(excerpt(content)).toBe("The first words.");
+    });
+
+    it("reads text inside raw html links", () => {
+        expect(excerpt(`<a href="https://example.com" target="_blank">Chick Corea</a> is great.`)).toBe(
+            "Chick Corea is great."
+        );
+    });
+
+    it("gives plain text with entities decoded and whitespace collapsed", () => {
+        expect(excerpt(`Tom &amp; "Jerry" <b>it's</b>\na < b`)).toBe(`Tom & "Jerry" it's a < b`);
+    });
+
+    it("cuts at the last word before the limit, without trailing punctuation", () => {
+        expect(excerpt("one two, three four", 12)).toBe("one two…");
+        expect(excerpt("one two three", 13)).toBe("one two three");
+    });
+
+    it("is empty without paragraph text", () => {
+        expect(excerpt("# Only a heading\n\n![alt](https://img/x.png)")).toBe("");
+    });
+});
 
 describe("esc", () => {
     it("escapes html special characters", () => {
