@@ -628,8 +628,53 @@
 .settings-photo {
     display: flex;
     gap: 1.5rem;
-    align-items: flex-start;
+    align-items: center;
     flex-wrap: wrap;
+}
+
+.settings-photo-body {
+    flex: 1;
+    min-width: 16rem;
+    max-width: 30rem;
+}
+
+.settings-photo-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.settings-photo-form .form-actions {
+    margin-top: 0;
+    flex-wrap: wrap;
+}
+
+.settings-photo-form input[type="file"] {
+    padding: 0.375rem;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    cursor: pointer;
+}
+
+.settings-photo-form input[type="file"]::file-selector-button {
+    font: inherit;
+    font-weight: 500;
+    color: var(--foreground);
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) * 0.5);
+    padding: 0.3rem 0.75rem;
+    margin-right: 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.settings-photo-form input[type="file"]::file-selector-button:hover {
+    background: var(--accent);
+}
+
+.settings-hint {
+    margin-bottom: 1rem;
 }
 
 .auth-card {

@@ -1,5 +1,6 @@
 import {beforeAll, describe, expect, it} from "vitest";
-import {env, get, imageBlob, login, postForm, postMultipart, uid, type TestResponse} from "./helpers.js";
+import {MAX_UPLOAD_BYTES} from "../../src/lib/http.js";
+import {db, env, get, imageBlob, login, postForm, postMultipart, uid, type TestResponse} from "./helpers.js";
 
 const FAKE_IMAGE = /https:\/\/images\.test\/fake-\d+/;
 
@@ -36,6 +37,61 @@ describe("settings", () => {
         const removed = await postForm("/admin/settings/photo/delete", {}, cookie);
         expect(removed.status).toBe(302);
         expect((await get("/admin/settings", cookie)).html).not.toMatch(FAKE_IMAGE);
+    });
+
+    it("replaces an existing photo directly and offers replace and remove", async () => {
+        const upload = async () => {
+            const form = new FormData();
+            form.set("photo", imageBlob(), "me.png");
+            expect((await postMultipart("/admin/settings/photo", form, cookie)).status).toBe(302);
+            return (await db.p.user.findFirstOrThrow({where: {email: env.SUPER_USER!.email}})).photo;
+        };
+
+        const first = await upload();
+        const second = await upload();
+        expect(second).not.toBe(first);
+
+        const html = (await get("/admin/settings", cookie)).html;
+        expect(html).toContain("Replace photo");
+        expect(html).toContain(`form="photo-delete"`);
+        expect(html).toContain(second!);
+
+        await postForm("/admin/settings/photo/delete", {}, cookie);
+        const after = (await get("/admin/settings", cookie)).html;
+        expect(after).toContain("Upload photo");
+        expect(after).not.toContain("Remove photo");
+    });
+
+    it("rejects an oversized photo with a message on the settings page", async () => {
+        const form = new FormData();
+        form.set("photo", new Blob([Buffer.alloc(MAX_UPLOAD_BYTES + 1)], {type: "image/png"}), "big.png");
+
+        const res = await postMultipart("/admin/settings/photo", form, cookie);
+
+        expect(res.status).toBe(400);
+        expect(res.html).toContain("Image must be 10MB or smaller");
+    });
+
+    it("shows a new author photo on their already cached posts", async () => {
+        const post = await db.p.post.create({
+            data: {
+                title: `Cached ${uid()}`,
+                slug: `cached-${uid()}`,
+                content: "c",
+                published: true,
+                publishedAt: new Date(),
+                author: {connect: {email: env.SUPER_USER!.email}},
+            },
+        });
+        await get(`/blog/${post.slug}`);
+
+        const form = new FormData();
+        form.set("photo", imageBlob(), "me.png");
+        await postMultipart("/admin/settings/photo", form, cookie);
+        const photo = (await db.p.user.findFirstOrThrow({where: {email: env.SUPER_USER!.email}})).photo!;
+
+        expect((await get(`/blog/${post.slug}`)).html).toContain(photo);
+        await postForm("/admin/settings/photo/delete", {}, cookie);
     });
 
     it("clears the template cache", async () => {

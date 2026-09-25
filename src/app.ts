@@ -32,6 +32,7 @@ import {blogRouter} from "./routers/admin/blog.js";
 import {navigationRouter} from "./routers/admin/navigation.js";
 import {messagesRouter} from "./routers/admin/messages.js";
 import {settingsRouter} from "./routers/admin/settings.js";
+import {notFoundRouter} from "./routers/admin/not-found.js";
 
 export async function startApp(env: AppEnv, log: LoggerService, imageStore: ImageStore): Promise<void> {
     const dataService = new DataService(env.DATABASE_URL, env.NODE_ENV, log);
@@ -73,6 +74,7 @@ export async function startApp(env: AppEnv, log: LoggerService, imageStore: Imag
         navigationRouter(navigationService),
         messagesRouter(messageService),
         settingsRouter(userService, authService, templateService),
+        notFoundRouter(),
     ]);
 
     const publicRouter = makeSitePublicRouter(templateService);

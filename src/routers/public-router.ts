@@ -1,17 +1,8 @@
 import {Router, type Request, type Response} from "express";
 import {AppError} from "../lib/errors.js";
 import type {Result} from "../lib/result.js";
-import {slugify} from "../lib/slugify.js";
 import {pagePath} from "../services/template-service.js";
 import type TemplateService from "../services/template-service.js";
-
-function decodePath(path: string): string {
-    try {
-        return decodeURIComponent(path);
-    } catch {
-        return path;
-    }
-}
 
 export function makeSitePublicRouter(templateService: TemplateService): Router {
     const router = Router();
@@ -52,8 +43,8 @@ export function makeSitePublicRouter(templateService: TemplateService): Router {
             return;
         }
 
-        // every page has exactly one url, so variants (case, trailing slash, /home) redirect to it
-        const slug = slugify(decodePath(req.path)) || "home";
+        // the path is the slug; only case, a trailing slash and /home redirect to the page's one url
+        const slug = req.path.slice(1).replace(/\/$/, "").toLowerCase() || "home";
         const canonical = pagePath(slug);
         if (req.path !== canonical) {
             res.redirect(301, canonical + req.url.slice(req.path.length));

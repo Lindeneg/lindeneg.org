@@ -5,7 +5,7 @@ import {slugify} from "../../../src/lib/slugify.js";
 import {DEFAULT_PAGE_SIZE, paginate, parsePagination, toSkipTake} from "../../../src/lib/pagination.js";
 import {checkbox, fieldErrors, optStr, toBool} from "../../../src/lib/validation.js";
 import {emptySuccess, failure, success} from "../../../src/lib/result.js";
-import {envFiles, isInTestMode, parseSuperUser} from "../../../src/lib/env.js";
+import {envFiles, isInTestMode, loadAppEnv, parseSuperUser} from "../../../src/lib/env.js";
 import PageCache, {CacheTag} from "../../../src/lib/page-cache.js";
 import {fake} from "../helpers.js";
 
@@ -202,5 +202,63 @@ describe("env", () => {
     it("rejects an incomplete SUPER_USER", () => {
         expect(parseSuperUser("a@example.com,Ada,Lovelace").ok).toBe(false);
         expect(parseSuperUser("a@example.com,Ada,Lovelace,").ok).toBe(false);
+    });
+
+    describe("loadAppEnv", () => {
+        // .env.test is the base; process.env wins over it, which is how a server's environment configures the app
+        it("lets process.env override the env files", () => {
+            vi.stubEnv("PORT", "4321");
+            vi.stubEnv("ORIGINS", "https://a.example,https://b.example");
+
+            const env = loadAppEnv();
+
+            expect(env.PORT).toBe(4321);
+            expect(env.ORIGINS).toEqual(["https://a.example", "https://b.example"]);
+        });
+
+        it("rejects a JWT_SECRET shorter than 32 characters", () => {
+            vi.stubEnv("JWT_SECRET", "x".repeat(31));
+
+            expect(() => loadAppEnv()).toThrow(/JWT_SECRET/);
+        });
+
+        it.each(["3", "13"])("rejects BCRYPT_ROUNDS=%s outside 4..12", (rounds) => {
+            vi.stubEnv("BCRYPT_ROUNDS", rounds);
+
+            expect(() => loadAppEnv()).toThrow(/BCRYPT_ROUNDS/);
+        });
+
+        it("rejects an unknown NODE_ENV", () => {
+            vi.stubEnv("NODE_ENV", "staging");
+
+            expect(() => loadAppEnv()).toThrow(/NODE_ENV/);
+        });
+
+        it("rejects a malformed SUPER_USER", () => {
+            vi.stubEnv("SUPER_USER", "a@example.com,Ada");
+
+            expect(() => loadAppEnv()).toThrow(/must be email,firstname,lastname,password/);
+        });
+
+        it.each([
+            ["1", 1],
+            ["loopback", "loopback"],
+            ["loopback, uniquelocal", "loopback, uniquelocal"],
+            ["", undefined],
+        ])("reads TRUST_PROXY=%j as %j", (value, expected) => {
+            vi.stubEnv("TRUST_PROXY", value);
+
+            expect(loadAppEnv().TRUST_PROXY).toEqual(expected);
+        });
+
+        it("defaults the optional settings", () => {
+            vi.stubEnv("BCRYPT_ROUNDS", undefined);
+            vi.stubEnv("JWT_COOKIE_NAME", undefined);
+
+            const env = loadAppEnv();
+
+            expect(env.JWT_COOKIE_NAME).toBe("lindeneg-org-auth");
+            expect(env.LOG_LEVEL).toBeUndefined();
+        });
     });
 });

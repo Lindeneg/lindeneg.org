@@ -100,6 +100,88 @@ describe("blog", () => {
         expect(res.html).toContain("Image must be 10MB or smaller");
     });
 
+    it("lists published posts by when they were published, not when they were created", async () => {
+        const drafted = `Drafted ${uid()}`;
+        const direct = `Direct ${uid()}`;
+        const {id: draftedId} = await createPost(drafted);
+        await createPost(direct, {published: true});
+        await postMultipart(`/admin/blog/${draftedId}/edit`, postFields(drafted, {published: true}), cookie);
+
+        const html = (await get("/blog")).html;
+        expect(html.indexOf(drafted)).toBeGreaterThan(-1);
+        expect(html.indexOf(drafted)).toBeLessThan(html.indexOf(direct));
+    });
+
+    it("keeps the first publish date when a post is unpublished and published again", async () => {
+        const title = `Post ${uid()}`;
+        const {id} = await createPost(title, {published: true});
+        const first = (await db.p.post.findUniqueOrThrow({where: {id}})).publishedAt;
+
+        await postMultipart(`/admin/blog/${id}/edit`, postFields(title), cookie);
+        await postMultipart(`/admin/blog/${id}/edit`, postFields(title, {published: true}), cookie);
+
+        expect((await db.p.post.findUniqueOrThrow({where: {id}})).publishedAt).toEqual(first);
+    });
+
+    it("renders the post page with author, publish date, reading time and tags", async () => {
+        const title = `Post ${uid()}`;
+        const tag = `tag${uid()}`;
+        const {id, slug} = await createPost(title, {published: true, tags: tag});
+        const post = await db.p.post.findUniqueOrThrow({where: {id}, include: {author: true}});
+
+        const html = (await get(`/blog/${slug}`)).html;
+        expect(html).toContain(`<h1 class="blog-post-title">${title}</h1>`);
+        expect(html).toContain(`<p class="blog-post-author">${post.author.name}</p>`);
+        expect(html).toContain(`<time datetime="${post.publishedAt!.toISOString()}" data-local-date="long">`);
+        expect(html).toContain("1 min read");
+        expect(html).toContain(`href="/blog?tag=${tag}"`);
+    });
+
+    it("shows the thumbnail on the post card", async () => {
+        const title = `Post ${uid()}`;
+        await createPost(title, {published: true, thumbnail: true});
+
+        const card = (await get("/blog")).html.match(
+            new RegExp(`<a href="/blog/[^"]+" class="post-card">(?:(?!</a>).)*${title}`, "s")
+        );
+        expect(card?.[0]).toMatch(/<img src="https:\/\/images\.test\/fake-\d+"/);
+    });
+
+    it("removes tags no post uses anymore", async () => {
+        const [old, kept] = [`old${uid()}`, `kept${uid()}`];
+        const title = `Tagged ${uid()}`;
+        const {id} = await createPost(title, {tags: `${old}, ${kept}`});
+
+        await postMultipart(`/admin/blog/${id}/edit`, postFields(title, {tags: kept}), cookie);
+        expect(await db.p.tag.findUnique({where: {name: old}})).toBeNull();
+        expect(await db.p.tag.findUnique({where: {name: kept}})).not.toBeNull();
+
+        await postForm(`/admin/blog/${id}/delete`, {}, cookie);
+        expect(await db.p.tag.findUnique({where: {name: kept}})).toBeNull();
+    });
+
+    it("keeps a tag another post still uses", async () => {
+        const shared = `shared${uid()}`;
+        const {id} = await createPost(`A ${uid()}`, {tags: shared});
+        await createPost(`B ${uid()}`, {tags: shared});
+
+        await postForm(`/admin/blog/${id}/delete`, {}, cookie);
+
+        expect(await db.p.tag.findUnique({where: {name: shared}})).not.toBeNull();
+    });
+
+    it("keeps what was typed when the post is invalid", async () => {
+        const form = postFields("");
+        form.set("content", "Typed body");
+        form.set("tags", "typed-tag");
+
+        const res = await postMultipart("/admin/blog/new", form, cookie);
+
+        expect(res.status).toBe(400);
+        expect(res.html).toContain(">Typed body</textarea>");
+        expect(res.html).toContain(`value="typed-tag"`);
+    });
+
     it("dates a post when it is first published", async () => {
         const title = `Post ${uid()}`;
         const {id} = await createPost(title);

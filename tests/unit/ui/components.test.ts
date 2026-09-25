@@ -3,6 +3,31 @@ import {Pagination} from "../../../src/ui/components/pagination.js";
 import {Avatar} from "../../../src/ui/components/avatar.js";
 import {Field, TopError} from "../../../src/ui/components/form.js";
 import {TagBar, TagLinks, TopicLabel} from "../../../src/ui/components/tags.js";
+import {Nav} from "../../../src/ui/components/nav.js";
+import {makeNav, makeNavItem} from "../helpers.js";
+
+describe("Nav", () => {
+    const link = (html: string, name: string) => html.match(new RegExp(`<a [^>]*>${name}.*?</a>`))?.[0] ?? "";
+
+    it("opens a link in a new tab only when the item says so, external or not", () => {
+        const html = Nav(
+            makeNav({
+                items: [
+                    makeNavItem({id: "a", name: "Same", href: "https://freelance.example", newTab: false}),
+                    makeNavItem({id: "b", name: "New", href: "https://github.example", newTab: true}),
+                    makeNavItem({id: "c", name: "Local", href: "/blog", newTab: true}),
+                ],
+            }),
+            "/"
+        );
+
+        expect(link(html, "Same")).not.toContain(`target="_blank"`);
+        expect(link(html, "Same")).not.toContain("icon-ext");
+        expect(link(html, "New")).toContain(`target="_blank" rel="noopener noreferrer"`);
+        expect(link(html, "New")).toContain("icon-ext");
+        expect(link(html, "Local")).toContain(`target="_blank"`);
+    });
+});
 
 describe("Pagination", () => {
     it("renders nothing for a single page", () => {

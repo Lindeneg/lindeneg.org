@@ -86,6 +86,55 @@ describe("pages", () => {
         expect(home.location).toBe("/");
     });
 
+    it("renders published sections in position order with the page's meta description", async () => {
+        const id = await createPage(`Page ${uid()}`, {description: "Meta for search"});
+        const slug = (await db.p.page.findUnique({where: {id}}))!.slug;
+        const [first, second, draft] = [`first-${uid()}`, `second-${uid()}`, `draft-${uid()}`];
+        await postForm(
+            `/admin/pages/${id}/sections/new`,
+            {content: `# ${second}`, position: "2", published: "1"},
+            cookie
+        );
+        await postForm(`/admin/pages/${id}/sections/new`, {content: `# ${draft}`, position: "0"}, cookie);
+        await postForm(
+            `/admin/pages/${id}/sections/new`,
+            {content: `# ${first}`, position: "1", published: "1"},
+            cookie
+        );
+
+        const html = (await get(`/${slug}`)).html;
+        expect(html.indexOf(first)).toBeGreaterThan(-1);
+        expect(html.indexOf(first)).toBeLessThan(html.indexOf(second));
+        expect(html).not.toContain(draft);
+        expect(html).toContain(`<meta name="description" content="Meta for search" />`);
+    });
+
+    it("keeps what was typed when the page is invalid", async () => {
+        const res = await postForm("/admin/pages/new", pageFields("Typed name", {title: ""}), cookie);
+
+        expect(res.status).toBe(400);
+        expect(res.html).toContain(`value="Typed name"`);
+    });
+
+    it("serves the 404 page for paths with more than one segment, instead of redirecting", async () => {
+        const id = await createPage(`Page ${uid()}`);
+        const slug = (await db.p.page.findUnique({where: {id}}))!.slug;
+        const [head, ...rest] = slug.split("-");
+
+        const res = await get(`/${head}/${rest.join("-")}`);
+
+        expect(res.status).toBe(404);
+        expect(res.html).toContain("This page doesn't exist.");
+    });
+
+    it("keeps a signed-in admin in the admin on a mistyped admin url", async () => {
+        const res = await get("/admin/does-not-exist", cookie);
+
+        expect(res.status).toBe(404);
+        expect(res.html).toContain("Page not found");
+        expect(res.html).toContain("admin-sidebar");
+    });
+
     it("answers missing static files with a plain 404", async () => {
         const res = await get(`/missing-${uid()}.js`);
 

@@ -3,7 +3,6 @@ import type {CacheStats} from "../../../lib/page-cache.js";
 import {MAX_UPLOAD_BYTES} from "../../../lib/http.js";
 import {AdminLayout} from "../../components/layout.js";
 import {Avatar} from "../../components/avatar.js";
-import {ConfirmForm} from "../../components/confirm-form.js";
 import {Field, TopError} from "../../components/form.js";
 import {PageHeader} from "../../components/page-header.js";
 
@@ -31,13 +30,12 @@ export function SettingsView({
     passwordTopError,
     passwordChanged,
 }: SettingsViewProps): string {
-    const removePhoto = user.photo
-        ? ConfirmForm({
-              action: "/admin/settings/photo/delete",
-              confirm: "Remove profile photo?",
-              label: "Remove photo",
-              variant: "danger",
-          })
+    // the remove button sits in the upload form's button row but submits its own (empty) form
+    const removeForm = user.photo
+        ? `<form id="photo-delete" method="post" action="/admin/settings/photo/delete" data-confirm="Remove profile photo?" hidden></form>`
+        : "";
+    const removeButton = user.photo
+        ? `<button type="submit" form="photo-delete" class="btn btn-danger">Remove photo</button>`
         : "";
     const e = passwordErrors ?? {};
     const changed = passwordChanged ? `<p class="form-success">Password changed</p>` : "";
@@ -53,20 +51,21 @@ export function SettingsView({
                 <div class="settings-photo">
                     ${Avatar({person: user, block: "settings-avatar"})}
                     <div class="settings-photo-body">
-                        <form method="post" action="/admin/settings/photo" enctype="multipart/form-data" class="admin-form">
+                        <form method="post" action="/admin/settings/photo" enctype="multipart/form-data" class="settings-photo-form">
                             ${TopError(photoError)}
                             <input type="file" name="photo" accept="image/*" data-max-bytes="${MAX_UPLOAD_BYTES}" required class="form-input" />
                             <div class="form-actions">
-                                <button type="submit" class="btn btn-primary">${user.photo ? "Replace photo" : "Upload"}</button>
+                                <button type="submit" class="btn btn-primary">${user.photo ? "Replace photo" : "Upload photo"}</button>
+                                ${removeButton}
                             </div>
                         </form>
-                        ${removePhoto}
+                        ${removeForm}
                     </div>
                 </div>
             </section>
             <section class="admin-card">
                 <h2 class="admin-h2">Password</h2>
-                <p class="row-sub">Changing it signs out every other session.</p>
+                <p class="row-sub settings-hint">Changing it signs out every other session.</p>
                 <form method="post" action="/admin/settings/password" class="admin-form">
                     ${TopError(passwordTopError)}
                     ${changed}

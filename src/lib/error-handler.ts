@@ -9,6 +9,12 @@ export function makeGlobalErrorHandler(log: LoggerService): GlobalErrorHandler {
             log.error(error, "error after headers sent");
             return next(error);
         }
+        // a form over the body limit is the sender's doing, not an error on our side
+        if (error?.type === "entity.too.large") {
+            log.warn({limit: error.limit, length: error.length}, "request body too large");
+            res.status(413).type("html").send("<!doctype html><h1>That was too large to send.</h1>");
+            return;
+        }
         log.error(error, "unhandled error");
         res.status(500).type("html").send("<!doctype html><h1>Something went wrong.</h1>");
     };

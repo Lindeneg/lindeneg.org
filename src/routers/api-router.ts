@@ -1,4 +1,4 @@
-import express, {Router} from "express";
+import express, {Router, type NextFunction, type Request, type Response} from "express";
 import cors from "cors";
 import {rateLimit} from "express-rate-limit";
 import z from "zod";
@@ -38,6 +38,20 @@ export function makeApiRouter(messageService: MessageService, origins: string[])
             return;
         }
         res.json({success: true});
+    });
+
+    // the caller reads json, so a body the parser rejects gets a json error instead of the html error page
+    router.use("/cl-software", (err: unknown, _req: Request, res: Response, next: NextFunction) => {
+        const type = (err as {type?: string})?.type;
+        if (type === "entity.too.large") {
+            res.status(413).json({error: "message too large"});
+            return;
+        }
+        if (type === "entity.parse.failed") {
+            res.status(400).json({error: "invalid json"});
+            return;
+        }
+        next(err);
     });
 
     return router;

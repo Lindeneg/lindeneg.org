@@ -62,6 +62,87 @@ describe("navigation", () => {
         expect((await get("/blog")).html).not.toContain(renamed);
     });
 
+    // the public link for an item, from the desktop nav
+    const publicLink = async (name: string) => {
+        const html = (await get("/blog")).html;
+        return html.match(new RegExp(`<a [^>]*class="nav-link"[^>]*>${name}.*?</a>`))?.[0] ?? "";
+    };
+
+    it("opens an item in a new tab only while it is ticked, external links included", async () => {
+        const name = `Ext${uid()}`;
+        await postForm(
+            "/admin/nav-items/new",
+            itemFields(name, {href: "https://example.com", newTab: "1", alignment: "RIGHT"}),
+            cookie
+        );
+        const item = await db.p.navigationItem.findFirstOrThrow({where: {name}});
+        expect(await publicLink(name)).toContain(`target="_blank"`);
+        expect((await get(`/admin/nav-items/${item.id}/edit`, cookie)).html).toMatch(/name="newTab" value="1" checked/);
+
+        const unticked = await postForm(
+            `/admin/nav-items/${item.id}/edit`,
+            itemFields(name, {href: "https://example.com", alignment: "RIGHT"}),
+            cookie
+        );
+        expect(unticked.status).toBe(302);
+
+        expect((await db.p.navigationItem.findUniqueOrThrow({where: {id: item.id}})).newTab).toBe(false);
+        expect(await publicLink(name)).not.toContain(`target="_blank"`);
+        expect((await get(`/admin/nav-items/${item.id}/edit`, cookie)).html).toMatch(/name="newTab" value="1" \/>/);
+
+        await postForm(`/admin/nav-items/${item.id}/delete`, {}, cookie);
+    });
+
+    it("trims the name and href", async () => {
+        const name = `Trim${uid()}`;
+        await postForm(
+            "/admin/nav-items/new",
+            itemFields(name, {name: `  ${name} `, href: "\thttps://example.com "}),
+            cookie
+        );
+
+        const item = await db.p.navigationItem.findFirstOrThrow({where: {name}});
+        expect(item.href).toBe("https://example.com");
+        await postForm(`/admin/nav-items/${item.id}/delete`, {}, cookie);
+    });
+
+    it("adds items to the site's navigation whatever navigation id the form sends", async () => {
+        const name = `Forged${uid()}`;
+        const res = await postForm("/admin/nav-items/new", itemFields(name, {navigationId: "someone-elses"}), cookie);
+        expect(res.status).toBe(302);
+
+        const item = await db.p.navigationItem.findFirstOrThrow({where: {name}});
+        expect(item.navigationId).toBe(navigationId);
+        await postForm(`/admin/nav-items/${item.id}/delete`, {}, cookie);
+    });
+
+    it("orders items on the site by position", async () => {
+        const [late, early] = [`Late${uid()}`, `Early${uid()}`];
+        await postForm("/admin/nav-items/new", itemFields(late, {position: "91"}), cookie);
+        await postForm("/admin/nav-items/new", itemFields(early, {position: "90"}), cookie);
+
+        const html = (await get("/blog")).html;
+        expect(html.indexOf(`>${early}<`)).toBeGreaterThan(-1);
+        expect(html.indexOf(`>${early}<`)).toBeLessThan(html.indexOf(`>${late}<`));
+
+        for (const name of [late, early]) {
+            const item = await db.p.navigationItem.findFirstOrThrow({where: {name}});
+            await postForm(`/admin/nav-items/${item.id}/delete`, {}, cookie);
+        }
+    });
+
+    it("keeps what was typed when the item is invalid", async () => {
+        const res = await postForm(
+            "/admin/nav-items/new",
+            itemFields("Typed", {href: "/typed", position: "-1"}),
+            cookie
+        );
+
+        expect(res.status).toBe(400);
+        expect(res.html).toContain(`value="Typed"`);
+        expect(res.html).toContain(`value="/typed"`);
+    });
+
     it("returns 404 for an unknown item", async () => {
         const res = await get("/admin/nav-items/does-not-exist/edit", cookie);
 

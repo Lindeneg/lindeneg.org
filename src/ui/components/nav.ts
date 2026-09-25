@@ -5,11 +5,11 @@ import {esc, isActive} from "../lib.js";
 type NavItem = NavigationWithItems["items"][number];
 
 function navLink(item: NavItem, currentPath: string, mobile = false): string {
-    const isExternal = item.newTab || /^https?:\/\//i.test(item.href);
-    const target = isExternal ? ` target="_blank" rel="noopener noreferrer"` : "";
+    // the item's "open in new tab" setting alone decides, for internal and external links alike
+    const target = item.newTab ? ` target="_blank" rel="noopener noreferrer"` : "";
     const current = isActive(item.href, currentPath) ? ` aria-current="page"` : "";
     const cls = mobile ? "nav-link nav-link--mobile" : "nav-link";
-    const ext = isExternal ? icon("ext", "icon icon-ext") : "";
+    const ext = item.newTab ? icon("ext", "icon icon-ext") : "";
     return `<a href="${esc(item.href)}" class="${cls}"${target}${current}>${esc(item.name)}${ext}</a>`;
 }
 

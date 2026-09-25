@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {BASE_URL, db, env, get, uid} from "./helpers.js";
+import {BASE_URL, db, env, get, login, uid} from "./helpers.js";
 
 // the freelance site posts its contact form here, cross-origin
 describe("contact api", () => {
@@ -21,6 +21,21 @@ describe("contact api", () => {
         expect(await res.json()).toEqual({success: true});
         const stored = await db.p.contactMessage.findFirstOrThrow({where: {name}});
         expect(stored).toMatchObject({email: "api@example.com", message: "Hello", read: false});
+    });
+
+    it("shows a sent message as unread in the admin inbox", async () => {
+        const name = `Inbox ${uid()}`;
+        await post({name, email: "inbox@example.com", message: "Please get back to me"});
+
+        const html = (await get("/admin/messages?pageSize=100", await login())).html;
+        const row = html.match(
+            new RegExp(
+                `<details class="message-row is-unread">(?:(?!</details>).)*${name}(?:(?!</details>).)*</details>`,
+                "s"
+            )
+        );
+        expect(row?.[0]).toContain("inbox@example.com");
+        expect(row?.[0]).toContain("Please get back to me");
     });
 
     it("rejects invalid input with field errors", async () => {
