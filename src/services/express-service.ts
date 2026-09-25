@@ -63,8 +63,6 @@ class ExpressService {
             })
         );
         this.app.use(compression());
-        this.app.use(express.urlencoded({extended: true, limit: "2mb"}));
-        this.app.use(cookieParser());
 
         // before the request logger, so health checks don't flood the logs
         this.app.use(routers.health);
@@ -74,7 +72,12 @@ class ExpressService {
             this.app.use(expressStatic(opts.staticPublicRoot, {index: false, fallthrough: true}));
         }
 
+        // before the form and cookie parsers: the api only takes json, which its own router parses
         this.app.use("/api", routers.api);
+
+        this.app.use(express.urlencoded({extended: true, limit: "2mb"}));
+        this.app.use(cookieParser());
+
         this.app.use("/admin", routers.admin);
         this.app.use(routers.public);
 

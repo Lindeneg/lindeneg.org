@@ -48,6 +48,15 @@ describe("singleImage", () => {
         expect(result.file).toBeNull();
     });
 
+    it("keeps a text field over multer's 1mb default, like a long post", async () => {
+        const content = "x".repeat(1.5 * 1024 * 1024);
+
+        const result = await upload(null, {content});
+
+        expect(result.uploadError).toBeNull();
+        expect(result.body.content).toHaveLength(content.length);
+    });
+
     it("passes a form without a file through untouched", async () => {
         expect(await upload(null, {title: "t"})).toEqual({uploadError: null, file: null, body: {title: "t"}});
     });

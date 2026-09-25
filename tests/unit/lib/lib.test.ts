@@ -176,11 +176,17 @@ describe("env", () => {
             ["1", 1],
             ["loopback", "loopback"],
             ["loopback, uniquelocal", "loopback, uniquelocal"],
-            ["", undefined],
+            ["", "loopback"],
         ])("reads TRUST_PROXY=%j as %j", (value, expected) => {
             vi.stubEnv("TRUST_PROXY", value);
 
             expect(loadAppEnv().TRUST_PROXY).toEqual(expected);
+        });
+
+        it("trusts a proxy on the same host when TRUST_PROXY is not set", () => {
+            vi.stubEnv("TRUST_PROXY", undefined);
+
+            expect(loadAppEnv().TRUST_PROXY).toBe("loopback");
         });
 
         it("defaults the optional settings", () => {

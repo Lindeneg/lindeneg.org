@@ -9,7 +9,9 @@ import {serve, type Served} from "../serve.js";
 
 function build(opts: Partial<ExpressOpts> = {}) {
     const health = Router().get("/healthz", (_req, res) => void res.json({status: "ok"}));
-    const api = Router().get("/ping", (_req, res) => void res.json({api: true}));
+    const api = Router()
+        .get("/ping", (_req, res) => void res.json({api: true}))
+        .post("/echo", (req, res) => void res.json({body: req.body ?? null, cookies: req.cookies ?? null}));
     const admin = Router().get("/", (_req, res) => void res.send("admin"));
     const site = Router()
         .get("/ip", (req, res) => void res.send(req.ip))
@@ -104,6 +106,16 @@ describe("ExpressService", () => {
         });
 
         expect(await res.text()).toBe("");
+    });
+
+    it("gives the api neither parsed forms nor cookies, it only takes json", async () => {
+        const res = await request(build(), "/api/echo", {
+            method: "POST",
+            headers: {cookie: "a=1"},
+            body: new URLSearchParams({name: "x"}),
+        });
+
+        expect(await res.json()).toEqual({body: null, cookies: null});
     });
 
     it("answers a form over 2mb with a 413 instead of the error page", async () => {

@@ -45,6 +45,18 @@ describe("contact api", () => {
         expect((await res.json()).errors).toHaveProperty("email");
     });
 
+    it("rejects a form-encoded message through the real app, it only takes json", async () => {
+        const name = `Form ${uid()}`;
+        const res = await fetch(`${BASE_URL}/api/cl-software`, {
+            method: "POST",
+            headers: {origin},
+            body: new URLSearchParams({name, email: "form@example.com", message: "Hi"}),
+        });
+
+        expect(res.status).toBe(400);
+        expect(await db.p.contactMessage.findFirst({where: {name}})).toBeNull();
+    });
+
     it("allows the configured origin to call it cross-origin", async () => {
         const preflight = await fetch(`${BASE_URL}/api/cl-software`, {
             method: "OPTIONS",

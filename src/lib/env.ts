@@ -63,9 +63,10 @@ export function loadAppEnv() {
                 PUBLIC_STATIC_ROOT: withOptional(toString()),
                 LOG_LEVEL: withOptional(toEnum("fatal", "error", "warn", "info", "debug", "trace", "silent")),
 
-                // express "trust proxy": a hop count ("1") or addresses/presets ("loopback, uniquelocal")
+                // express "trust proxy": a hop count ("1") or addresses/presets ("loopback, uniquelocal"); loopback
+                // by default, so nginx on the same host passes the client ip, and without a proxy nothing is trusted
                 TRUST_PROXY: function (_, value) {
-                    if (value === undefined || value.trim() === "") return success(undefined);
+                    if (value === undefined || value.trim() === "") return success("loopback");
                     return success(/^\d+$/.test(value) ? Number(value) : value);
                 },
 

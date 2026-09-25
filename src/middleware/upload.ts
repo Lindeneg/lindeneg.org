@@ -4,7 +4,8 @@ import {MAX_UPLOAD_BYTES} from "../lib/http.js";
 
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: {fileSize: MAX_UPLOAD_BYTES},
+    // text fields (a post's markdown) get the same 2mb as the other admin forms, not multer's 1mb default
+    limits: {fileSize: MAX_UPLOAD_BYTES, fieldSize: 2 * 1024 * 1024},
 });
 
 // upload.single, but a rejected file becomes req.uploadError so the route can re-render its form
