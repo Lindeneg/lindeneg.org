@@ -31,6 +31,10 @@ export function parseSuperUser(value: string) {
     if (!email || !firstName || !lastName || !password) {
         return failure("must be email,firstname,lastname,password");
     }
+    // bcrypt only uses the first 72 bytes of a password, and a letter like æ is 2 of them
+    if (Buffer.byteLength(password, "utf8") > 72) {
+        return failure("Use at most 72 bytes (letters like æøå count as 2)");
+    }
     return success({email, name: `${firstName} ${lastName}`, password});
 }
 

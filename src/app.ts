@@ -116,21 +116,21 @@ export async function startApp(env: AppEnv, log: LoggerService, imageStore: Imag
         }
     );
 
-    const startResult = await expressService.start();
-    if (!startResult.ok) {
-        await dataService.teardown();
-        process.exit(1);
-    }
-
     let shuttingDown = false;
-    const shutdown = async (signal: string) => {
+    const shutdown = async (signal: string, exitCode = 0) => {
         if (shuttingDown) return;
         shuttingDown = true;
         log.info(`received ${signal}, shutting down...`);
         await expressService.teardown();
         await dataService.teardown();
-        process.exit(0);
+        process.exit(exitCode);
     };
+
+    const startResult = await expressService.start(() => shutdown("a server error", 1));
+    if (!startResult.ok) {
+        await dataService.teardown();
+        process.exit(1);
+    }
 
     process.on("SIGTERM", () => shutdown("SIGTERM"));
     process.on("SIGINT", () => shutdown("SIGINT"));

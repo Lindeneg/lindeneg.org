@@ -92,7 +92,7 @@ class ExpressService {
     }
 
     // resolves once the port is bound, or with a failure if it can't be (e.g. already in use)
-    start(): Promise<EmptyResult> {
+    start(onError: (error: Error) => void): Promise<EmptyResult> {
         return new Promise((resolve) => {
             const server = this.app.listen(this.opts.port, (err?: Error) => {
                 if (err) {
@@ -100,12 +100,13 @@ class ExpressService {
                     return resolve(failure(err.message));
                 }
                 this.#server = server;
-                // express only listens for errors while starting; later a server error means it's broken, so it
-                // exits and pm2 restarts it, instead of the error being swallowed by the finished startup listener
+                // express only listens for errors while starting; later a server error means it's broken, so it goes
+                // to onError, which shuts the app down for pm2 to restart, instead of being swallowed by the finished
+                // startup listener
                 server.removeAllListeners("error");
                 server.on("error", (serverError) => {
                     this.log.fatal(serverError, "server error");
-                    process.exit(1);
+                    onError(serverError);
                 });
                 this.log.info(`server listening on http://localhost:${this.opts.port}`);
                 resolve(emptySuccess());

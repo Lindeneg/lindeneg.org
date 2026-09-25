@@ -20,14 +20,19 @@ export type PostFormViewProps = {
     topError?: string;
 };
 
-export function PostFormView({mode, post, values, errors, topError}: PostFormViewProps): string {
-    const v: PostFormValues = values ?? {
+// what the form shows for a saved post, or an empty form without one
+export function postFormValues(post?: PostWithRelations): PostFormValues {
+    return {
         title: post?.title ?? "",
         slug: post?.slug ?? "",
         content: post?.content ?? "",
         published: post?.published ?? false,
         tags: post?.tags.map((tag) => tag.name).join(", ") ?? "",
     };
+}
+
+export function PostFormView({mode, post, values, errors, topError}: PostFormViewProps): string {
+    const v: PostFormValues = values ?? postFormValues(post);
     const e = errors ?? {};
     const action = mode === "create" ? "/admin/blog/new" : `/admin/blog/${post!.id}/edit`;
     const thumbExisting = post?.thumbnail ? `<img src="${esc(post.thumbnail)}" alt="" class="thumb-preview" />` : "";

@@ -164,7 +164,7 @@ describe("ExpressService", () => {
             await new Promise<void>((resolve) => blocker!.listen(0, () => resolve()));
             const {port} = blocker.address() as AddressInfo;
 
-            const result = await build({port}).start();
+            const result = await build({port}).start(() => {});
 
             expect(result.ok).toBe(false);
         });
@@ -176,25 +176,25 @@ describe("ExpressService", () => {
             await new Promise<void>((resolve) => probe.close(() => resolve()));
 
             const service = build({port});
-            expect((await service.start()).ok).toBe(true);
+            expect((await service.start(() => {})).ok).toBe(true);
             expect((await fetch(`http://127.0.0.1:${port}/`)).status).toBe(200);
 
             await service.teardown();
             await expect(fetch(`http://127.0.0.1:${port}/`)).rejects.toThrow();
         });
 
-        it("exits on a server error after startup, so pm2 restarts it, instead of swallowing it", async () => {
+        it("hands a server error after startup to onError, so the app shuts down, instead of swallowing it", async () => {
             const service = build();
             const listen = vi.spyOn(service.app, "listen");
-            const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never);
-            expect((await service.start()).ok).toBe(true);
+            const onError = vi.fn();
+            expect((await service.start(onError)).ok).toBe(true);
             const server = listen.mock.results[0].value as import("node:http").Server;
 
             expect(server.listenerCount("error")).toBe(1);
-            server.emit("error", new Error("accept failed"));
+            const error = new Error("accept failed");
+            server.emit("error", error);
 
-            expect(exit).toHaveBeenCalledWith(1);
-            exit.mockRestore();
+            expect(onError).toHaveBeenCalledWith(error);
             await service.teardown();
         });
 

@@ -136,6 +136,13 @@ describe("env", () => {
         expect(parseSuperUser("a@example.com,Ada,Lovelace,").ok).toBe(false);
     });
 
+    it("rejects a SUPER_USER password over bcrypt's 72 bytes", () => {
+        expect(parseSuperUser(`a@example.com,Ada,Lovelace,${"æ".repeat(37)}`)).toEqual(
+            failure("Use at most 72 bytes (letters like æøå count as 2)")
+        );
+        expect(parseSuperUser(`a@example.com,Ada,Lovelace,${"æ".repeat(36)}`).ok).toBe(true);
+    });
+
     describe("loadAppEnv", () => {
         // .env.test is the base; process.env wins over it, which is how a server's environment configures the app
         it("lets process.env override the env files", () => {
