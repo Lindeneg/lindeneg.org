@@ -79,7 +79,8 @@ describe("layouts", () => {
 
         expect(html).toContain(`<script src="/client.js" defer></script>`);
         expect(html).toContain(`<script src="/local-dates.js" defer></script>`);
-        expect(html).toContain(`<script src="/theme-boot.js"></script>`);
+        // blocking, and kept out of cloudflare's rocket loader, so the theme is set before the page paints
+        expect(html).toContain(`<script data-cfasync="false" src="/theme-boot.js"></script>`);
         expect(html).not.toContain("cdn.jsdelivr.net");
         expect(html).not.toContain("fonts.googleapis.com");
     });

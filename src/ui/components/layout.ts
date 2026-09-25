@@ -33,7 +33,8 @@ function head({title, description, styles, scripts = [], meta = ""}: HeadProps):
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     ${styles.map((href) => `<link rel="stylesheet" href="${href}" />`).join("\n    ")}
     ${scripts.map((s) => `<script src="${s.src}" integrity="${s.integrity}" crossorigin="anonymous"></script>`).join("\n    ")}
-    <script src="/theme-boot.js"></script>
+    <!-- has to run before the page paints; data-cfasync stops cloudflare's rocket loader from deferring it -->
+    <script data-cfasync="false" src="/theme-boot.js"></script>
     <script src="/local-dates.js" defer></script>
     <title>${esc(title)}</title>`;
 }
