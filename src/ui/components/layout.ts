@@ -26,6 +26,8 @@ function head({title, description, styles, scripts = [], meta = ""}: HeadProps):
     return `
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- lets the browser paint the blank page between navigations dark when the os is, before the css has loaded -->
+    <meta name="color-scheme" content="light dark" />
     ${desc}
     ${meta}
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
