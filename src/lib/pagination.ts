@@ -23,10 +23,7 @@ export type PaginatedResult<T> = {data: T[]; total: number};
 
 export function parsePagination(req: Request): PaginationParams {
     const page = Math.max(1, parseInt(req.query.page as string) || DEFAULT_PAGE);
-    const pageSize = Math.min(
-        MAX_PAGE_SIZE,
-        Math.max(1, parseInt(req.query.pageSize as string) || DEFAULT_PAGE_SIZE)
-    );
+    const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, parseInt(req.query.pageSize as string) || DEFAULT_PAGE_SIZE));
     return {page, pageSize};
 }
 

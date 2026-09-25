@@ -40,7 +40,9 @@ describe("AuthService", () => {
         it("rejects an unknown email", async () => {
             repo.getWithPasswordByEmail.mockResolvedValue(success(null));
 
-            expect(await service.login("x@example.com", "correct horse")).toEqual(failure(AuthError.INVALID_CREDENTIALS));
+            expect(await service.login("x@example.com", "correct horse")).toEqual(
+                failure(AuthError.INVALID_CREDENTIALS)
+            );
         });
 
         it("rejects a wrong password", async () => {

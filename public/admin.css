@@ -54,7 +54,9 @@
     border-radius: calc(var(--radius) * 0.6);
     font-size: 0.875rem;
     color: var(--muted-foreground);
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease;
 }
 
 .admin-side-link:hover {
@@ -289,7 +291,10 @@
     border: 1px solid transparent;
     cursor: pointer;
     text-decoration: none;
-    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
     background: transparent;
     color: var(--foreground);
     font-family: inherit;
@@ -523,7 +528,9 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     color: var(--foreground);
-    transition: border-color 0.15s ease, background-color 0.15s ease;
+    transition:
+        border-color 0.15s ease,
+        background-color 0.15s ease;
 }
 .stat-card:hover {
     border-color: color-mix(in oklab, var(--border) 60%, var(--foreground) 12%);

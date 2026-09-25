@@ -56,22 +56,25 @@ export function PageFormView({user, currentPath, mode, page, values, errors, top
     const action = mode === "create" ? "/admin/pages/new" : `/admin/pages/${page!.id}/edit`;
     const e = errors ?? {};
 
-    const sections = mode === "edit" && page
-        ? `
+    const sections =
+        mode === "edit" && page
+            ? `
             <section class="admin-sections">
                 <div class="admin-sections-head">
                     <h2 class="admin-h2">Sections</h2>
                     <a href="/admin/pages/${esc(page.id)}/sections/new" class="btn btn-primary btn-sm">New section</a>
                 </div>
-                ${page.sections.length === 0
-                    ? `<p class="empty-state">No sections yet.</p>`
-                    : `<ul class="section-list">${[...page.sections]
-                          .sort((a, b) => a.position - b.position)
-                          .map(sectionRow)
-                          .join("")}</ul>`}
+                ${
+                    page.sections.length === 0
+                        ? `<p class="empty-state">No sections yet.</p>`
+                        : `<ul class="section-list">${[...page.sections]
+                              .sort((a, b) => a.position - b.position)
+                              .map(sectionRow)
+                              .join("")}</ul>`
+                }
             </section>
         `
-        : "";
+            : "";
 
     const deleteAction =
         mode === "edit" && page

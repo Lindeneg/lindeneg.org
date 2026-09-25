@@ -25,10 +25,7 @@ export function SectionFormView({mode, page, section, values, errors, topError}:
         published: section?.published ?? false,
     };
     const e = errors ?? {};
-    const action =
-        mode === "create"
-            ? `/admin/pages/${page.id}/sections/new`
-            : `/admin/sections/${section!.id}/edit`;
+    const action = mode === "create" ? `/admin/pages/${page.id}/sections/new` : `/admin/sections/${section!.id}/edit`;
     const positionError = e.position ? `<span class="form-error-inline">${esc(e.position)}</span>` : "";
     const contentError = e.content ? `<div class="form-top-error">${esc(e.content)}</div>` : "";
 

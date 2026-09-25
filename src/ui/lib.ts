@@ -68,12 +68,7 @@ const MD_SANITIZE: sanitizeHtml.IOptions = {
             "referrerpolicy",
         ],
     },
-    allowedIframeHostnames: [
-        "www.youtube.com",
-        "youtube.com",
-        "www.youtube-nocookie.com",
-        "youtube-nocookie.com",
-    ],
+    allowedIframeHostnames: ["www.youtube.com", "youtube.com", "www.youtube-nocookie.com", "youtube-nocookie.com"],
     transformTags: {
         a: (tagName, attribs) => {
             const href = attribs.href ?? "";
@@ -130,4 +125,3 @@ export function initials(name: string): string {
         .slice(0, 2)
         .toUpperCase();
 }
-

@@ -73,11 +73,7 @@ class AuthService {
         return success(userResult.data);
     }
 
-    async createSuperUserOnce(
-        email: string,
-        name: string,
-        password: string
-    ): AsyncResult<User, AuthError> {
+    async createSuperUserOnce(email: string, name: string, password: string): AsyncResult<User, AuthError> {
         const hasAdmin = await this.userRepo.hasAdmin();
         if (!hasAdmin.ok) return failure(AuthError.DB_ERROR);
         if (hasAdmin.data) return failure(AuthError.ADMIN_ALREADY_CREATED);

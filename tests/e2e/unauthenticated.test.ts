@@ -53,7 +53,11 @@ const routes: Route[] = [
     {
         route: "POST /admin/pages/:id/edit",
         send: (s, c) =>
-            postForm(`/admin/pages/${s.pageId}/edit`, {name: "Hacked", slug: "hacked", title: "Hacked", description: ""}, c),
+            postForm(
+                `/admin/pages/${s.pageId}/edit`,
+                {name: "Hacked", slug: "hacked", title: "Hacked", description: ""},
+                c
+            ),
     },
     {route: "POST /admin/pages/:id/delete", send: (s, c) => postForm(`/admin/pages/${s.pageId}/delete`, {}, c)},
     {route: "GET /admin/pages/:id/sections/new", send: (s, c) => get(`/admin/pages/${s.pageId}/sections/new`, c)},
@@ -68,7 +72,10 @@ const routes: Route[] = [
         send: (s, c) =>
             postForm(`/admin/sections/${s.sectionId}/edit`, {content: "hacked", position: "9", published: "1"}, c),
     },
-    {route: "POST /admin/sections/:id/delete", send: (s, c) => postForm(`/admin/sections/${s.sectionId}/delete`, {}, c)},
+    {
+        route: "POST /admin/sections/:id/delete",
+        send: (s, c) => postForm(`/admin/sections/${s.sectionId}/delete`, {}, c),
+    },
 
     {route: "GET /admin/blog", send: (_, c) => get("/admin/blog", c)},
     {route: "GET /admin/blog/new", send: (_, c) => get("/admin/blog/new", c)},
@@ -122,7 +129,10 @@ const routes: Route[] = [
         route: "POST /admin/messages/:id/toggle-read",
         send: (s, c) => postForm(`/admin/messages/${s.messageId}/toggle-read`, {}, c),
     },
-    {route: "POST /admin/messages/:id/delete", send: (s, c) => postForm(`/admin/messages/${s.messageId}/delete`, {}, c)},
+    {
+        route: "POST /admin/messages/:id/delete",
+        send: (s, c) => postForm(`/admin/messages/${s.messageId}/delete`, {}, c),
+    },
 
     {route: "GET /admin/settings", send: (_, c) => get("/admin/settings", c)},
     {
@@ -208,7 +218,14 @@ describe("unauthenticated access", () => {
             include: {sections: true},
         });
         const post = await db.p.post.create({
-            data: {title: "Guarded", slug: `guarded-${uid()}`, content: "guarded", published: true, thumbnail: "", authorId: user.id},
+            data: {
+                title: "Guarded",
+                slug: `guarded-${uid()}`,
+                content: "guarded",
+                published: true,
+                thumbnail: "",
+                authorId: user.id,
+            },
         });
         const item = await db.p.navigationItem.create({
             data: {navigationId: navigation.id, name: `Guarded${uid()}`, href: "/guarded"},

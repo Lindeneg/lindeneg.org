@@ -29,7 +29,10 @@ export function pagesRouter(pageService: PageService, templates: TemplateService
 
     const loadError = (ctx: PageError, what: string) => {
         const notFound = ctx === PageError.NOT_FOUND;
-        return {status: notFound ? 404 : 500, message: notFound ? `${what} not found` : `Failed to load ${what.toLowerCase()}`};
+        return {
+            status: notFound ? 404 : 500,
+            message: notFound ? `${what} not found` : `Failed to load ${what.toLowerCase()}`,
+        };
     };
 
     router.get("/pages", async (req, res) => {

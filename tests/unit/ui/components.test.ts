@@ -49,7 +49,13 @@ describe("tags", () => {
     });
 
     it("marks the active tag and links it back to the unfiltered list", () => {
-        const html = TagBar({tags: [{name: "music", count: 4}, {name: "programming", count: 2}], active: "music"});
+        const html = TagBar({
+            tags: [
+                {name: "music", count: 4},
+                {name: "programming", count: 2},
+            ],
+            active: "music",
+        });
         expect(html).toContain(`<a href="/blog" class="tag">All</a>`);
         expect(html).toContain(
             `<a href="/blog" class="tag" aria-current="page">${hash}music<span class="tag-count">4</span></a>`

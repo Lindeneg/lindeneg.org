@@ -8,7 +8,13 @@ export type PaginationProps = {
     buttonClass?: string;
 };
 
-export function Pagination({page, totalPages, basePath, params = {}, buttonClass = "pager-btn"}: PaginationProps): string {
+export function Pagination({
+    page,
+    totalPages,
+    basePath,
+    params = {},
+    buttonClass = "pager-btn",
+}: PaginationProps): string {
     if (totalPages <= 1) return "";
     const href = (target: number) => `${basePath}?${new URLSearchParams({...params, page: String(target)})}`;
     const prev =

@@ -27,7 +27,10 @@ export function navigationRouter(navigationService: NavigationService, templates
 
     const loadError = (ctx: NavigationError, what: string) => {
         const notFound = ctx === NavigationError.NOT_FOUND;
-        return {status: notFound ? 404 : 500, message: notFound ? `${what} not found` : `Failed to load ${what.toLowerCase()}`};
+        return {
+            status: notFound ? 404 : 500,
+            message: notFound ? `${what} not found` : `Failed to load ${what.toLowerCase()}`,
+        };
     };
 
     router.get("/navigation", async (req, res) => {

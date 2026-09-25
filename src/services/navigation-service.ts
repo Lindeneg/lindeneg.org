@@ -34,9 +34,7 @@ class NavigationService {
         return success(result.data);
     }
 
-    async getItem(
-        id: string
-    ): AsyncResult<{nav: NavigationWithItems; item: NavigationItem}, NavigationError> {
+    async getItem(id: string): AsyncResult<{nav: NavigationWithItems; item: NavigationItem}, NavigationError> {
         const nav = await this.get();
         if (!nav.ok) return nav;
         const item = nav.data.items.find((i) => i.id === id);

@@ -67,7 +67,11 @@ export function blogRouter(postService: PostService, templates: TemplateService)
             const notFound = result.ctx === PostError.NOT_FOUND;
             return send(
                 res,
-                templates.admin.error({user, currentPath, message: notFound ? "Post not found" : "Failed to load post"}),
+                templates.admin.error({
+                    user,
+                    currentPath,
+                    message: notFound ? "Post not found" : "Failed to load post",
+                }),
                 notFound ? 404 : 500
             );
         }
@@ -82,7 +86,11 @@ export function blogRouter(postService: PostService, templates: TemplateService)
             const notFound = existing.ctx === PostError.NOT_FOUND;
             return send(
                 res,
-                templates.admin.error({user, currentPath, message: notFound ? "Post not found" : "Failed to load post"}),
+                templates.admin.error({
+                    user,
+                    currentPath,
+                    message: notFound ? "Post not found" : "Failed to load post",
+                }),
                 notFound ? 404 : 500
             );
         }

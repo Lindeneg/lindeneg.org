@@ -19,11 +19,19 @@ export function settingsRouter(userService: UserService, templates: TemplateServ
         const user = getAuth(req);
         const cacheStats = templates.cacheStats();
         if (!req.file) {
-            return send(res, templates.admin.settings({user, currentPath, cacheStats, photoError: "Choose an image"}), 400);
+            return send(
+                res,
+                templates.admin.settings({user, currentPath, cacheStats, photoError: "Choose an image"}),
+                400
+            );
         }
         const result = await userService.uploadPhoto(user, req.file);
         if (!result.ok) {
-            return send(res, templates.admin.settings({user, currentPath, cacheStats, photoError: "Upload failed"}), 500);
+            return send(
+                res,
+                templates.admin.settings({user, currentPath, cacheStats, photoError: "Upload failed"}),
+                500
+            );
         }
         res.redirect(302, currentPath);
     });

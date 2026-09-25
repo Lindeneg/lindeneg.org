@@ -37,7 +37,9 @@ describe("TemplateService", () => {
 
             if (!result.ok) throw new Error("expected success");
             expect(listPosts).toHaveBeenCalledWith(expect.anything(), {published: true, tag: "jazz"});
-            expect(result.data).toContain(`href="/blog" class="tag" aria-current="page"><span class="tag-hash">#</span>jazz`);
+            expect(result.data).toContain(
+                `href="/blog" class="tag" aria-current="page"><span class="tag-hash">#</span>jazz`
+            );
             expect(result.data).toContain(`#jazz</span> <a href="/blog" class="blog-title-clear">clear</a></h1>`);
         });
 

@@ -1,13 +1,4 @@
-import {
-    unwrap,
-    success,
-    failure,
-    loadEnv,
-    withRequired,
-    refine,
-    toString,
-    nonEmpty,
-} from "@lindeneg/cl-env";
+import {unwrap, success, failure, loadEnv, withRequired, refine, toString, nonEmpty} from "@lindeneg/cl-env";
 import {PrismaBetterSqlite3} from "@prisma/adapter-better-sqlite3";
 import {PrismaClient} from "../src/generated/prisma/client.js";
 import {randomUUID} from "crypto";
@@ -238,18 +229,7 @@ import {hash} from "bcrypt";
     console.log(`Created ${postTitles.length} blog posts`);
 
     // Contact messages (50)
-    const names = [
-        "Alice",
-        "Bob",
-        "Charlie",
-        "Diana",
-        "Eve",
-        "Frank",
-        "Grace",
-        "Hank",
-        "Ivy",
-        "Jack",
-    ];
+    const names = ["Alice", "Bob", "Charlie", "Diana", "Eve", "Frank", "Grace", "Hank", "Ivy", "Jack"];
     const domains = ["gmail.com", "outlook.com", "company.co", "example.org", "test.dev"];
     const subjects = [
         "Love the new blog design!",

@@ -80,14 +80,22 @@ describe("blog", () => {
         const {id} = await createPost(title, {published: true, thumbnail: true});
         const before = (await db.p.post.findUnique({where: {id}}))!.thumbnail;
 
-        const replaced = await postMultipart(`/admin/blog/${id}/edit`, postFields(title, {published: true, thumbnail: true}), cookie);
+        const replaced = await postMultipart(
+            `/admin/blog/${id}/edit`,
+            postFields(title, {published: true, thumbnail: true}),
+            cookie
+        );
         expect(replaced.status).toBe(302);
         expect(replaced.location).toBe(`/admin/blog/${id}/edit`);
         const after = (await db.p.post.findUnique({where: {id}}))!.thumbnail;
         expect(after).toMatch(FAKE_IMAGE);
         expect(after).not.toBe(before);
 
-        const removed = await postMultipart(`/admin/blog/${id}/edit`, postFields(title, {published: true, remove: true}), cookie);
+        const removed = await postMultipart(
+            `/admin/blog/${id}/edit`,
+            postFields(title, {published: true, remove: true}),
+            cookie
+        );
         expect(removed.status).toBe(302);
         const post = await db.p.post.findUnique({where: {id}});
         expect(post).toMatchObject({thumbnail: "", thumbnailId: ""});
@@ -126,10 +134,14 @@ describe("blog", () => {
 
         it("normalizes tags on create and shows them in the editor", async () => {
             const suffix = uid();
-            const {id} = await createPost(`Tagged ${uid()}`, {tags: `Jazz${suffix}, Music Theory${suffix} ,jazz${suffix},`});
+            const {id} = await createPost(`Tagged ${uid()}`, {
+                tags: `Jazz${suffix}, Music Theory${suffix} ,jazz${suffix},`,
+            });
 
             expect(await tagsOf(id)).toEqual([`jazz${suffix}`, `music-theory${suffix}`]);
-            expect((await get(`/admin/blog/${id}/edit`, cookie)).html).toContain(`jazz${suffix}, music-theory${suffix}`);
+            expect((await get(`/admin/blog/${id}/edit`, cookie)).html).toContain(
+                `jazz${suffix}, music-theory${suffix}`
+            );
         });
 
         it("filters the public list by tag", async () => {
@@ -167,7 +179,11 @@ describe("blog", () => {
             const {id} = await createPost(title, {published: true, tags: before});
             expect((await get(`/blog?tag=${before}`)).status).toBe(200);
 
-            const res = await postMultipart(`/admin/blog/${id}/edit`, postFields(title, {published: true, tags: after}), cookie);
+            const res = await postMultipart(
+                `/admin/blog/${id}/edit`,
+                postFields(title, {published: true, tags: after}),
+                cookie
+            );
             expect(res.status).toBe(302);
 
             expect(await tagsOf(id)).toEqual([after]);

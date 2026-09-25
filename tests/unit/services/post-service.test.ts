@@ -17,7 +17,9 @@ describe("PostService", () => {
 
     beforeEach(() => {
         repo = {
-            getById: vi.fn().mockResolvedValue(success(makePost({thumbnail: "https://img/old.png", thumbnailId: "old-id"}))),
+            getById: vi
+                .fn()
+                .mockResolvedValue(success(makePost({thumbnail: "https://img/old.png", thumbnailId: "old-id"}))),
             create: vi.fn().mockResolvedValue(success(makePost())),
             update: vi.fn().mockResolvedValue(success(makePost())),
             delete: vi.fn().mockResolvedValue(success(makePost({thumbnailId: "old-id"}))),
@@ -73,7 +75,13 @@ describe("PostService", () => {
         it("does not create the post when the upload fails", async () => {
             store.upload.mockResolvedValue(failure("boom"));
 
-            const result = await service.create("user-1", {title: "t", content: "c", published: false, tags: [], thumbnail: file});
+            const result = await service.create("user-1", {
+                title: "t",
+                content: "c",
+                published: false,
+                tags: [],
+                thumbnail: file,
+            });
 
             expect(result).toEqual(failure(PostError.UPLOAD_ERROR));
             expect(repo.create).not.toHaveBeenCalled();
@@ -83,7 +91,13 @@ describe("PostService", () => {
         it("deletes the uploaded image when the post can't be created", async () => {
             repo.create.mockResolvedValue(failure("unique constraint"));
 
-            const result = await service.create("user-1", {title: "t", content: "c", published: false, tags: [], thumbnail: file});
+            const result = await service.create("user-1", {
+                title: "t",
+                content: "c",
+                published: false,
+                tags: [],
+                thumbnail: file,
+            });
 
             expect(result).toEqual(failure(PostError.DB_ERROR));
             expect(store.delete).toHaveBeenCalledWith(uploaded.publicId);

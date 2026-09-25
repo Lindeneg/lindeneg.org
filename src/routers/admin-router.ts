@@ -1,10 +1,6 @@
 import {Router, type RequestHandler} from "express";
 
-export function makeAdminRouter(
-    publicRouter: Router,
-    adminAuth: RequestHandler,
-    protectedRouters: Router[]
-): Router {
+export function makeAdminRouter(publicRouter: Router, adminAuth: RequestHandler, protectedRouters: Router[]): Router {
     const router = Router();
 
     // public

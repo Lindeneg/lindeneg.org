@@ -1,11 +1,5 @@
 import type {Server} from "node:http";
-import express, {
-    static as expressStatic,
-    type Request,
-    type Response,
-    type NextFunction,
-    type Router,
-} from "express";
+import express, {static as expressStatic, type Request, type Response, type NextFunction, type Router} from "express";
 import compression from "compression";
 import cors from "cors";
 import cookieParser from "cookie-parser";

@@ -68,7 +68,16 @@ export function NavItemFormView({
                 ${Field({name: "name", label: "Name", value: v.name, error: e.name, required: true})}
                 ${Field({name: "href", label: "Href", value: v.href, error: e.href, required: true, placeholder: "/about or https://..."})}
                 ${Field({name: "position", label: "Position", type: "number", value: v.position, error: e.position, required: true})}
-                ${Select({name: "alignment", label: "Alignment", value: v.alignment, error: e.alignment, options: [{value: "LEFT", label: "Left"}, {value: "RIGHT", label: "Right"}]})}
+                ${Select({
+                    name: "alignment",
+                    label: "Alignment",
+                    value: v.alignment,
+                    error: e.alignment,
+                    options: [
+                        {value: "LEFT", label: "Left"},
+                        {value: "RIGHT", label: "Right"},
+                    ],
+                })}
                 ${Checkbox({name: "newTab", label: "Open in new tab", checked: !!v.newTab})}
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">${mode === "create" ? "Create item" : "Save changes"}</button>

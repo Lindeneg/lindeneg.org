@@ -27,7 +27,11 @@ export function messagesRouter(messageService: MessageService, templates: Templa
             const notFound = result.ctx === MessageError.NOT_FOUND;
             return send(
                 res,
-                templates.admin.error({user, currentPath, message: notFound ? "Message not found" : "Failed to update message"}),
+                templates.admin.error({
+                    user,
+                    currentPath,
+                    message: notFound ? "Message not found" : "Failed to update message",
+                }),
                 notFound ? 404 : 500
             );
         }

@@ -135,7 +135,9 @@ img {
     font-size: 0.875rem;
     color: var(--muted-foreground);
     border-radius: calc(var(--radius) * 0.6);
-    transition: color 0.15s ease, background-color 0.15s ease;
+    transition:
+        color 0.15s ease,
+        background-color 0.15s ease;
 }
 
 .nav-link:hover {
@@ -169,7 +171,9 @@ img {
     color: var(--muted-foreground);
     border-radius: calc(var(--radius) * 0.6);
     cursor: pointer;
-    transition: color 0.15s ease, background-color 0.15s ease;
+    transition:
+        color 0.15s ease,
+        background-color 0.15s ease;
 }
 
 .icon-btn:hover {
@@ -313,12 +317,24 @@ img {
     animation: section-in 0.5s ease forwards;
 }
 
-.page-section:nth-child(1) { animation-delay: 0ms; }
-.page-section:nth-child(2) { animation-delay: 100ms; }
-.page-section:nth-child(3) { animation-delay: 200ms; }
-.page-section:nth-child(4) { animation-delay: 300ms; }
-.page-section:nth-child(5) { animation-delay: 400ms; }
-.page-section:nth-child(n+6) { animation-delay: 500ms; }
+.page-section:nth-child(1) {
+    animation-delay: 0ms;
+}
+.page-section:nth-child(2) {
+    animation-delay: 100ms;
+}
+.page-section:nth-child(3) {
+    animation-delay: 200ms;
+}
+.page-section:nth-child(4) {
+    animation-delay: 300ms;
+}
+.page-section:nth-child(5) {
+    animation-delay: 400ms;
+}
+.page-section:nth-child(n + 6) {
+    animation-delay: 500ms;
+}
 
 @keyframes section-in {
     to {
@@ -360,10 +376,18 @@ img {
     margin-top: 0;
 }
 
-.markdown h1 { font-size: 2.25rem; }
-.markdown h2 { font-size: 1.5rem; }
-.markdown h3 { font-size: 1.25rem; }
-.markdown h4 { font-size: 1.05rem; }
+.markdown h1 {
+    font-size: 2.25rem;
+}
+.markdown h2 {
+    font-size: 1.5rem;
+}
+.markdown h3 {
+    font-size: 1.25rem;
+}
+.markdown h4 {
+    font-size: 1.05rem;
+}
 
 .markdown p {
     color: var(--foreground);
@@ -519,7 +543,9 @@ img {
     border-radius: 0.375rem;
     cursor: pointer;
     opacity: 0;
-    transition: opacity 0.15s ease, background-color 0.15s ease;
+    transition:
+        opacity 0.15s ease,
+        background-color 0.15s ease;
 }
 
 .code-wrap:hover .copy-btn,
@@ -661,12 +687,17 @@ img {
     border-radius: var(--radius);
     background: var(--background);
     color: inherit;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease,
+        transform 0.15s ease;
 }
 
 .post-card:hover {
     border-color: color-mix(in oklab, var(--border) 60%, var(--foreground) 10%);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.06);
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.05),
+        0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .post-card-thumb {
@@ -778,7 +809,9 @@ img {
     font-size: 0.8125rem;
     color: var(--muted-foreground);
     border-bottom: 1px solid transparent;
-    transition: color 0.15s ease, border-color 0.15s ease;
+    transition:
+        color 0.15s ease,
+        border-color 0.15s ease;
 }
 
 .tag-hash {
@@ -833,7 +866,10 @@ a.tag:hover {
     border: 1px solid var(--border);
     border-radius: calc(var(--radius) * 0.6);
     cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
 }
 
 .pager-btn:hover {

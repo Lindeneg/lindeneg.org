@@ -63,19 +63,15 @@ export async function startApp(env: AppEnv, log: LoggerService, imageStore: Imag
     const dashboardService = new DashboardService(pageRepo, postRepo, contactRepo);
     const templateService = new TemplateService(pageRepo, navigationRepo, postRepo, cache);
 
-    const adminRouter = makeAdminRouter(
-        loginRouter(authService, templateService),
-        createAdminAuth(authService),
-        [
-            logoutRouter(authService),
-            dashboardRouter(dashboardService, templateService),
-            pagesRouter(pageService, templateService),
-            blogRouter(postService, templateService),
-            navigationRouter(navigationService, templateService),
-            messagesRouter(messageService, templateService),
-            settingsRouter(userService, templateService),
-        ]
-    );
+    const adminRouter = makeAdminRouter(loginRouter(authService, templateService), createAdminAuth(authService), [
+        logoutRouter(authService),
+        dashboardRouter(dashboardService, templateService),
+        pagesRouter(pageService, templateService),
+        blogRouter(postService, templateService),
+        navigationRouter(navigationService, templateService),
+        messagesRouter(messageService, templateService),
+        settingsRouter(userService, templateService),
+    ]);
 
     const publicRouter = makeSitePublicRouter(templateService);
 

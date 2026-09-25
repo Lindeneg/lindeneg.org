@@ -1,29 +1,29 @@
 (function () {
-    'use strict';
+    "use strict";
 
     function initConfirms() {
-        document.querySelectorAll('form[data-confirm]').forEach(function (form) {
-            form.addEventListener('submit', function (e) {
+        document.querySelectorAll("form[data-confirm]").forEach(function (form) {
+            form.addEventListener("submit", function (e) {
                 if (!confirm(form.dataset.confirm)) e.preventDefault();
             });
         });
     }
 
     function initMobileSidebar() {
-        var btn = document.querySelector('[data-admin-mobile-toggle]');
-        var sidebar = document.querySelector('.admin-sidebar');
+        var btn = document.querySelector("[data-admin-mobile-toggle]");
+        var sidebar = document.querySelector(".admin-sidebar");
         if (!btn || !sidebar) return;
-        btn.addEventListener('click', function () {
-            sidebar.classList.toggle('is-open');
+        btn.addEventListener("click", function () {
+            sidebar.classList.toggle("is-open");
         });
     }
 
     function initMarkdownEditor() {
-        var source = document.querySelector('[data-md-source]');
-        var preview = document.querySelector('[data-md-preview]');
+        var source = document.querySelector("[data-md-source]");
+        var preview = document.querySelector("[data-md-preview]");
         if (!source || !preview) return;
-        if (typeof window.marked === 'undefined') {
-            preview.textContent = '(preview unavailable — failed to load marked.js)';
+        if (typeof window.marked === "undefined") {
+            preview.textContent = "(preview unavailable — failed to load marked.js)";
             return;
         }
 
@@ -31,9 +31,9 @@
             window.marked.use({
                 renderer: {
                     code: function (token) {
-                        var lang = token.lang && window.hljs.getLanguage(token.lang) ? token.lang : 'plaintext';
+                        var lang = token.lang && window.hljs.getLanguage(token.lang) ? token.lang : "plaintext";
                         var highlighted = window.hljs.highlight(token.text, {language: lang}).value;
-                        return '<pre><code class="hljs language-' + lang + '">' + highlighted + '</code></pre>';
+                        return '<pre><code class="hljs language-' + lang + '">' + highlighted + "</code></pre>";
                     },
                 },
             });
@@ -65,11 +65,11 @@
             raf = requestAnimationFrame(render);
         };
 
-        source.addEventListener('input', schedule);
+        source.addEventListener("input", schedule);
         render();
 
         var bind = function (from, to) {
-            from.addEventListener('scroll', function () {
+            from.addEventListener("scroll", function () {
                 if (expected.has(from)) {
                     var echo = Math.abs(from.scrollTop - expected.get(from)) < 1;
                     expected.delete(from);
@@ -82,12 +82,12 @@
         bind(preview, source);
 
         const TAB_SIZE = 2;
-        source.addEventListener('keydown', function (e) {
-            if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        source.addEventListener("keydown", function (e) {
+            if (e.key === "Tab" && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
                 e.preventDefault();
                 var start = source.selectionStart;
                 var end = source.selectionEnd;
-                source.value = source.value.slice(0, start) + '  ' + source.value.slice(end);
+                source.value = source.value.slice(0, start) + "  " + source.value.slice(end);
                 source.selectionStart = source.selectionEnd = start + TAB_SIZE;
                 schedule();
             }
@@ -100,8 +100,8 @@
         initMarkdownEditor();
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
     } else {
         init();
     }

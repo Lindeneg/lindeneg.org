@@ -1,0 +1,7 @@
+dist
+data
+node_modules
+src/generated
+package-lock.json
+prisma/migrations
+public/highlight-github-dark.css
