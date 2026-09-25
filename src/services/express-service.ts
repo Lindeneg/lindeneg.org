@@ -4,6 +4,7 @@ import compression from "compression";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import {failure, emptySuccess, type EmptyResult} from "../lib/result.js";
+import {MAX_FORM_BYTES} from "../lib/http.js";
 import type {MaybeNull} from "../lib/types.js";
 import type LoggerService from "./logger-service.js";
 import type {GlobalErrorHandler} from "../lib/error-handler.js";
@@ -72,13 +73,15 @@ class ExpressService {
             this.app.use(expressStatic(opts.staticPublicRoot, {index: false, fallthrough: true}));
         }
 
-        // before the form and cookie parsers: the api only takes json, which its own router parses
+        // each router gets only the parsers it needs: the api parses its own json, only the admin takes forms and
+        // cookies, and the public site only serves GETs
         this.app.use("/api", routers.api);
-
-        this.app.use(express.urlencoded({extended: true, limit: "2mb"}));
-        this.app.use(cookieParser());
-
-        this.app.use("/admin", routers.admin);
+        this.app.use(
+            "/admin",
+            express.urlencoded({extended: true, limit: MAX_FORM_BYTES}),
+            cookieParser(),
+            routers.admin
+        );
         this.app.use(routers.public);
 
         this.app.use((err: any, request: Request, response: Response, next: NextFunction) =>

@@ -1,6 +1,6 @@
 import {beforeAll, describe, expect, it} from "vitest";
 import {DEFAULT_PAGE_SIZE} from "../../src/lib/pagination.js";
-import {MAX_UPLOAD_BYTES} from "../../src/lib/http.js";
+import {MAX_FORM_BYTES, MAX_UPLOAD_BYTES} from "../../src/lib/http.js";
 import {clearCache, db, get, idFromLocation, imageBlob, login, postForm, postMultipart, uid} from "./helpers.js";
 
 const POST_EDIT = /^\/admin\/blog\/([^/]+)\/edit$/;
@@ -104,6 +104,17 @@ describe("blog", () => {
         const res = await postMultipart("/admin/blog/new", form, cookie);
         expect(res.status).toBe(400);
         expect(res.html).toContain("Image must be 10MB or smaller");
+    });
+
+    it("says a post over the form limit is too large, at the top and not as an image error", async () => {
+        const form = postFields(`Post ${uid()}`);
+        form.set("content", "x".repeat(MAX_FORM_BYTES + 1));
+
+        const res = await postMultipart("/admin/blog/new", form, cookie);
+
+        expect(res.status).toBe(400);
+        expect(res.html).toContain(`<div class="form-top-error">The post is too large to save (max 2MB)</div>`);
+        expect(res.html).not.toContain("Upload failed");
     });
 
     it("lists published posts by when they were published, not when they were created", async () => {

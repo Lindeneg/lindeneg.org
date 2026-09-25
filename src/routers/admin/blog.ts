@@ -1,7 +1,7 @@
 import {Router} from "express";
 import z from "zod";
 import {AppError} from "../../lib/errors.js";
-import {send} from "../../lib/http.js";
+import {MAX_FORM_BYTES, send} from "../../lib/http.js";
 import {parsePagination} from "../../lib/pagination.js";
 import {checkbox, fieldErrors, requiredText} from "../../lib/validation.js";
 import {getAuth} from "../../middleware/admin-auth.js";
@@ -31,6 +31,9 @@ const PostSchema = z
 
 const currentPath = "/admin/blog";
 
+// multer stops at the field, so the form comes back without the text that was too large
+const POST_TOO_LARGE = `The post is too large to save (max ${MAX_FORM_BYTES / 1024 / 1024}MB)`;
+
 function saveErrors(ctx: AppError): {errors?: Record<string, string>; topError?: string} {
     if (ctx === AppError.CONFLICT) return {errors: {slug: "Another post already uses this slug"}};
     if (ctx === AppError.UPLOAD_ERROR) return {errors: {thumbnail: "Failed to upload thumbnail"}};
@@ -53,6 +56,9 @@ export function blogRouter(postService: PostService): Router {
 
     router.post("/blog/new", singleImage("thumbnail"), async (req, res) => {
         const user = getAuth(req);
+        if (req.fieldTooLarge) {
+            return send(res, PostFormView({mode: "create", values: req.body, topError: POST_TOO_LARGE}), 400);
+        }
         if (req.uploadError) {
             return send(
                 res,
@@ -95,6 +101,13 @@ export function blogRouter(postService: PostService): Router {
         const existing = await postService.get(id);
         if (!existing.ok) return sendLoadError(res, page, existing.ctx, "Post");
 
+        if (req.fieldTooLarge) {
+            return send(
+                res,
+                PostFormView({mode: "edit", post: existing.data, values: req.body, topError: POST_TOO_LARGE}),
+                400
+            );
+        }
         if (req.uploadError) {
             return send(
                 res,

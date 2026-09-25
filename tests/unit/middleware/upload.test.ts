@@ -1,6 +1,6 @@
 import {afterAll, beforeAll, describe, expect, it} from "vitest";
 import express from "express";
-import {MAX_UPLOAD_BYTES} from "../../../src/lib/http.js";
+import {MAX_FORM_BYTES, MAX_UPLOAD_BYTES} from "../../../src/lib/http.js";
 import {singleImage} from "../../../src/middleware/upload.js";
 import {serve, type Served} from "../serve.js";
 
@@ -12,6 +12,7 @@ describe("singleImage", () => {
         app.post("/upload", singleImage("photo"), (req, res) => {
             res.json({
                 uploadError: req.uploadError ?? null,
+                ...(req.fieldTooLarge ? {fieldTooLarge: true} : {}),
                 file: req.file ? {size: req.file.size, mimetype: req.file.mimetype} : null,
                 body: req.body,
             });
@@ -55,6 +56,28 @@ describe("singleImage", () => {
 
         expect(result.uploadError).toBeNull();
         expect(result.body.content).toHaveLength(content.length);
+    });
+
+    it("flags a text field over the form limit as too large, not as an image error", async () => {
+        const result = await upload(null, {title: "t", content: "x".repeat(MAX_FORM_BYTES + 1)});
+
+        expect(result.fieldTooLarge).toBe(true);
+        expect(result.uploadError).toBeNull();
+        expect(result.body.content).toBeUndefined();
+    });
+
+    it("refuses a form with more than 20 fields, so it can't buffer an unbounded body", async () => {
+        const fields = Object.fromEntries(Array.from({length: 21}, (_, i) => [`f${i}`, "x"]));
+
+        const result = await upload(null, fields);
+
+        expect(result.uploadError).toBe("Upload failed, try again");
+    });
+
+    it("accepts a form of 20 fields", async () => {
+        const fields = Object.fromEntries(Array.from({length: 20}, (_, i) => [`f${i}`, "x"]));
+
+        expect((await upload(null, fields)).uploadError).toBeNull();
     });
 
     it("passes a form without a file through untouched", async () => {

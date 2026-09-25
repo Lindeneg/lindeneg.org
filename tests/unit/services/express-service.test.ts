@@ -1,7 +1,7 @@
 import {afterEach, describe, expect, it, vi} from "vitest";
 import {createServer, type Server} from "node:net";
 import type {AddressInfo} from "node:net";
-import {Router} from "express";
+import {Router, type Request, type Response} from "express";
 import ExpressService, {type ExpressOpts} from "../../../src/services/express-service.js";
 import LoggerService from "../../../src/services/logger-service.js";
 import {makeGlobalErrorHandler} from "../../../src/lib/error-handler.js";
@@ -12,10 +12,13 @@ function build(opts: Partial<ExpressOpts> = {}) {
     const api = Router()
         .get("/ping", (_req, res) => void res.json({api: true}))
         .post("/echo", (req, res) => void res.json({body: req.body ?? null, cookies: req.cookies ?? null}));
-    const admin = Router().get("/", (_req, res) => void res.send("admin"));
+    const echo = (req: Request, res: Response) => void res.json({body: req.body ?? null, cookies: req.cookies ?? null});
+    const admin = Router()
+        .get("/", (_req, res) => void res.send("admin"))
+        .post("/form", echo);
     const site = Router()
         .get("/ip", (req, res) => void res.send(req.ip))
-        .post("/form", (req, res) => void res.json(req.body))
+        .post("/form", echo)
         .get("/boom", () => {
             throw new Error("boom");
         })
@@ -92,20 +95,34 @@ describe("ExpressService", () => {
         expect(await trusted.text()).toBe("203.0.113.7");
     });
 
-    it("parses urlencoded forms", async () => {
-        const res = await request(build(), "/form", {method: "POST", body: new URLSearchParams({a: "1"})});
+    it("parses forms and cookies for the admin", async () => {
+        const res = await request(build(), "/admin/form", {
+            method: "POST",
+            headers: {cookie: "a=1"},
+            body: new URLSearchParams({b: "2"}),
+        });
 
-        expect(await res.json()).toEqual({a: "1"});
+        expect(await res.json()).toEqual({body: {b: "2"}, cookies: {a: "1"}});
     });
 
-    it("does not parse json outside the api", async () => {
-        const res = await request(build(), "/form", {
+    it("does not parse json for the admin", async () => {
+        const res = await request(build(), "/admin/form", {
             method: "POST",
             headers: {"content-type": "application/json"},
             body: JSON.stringify({a: "1"}),
         });
 
-        expect(await res.text()).toBe("");
+        expect((await res.json()).body).toBeNull();
+    });
+
+    it("gives the public site neither parsed forms nor cookies, it only serves GETs", async () => {
+        const res = await request(build(), "/form", {
+            method: "POST",
+            headers: {cookie: "a=1"},
+            body: new URLSearchParams({b: "2"}),
+        });
+
+        expect(await res.json()).toEqual({body: null, cookies: null});
     });
 
     it("gives the api neither parsed forms nor cookies, it only takes json", async () => {
@@ -118,8 +135,8 @@ describe("ExpressService", () => {
         expect(await res.json()).toEqual({body: null, cookies: null});
     });
 
-    it("answers a form over 2mb with a 413 instead of the error page", async () => {
-        const res = await request(build(), "/form", {
+    it("answers an admin form over 2mb with a 413 instead of the error page", async () => {
+        const res = await request(build(), "/admin/form", {
             method: "POST",
             body: new URLSearchParams({x: "y".repeat(2 * 1024 * 1024 + 1)}),
         });
